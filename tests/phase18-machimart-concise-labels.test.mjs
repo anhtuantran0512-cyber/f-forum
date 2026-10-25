@@ -78,12 +78,12 @@ test('Phase 18 - 3. Thực Thi Luật Nhãn Siêu Tinh Gọn (≤ 3 Từ) Tại 
   }
 
   assert.ok(
-    hardware.includes('<span>iPhone 16 Pro</span>'),
-    'HardwareShowcase phải dùng nhãn nút [ iPhone 16 Pro ] (3 từ)',
+    !hardware.includes('<span>iPhone 16 Pro</span>') && hardware.includes('<Smartphone'),
+    'HardwareShowcase nút điện thoại phải là icon-only',
   );
   assert.ok(
-    hardware.includes('<span>MacBook Pro</span>'),
-    'HardwareShowcase phải dùng nhãn nút [ MacBook Pro ] (2 từ)',
+    !hardware.includes('<span>MacBook Pro</span>') && hardware.includes('<Laptop'),
+    'HardwareShowcase nút máy tính phải là icon-only',
   );
 
   const questionSortSrc = read('src/utils/questionSort.ts');

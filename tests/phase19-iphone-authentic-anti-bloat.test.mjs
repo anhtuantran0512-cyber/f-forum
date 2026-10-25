@@ -105,6 +105,6 @@ test('Phase 19 - 3. Ky Luat Tinh Gon Giao Dien Anti-Bloat: Khong Cong Don Tinh N
 
   assert.ok(chatView.includes('<span>Giải chi tiết</span>'), 'ChatView nhãn <= 3 từ');
   assert.ok(chatDock.includes('<span>Giải chi tiết</span>'), 'ChatDock nhãn <= 3 từ');
-  assert.ok(hardware.includes('<span>iPhone 16 Pro</span>'), 'HardwareShowcase nhãn <= 3 từ');
-  assert.ok(hardware.includes('<span>MacBook Pro</span>'), 'HardwareShowcase nhãn <= 3 từ');
+  assert.ok(!hardware.includes('<span>iPhone 16 Pro</span>') && hardware.includes('<Smartphone'), 'HardwareShowcase nút điện thoại icon-only');
+  assert.ok(!hardware.includes('<span>MacBook Pro</span>') && hardware.includes('<Laptop'), 'HardwareShowcase nút máy tính icon-only');
 });

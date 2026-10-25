@@ -39,14 +39,13 @@ export const HardwareShowcase: React.FC<HardwareShowcaseProps> = ({
           onClick={() => setDeviceType('iphone')}
           title="Điện Thoại (iPhone 16 Pro)"
           aria-label="Điện Thoại (iPhone 16 Pro)"
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center p-2.5 rounded-xl transition-all cursor-pointer ${
             deviceType === 'iphone'
-              ? 'bg-amber-400 text-[#0b0d12] shadow-md font-black'
+              ? 'bg-amber-400 text-[#0b0d12] shadow-md'
               : 'text-white/60 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Smartphone className="w-4 h-4" />
-          <span>iPhone 16 Pro</span>
+          <Smartphone className="w-5 h-5" />
         </button>
 
         <button
@@ -54,20 +53,19 @@ export const HardwareShowcase: React.FC<HardwareShowcaseProps> = ({
           onClick={() => setDeviceType('macbook')}
           title="Máy Tính (MacBook Pro)"
           aria-label="Máy Tính (MacBook Pro)"
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+          className={`flex items-center justify-center p-2.5 rounded-xl transition-all cursor-pointer ${
             deviceType === 'macbook'
-              ? 'bg-amber-400 text-[#0b0d12] shadow-md font-black'
+              ? 'bg-amber-400 text-[#0b0d12] shadow-md'
               : 'text-white/60 hover:text-white hover:bg-white/5'
           }`}
         >
-          <Laptop className="w-4 h-4" />
-          <span>MacBook Pro</span>
+          <Laptop className="w-5 h-5" />
         </button>
       </div>
 
       {deviceType === 'iphone' ? (
         <div
-          className="iphone-interactive-container relative flex flex-col items-center justify-center select-none transition-all duration-300"
+          className="iphone-interactive-container relative flex flex-col items-center justify-center select-none transition-all duration-300 bg-transparent overflow-hidden"
           style={{ width: '380px', height: '810px' }}
           title="Màn hình chính iOS Springboard: Mở ứng dụng F-Forum, Bấm để về Màn hình chính, Dynamic Island"
           aria-label="Điện thoại iPhone iOS Springboard Màn hình chính: Mở ứng dụng F-Forum, Bấm để về Màn hình chính, Dynamic Island"
@@ -75,7 +73,8 @@ export const HardwareShowcase: React.FC<HardwareShowcaseProps> = ({
           <iframe
             src="/iphone5-showcase.html?embed=true"
             title="iPhone 5 / iOS 6 Interactive Showcase"
-            className="w-full h-full border-none rounded-[44px] shadow-2xl"
+            className="w-full h-full border-0 outline-none rounded-[44px] shadow-2xl bg-transparent"
+            style={{ background: 'transparent', colorScheme: 'dark' }}
             allow="geolocation; microphone; camera"
           />
         </div>
