@@ -15,7 +15,11 @@ import {
   Calculator,
   Timer,
   AlertCircle,
+  Pin,
+  Sparkles,
+  Lightbulb,
 } from 'lucide-react';
+import { StepSolutionAccordion } from '../exam/StepSolutionAccordion';
 import {
   Send,
   Hash,
@@ -166,6 +170,35 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
         )}
       </div>
 
+      <div className="flex items-center gap-1 shrink-0">
+        {[
+          { label: 'π', symbol: 'π', title: 'Chèn ký hiệu Pi' },
+          { label: '√(x)', symbol: '√(x)', title: 'Chèn căn bậc hai' },
+          { label: 'Δ', symbol: 'Δ', title: 'Chèn biệt thức Delta' },
+          { label: '∫', symbol: '∫', title: 'Chèn tích phân' },
+          { label: '∑', symbol: '∑', title: 'Chèn tổng Sigma' },
+        ].map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => onInsertText(item.symbol)}
+            className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-lg bg-amber-400/20 hover:bg-amber-400/35 text-amber-200 border border-amber-400/40 text-[11px] font-mono font-black cursor-pointer transition-all"
+            title={item.title}
+          >
+            {item.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => onInsertText('\n[spoiler]Đáp án & Lời giải: [/spoiler]')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/35 text-purple-200 border border-purple-400/40 text-[11px] font-mono font-black cursor-pointer transition-all flex items-center gap-1"
+          title="Chèn định dạng spoiler ẩn đáp án"
+        >
+          <Lightbulb className="w-3 h-3 text-purple-300" />
+          <span>Spoiler Ẩn</span>
+        </button>
+      </div>
+
       <button
         type="button"
         onClick={() => onInsertText('[Pomodoro 25p] Mời các bạn cùng tham gia phiên học tập trung 25 phút ngay bây giờ!')}
@@ -246,6 +279,7 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorId: string; authorName: string; excerpt: string } | null>(null);
   const [inputText, setInputText] = useState('');
+  const [isChallengeSolutionOpen, setIsChallengeSolutionOpen] = useState(false);
   const cooldown = useChatCooldown();
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState('');
@@ -864,6 +898,57 @@ export const ChatView: React.FC<ChatViewProps> = ({
               aria-relevant="additions"
               aria-label="Tin nhắn cuộc trò chuyện"
             >
+              {/* Thanh Ghim Câu Hỏi Thử Thách Nhóm (Pinned Academic Challenge Banner) */}
+              <div className="mb-4 p-3.5 rounded-2xl bg-amber-400/[0.08] border border-amber-400/30 shadow-sm flex flex-col gap-2.5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-amber-400/20 text-amber-400 border border-amber-400/30">
+                      <Pin className="w-3.5 h-3.5" />
+                    </span>
+                    <span className="text-xs font-bold font-mono text-amber-300 uppercase tracking-wide">
+                      Thử Thách Học Thuật Nhóm Tuần Này
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsChallengeSolutionOpen(!isChallengeSolutionOpen)}
+                    className="ff-tactile-pop btn-feastables px-3 py-1 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-[#0b0d12]" />
+                    <span>{isChallengeSolutionOpen ? 'Thu Gọn Lời Giải' : 'Mở Bước Giải Gợi Ý'}</span>
+                  </button>
+                </div>
+
+                <p className="text-xs sm:text-[13px] text-[#f4f1de] font-serif leading-relaxed">
+                  Cho hàm số f(x) = (2x + 1)/(x - 1). Tìm tất cả các giá trị tham số m để đường thẳng d: y = -2x + m cắt đồ thị tại hai điểm phân biệt A, B sao cho tam giác OAB có diện tích bằng căn(3).
+                </p>
+
+                {isChallengeSolutionOpen && (
+                  <div className="pt-2 border-t border-amber-400/20 animate-fade-in">
+                    <StepSolutionAccordion
+                      solutionRaw={`Bước 1: Phân tích đề bài & Thiết lập phương trình hoành độ giao điểm
+Phương trình hoành độ giao điểm của d và (C):
+(2x + 1)/(x - 1) = -2x + m (với điều kiện x != 1)
+<=> 2x + 1 = (-2x + m)(x - 1) <=> 2x^2 - mx + m + 1 = 0 (1).
+Để d cắt (C) tại 2 điểm phân biệt A, B thì pt (1) phải có 2 nghiệm phân biệt khác 1:
+Delta = m^2 - 8(m + 1) = m^2 - 8m - 8 > 0 và 2(1)^2 - m(1) + m + 1 != 0 (luôn đúng 3 != 0).
+
+Bước 2: Thiết lập hệ thức tọa độ & Khoảng cách
+Gọi A(x1; y1) và B(x2; y2) với x1, x2 là hai nghiệm của (1).
+Theo định lý Vi-ét: x1 + x2 = m/2, x1*x2 = (m + 1)/2.
+Khoảng cách từ gốc tọa độ O(0,0) đến d: 2x + y - m = 0 là: h = |m| / căn(2^2 + 1^2) = |m| / căn(5).
+Độ dài dây cung AB = căn[(x2 - x1)^2 + (y2 - y1)^2] = căn[5 * ((x1 + x2)^2 - 4x1*x2)] = căn[5 * (m^2/4 - 2m - 2)].
+
+Bước 3: Biện luận diện tích tam giác & Kết luận
+Diện tích tam giác OAB: S = 1/2 * h * AB = 1/2 * (|m| / căn(5)) * căn(5) * căn(m^2/4 - 2m - 2) = căn(3).
+Bình phương hai vế và giải phương trình trùng phương theo m:
+m = +- 2 * căn(3) hoặc m = +- căn(14) (đều thỏa mãn điều kiện Delta > 0).`}
+                      subject="Toán học"
+                    />
+                  </div>
+                )}
+              </div>
+
               {!isSynced && currentMessages.length === 0 ? (
                 <div className="max-w-xl mx-auto space-y-3 py-6" aria-busy="true">
                   <ThinkingBubble phase="Đang kết nối máy chủ F-Forum…" />

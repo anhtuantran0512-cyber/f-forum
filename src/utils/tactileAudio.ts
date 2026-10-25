@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { getAudioContext, isSfxEnabled } from './audio';
 import { safeStorage } from './storage';
 

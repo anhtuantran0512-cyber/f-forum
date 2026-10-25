@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -13,6 +14,7 @@ import {
   Award,
   Flame,
   User as UserIcon,
+  Zap,
 } from 'lucide-react';
 import type { User } from '../../types';
 import { safeStorage } from '../../utils/storage';
@@ -131,11 +133,11 @@ const BATTLE_QUESTIONS_POOL: BattleQuestion[] = [
 ];
 
 const BOT_OPPONENTS = [
-  { name: 'Nguyễn Đăng Khoa', school: 'THPT Chuyên Lê Hồng Phong, TP.HCM', winRate: 78 },
-  { name: 'Trần Minh Hoàng', school: 'THPT Chuyên Hà Nội - Amsterdam', winRate: 82 },
-  { name: 'Lê Thảo Vy', school: 'THPT Chuyên Quốc Học Huế', winRate: 75 },
-  { name: 'Vũ Đức Thịnh', school: 'THPT Chuyên Phan Bội Châu, Nghệ An', winRate: 84 },
-  { name: 'Đặng Tuấn Kiệt', school: 'THPT Chuyên Trần Phú, Hải Phòng', winRate: 80 },
+  { name: 'Nguyễn Đăng Khoa', school: 'THPT Chuyên Lê Hồng Phong, TP.HCM', winRate: 78, elo: 1280, reputation: 1420 },
+  { name: 'Trần Minh Hoàng', school: 'THPT Chuyên Hà Nội - Amsterdam', winRate: 82, elo: 1310, reputation: 1560 },
+  { name: 'Lê Thảo Vy', school: 'THPT Chuyên Quốc Học Huế', winRate: 75, elo: 1260, reputation: 1380 },
+  { name: 'Vũ Đức Thịnh', school: 'THPT Chuyên Phan Bội Châu, Nghệ An', winRate: 84, elo: 1340, reputation: 1620 },
+  { name: 'Đặng Tuấn Kiệt', school: 'THPT Chuyên Trần Phú, Hải Phòng', winRate: 80, elo: 1295, reputation: 1490 },
 ];
 
 export const DUELISTS_STORAGE_KEY = 'fforum_duelists_records';
@@ -168,7 +170,6 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
 }) => {
   const [battleState, setBattleState] = useState<'matchmaking' | 'battling' | 'finished'>('matchmaking');
   const [selectedSubject, setSelectedSubject] = useState<string>('Tất cả');
-  const [selectedGrade, setSelectedGrade] = useState<string>('THPTQG');
   const [opponent, setOpponent] = useState(BOT_OPPONENTS[0]);
   const [matchmakingProgress, setMatchmakingProgress] = useState(0);
 
@@ -178,10 +179,20 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
   const [myScore, setMyScore] = useState(0);
   const [opponentScore, setOpponentScore] = useState(0);
   const [comboStreak, setComboStreak] = useState(0);
+  const [winStreak, setWinStreak] = useState<number>(() => {
+    const saved = safeStorage.getItem('fforum_duelist_winstreak');
+    return saved ? parseInt(saved, 10) || 1 : 1;
+  });
   const [timeLeft, setTimeLeft] = useState(10);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [roundResolved, setRoundResolved] = useState(false);
   const [isSfxOn, setIsSfxOn] = useState(() => isTactileSoundActive());
+
+  const userReputationPoints = useMemo(
+    () => (currentUser?.fPoints || (currentUser?.level || 1) * 85 + 120),
+    [currentUser],
+  );
+  const userElo = useMemo(() => 1250 + Math.min(600, Math.floor(userReputationPoints / 3)), [userReputationPoints]);
 
   const battleQuestions = useMemo(() => {
     let pool = BATTLE_QUESTIONS_POOL;
@@ -225,7 +236,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
 
     let progress = 0;
     const interval = window.setInterval(() => {
-      progress += 18;
+      progress += 16;
       setMatchmakingProgress(Math.min(100, progress));
       if (progress >= 100) {
         window.clearInterval(interval);
@@ -275,6 +286,11 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
       setBattleState('finished');
       if (myScore >= opponentScore) {
         playVictoryFanfare();
+        setWinStreak((prev) => {
+          const next = prev + 1;
+          safeStorage.setItem('fforum_duelist_winstreak', String(next));
+          return next;
+        });
         const myName = currentUser?.name || 'Sĩ Tử Vô Danh';
         saveDuelistVictory({
           id: currentUser?.id || 'guest_duelist',
@@ -287,6 +303,9 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
           title: 'Đấu Sĩ Tri Thức',
           recentTimestamp: Date.now(),
         });
+      } else {
+        setWinStreak(1);
+        safeStorage.setItem('fforum_duelist_winstreak', '1');
       }
       return;
     }
@@ -303,28 +322,24 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
     setRoundResolved(true);
 
     const isCorrect = idx === currentQ.correctIndex;
+    const botCorrect = Math.random() < 0.65;
 
     if (isCorrect) {
-      const nextCombo = comboStreak + 1;
-      setComboStreak(nextCombo);
-      playCrystalComboChime(nextCombo);
-      const speedBonus = timeLeft * 15;
-      const comboMultiplier = 1 + (nextCombo - 1) * 0.4;
-      const pointsEarned = Math.round((100 + speedBonus) * comboMultiplier);
-      setMyScore((prev) => prev + pointsEarned);
-
+      playCrystalComboChime(comboStreak + 1);
+      const points = 100 + timeLeft * 10 + comboStreak * 25;
+      setMyScore((prev) => prev + points);
       setOpponentEnergy((prev) => Math.max(0, prev - 25));
+      setComboStreak((prev) => prev + 1);
     } else {
-      setComboStreak(0);
       playEnergyDeplete();
-      setMyEnergy((prev) => Math.max(0, prev - 25));
+      setMyEnergy((prev) => Math.max(0, prev - 20));
+      setComboStreak(0);
     }
 
-    const botCorrect = Math.random() < 0.65;
     if (botCorrect) {
-      setOpponentScore((prev) => prev + Math.round(90 + Math.random() * 50));
+      setOpponentScore((prev) => prev + (100 + Math.floor(Math.random() * 60)));
     } else {
-      setOpponentEnergy((prev) => Math.max(0, prev - 20));
+      setOpponentEnergy((prev) => Math.max(0, prev - 15));
     }
 
     window.setTimeout(() => {
@@ -391,21 +406,45 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6">
           {battleState === 'matchmaking' && (
-            <div className="py-12 flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full border-4 border-dashed border-rose-500 animate-spin flex items-center justify-center">
-                  <Swords className="w-10 h-10 text-rose-500" />
-                </div>
-                <div className="absolute inset-0 flex items-center justify-center font-mono font-black text-sm text-[#2B2331] dark:text-white">
-                  {matchmakingProgress}%
+            <div className="py-8 flex flex-col items-center justify-center text-center space-y-6 max-w-md mx-auto">
+              <div className="relative w-36 h-36 flex items-center justify-center">
+                <svg className="w-full h-full animate-spin-slow" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-rose-500/25" strokeDasharray="3 3" />
+                  <circle cx="50" cy="50" r="32" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-rose-500/40" />
+                  <circle cx="50" cy="50" r="18" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-rose-500/60" />
+                  <line x1="50" y1="5" x2="50" y2="95" stroke="currentColor" strokeWidth="1" className="text-rose-500/30" />
+                  <line x1="5" y1="50" x2="95" y2="50" stroke="currentColor" strokeWidth="1" className="text-rose-500/30" />
+                  <line x1="50" y1="50" x2="88" y2="22" stroke="currentColor" strokeWidth="2.5" className="text-rose-500" strokeLinecap="round" />
+                </svg>
+
+                <div className="absolute inset-0 flex flex-col items-center justify-center font-mono font-black text-rose-600 dark:text-rose-400">
+                  <Swords className="w-8 h-8 mb-1 animate-pulse" />
+                  <span className="text-xs">{matchmakingProgress}%</span>
                 </div>
               </div>
 
               <div>
-                <h3 className="text-xl font-black text-[#2B2331] dark:text-white">Đang Ghép Cặp Sĩ Tử...</h3>
+                <h3 className="text-xl font-black text-[#2B2331] dark:text-white">
+                  Cơ Chế Ghép Cặp Theo Điểm Uy Tín Học Thuật
+                </h3>
                 <p className="text-xs text-[#2B2331]/70 dark:text-neutral-400 mt-1">
-                  Hệ thống đang tìm kiếm một đối thủ cùng cấp lớp và trình độ học vấn tương đương
+                  Radar Elo-based Matchmaking đang tìm kiếm đối thủ có cấp bậc và Điểm Uy Tín tương xứng
                 </p>
+              </div>
+
+              <div className="w-full p-3.5 rounded-2xl bg-white/60 dark:bg-white/5 border-2 border-[#2B2331]/20 font-mono text-xs text-left space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-[#665A6E] dark:text-neutral-400">Chỉ số Elo của bạn:</span>
+                  <span className="font-black text-emerald-600 dark:text-emerald-400">{userElo} Elo</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-[#665A6E] dark:text-neutral-400">Điểm Uy Tín Học Thuật:</span>
+                  <span className="font-black text-amber-600 dark:text-amber-400">{userReputationPoints} Uy Tín</span>
+                </div>
+                <div className="flex justify-between items-center border-t border-dashed border-[#2B2331]/15 pt-1.5">
+                  <span className="text-[#665A6E] dark:text-neutral-400">Đối thủ đề xuất:</span>
+                  <span className="font-bold text-rose-600 dark:text-rose-400">{opponent.name} (Elo {opponent.elo})</span>
+                </div>
               </div>
 
               <div className="w-full space-y-2">
@@ -429,44 +468,27 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                     </button>
                   ))}
                 </div>
-
-                <div className="flex justify-between text-xs font-mono font-bold pt-2">
-                  <span>Cấp lớp:</span>
-                  <span className="text-amber-600 dark:text-amber-400">{selectedGrade}</span>
-                </div>
-                <div className="flex gap-2 justify-center flex-wrap">
-                  {['10', '11', '12', 'THPTQG'].map((grd) => (
-                    <button
-                      key={grd}
-                      type="button"
-                      onClick={() => setSelectedGrade(grd)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold border-2 cursor-pointer transition-all ${
-                        selectedGrade === grd
-                          ? 'bg-amber-400 text-[#0b0d12] border-[#0b0d12]'
-                          : 'bg-white/40 dark:bg-white/5 text-[#2B2331] dark:text-white border-[#2B2331]/20'
-                      }`}
-                    >
-                      {grd === 'THPTQG' ? 'THPT Quốc Gia' : `Lớp ${grd}`}
-                    </button>
-                  ))}
-                </div>
               </div>
             </div>
           )}
 
           {battleState === 'battling' && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4 items-center p-4 rounded-2xl bg-[#F5E7CE] dark:bg-[#182030] border-2 border-[#2B2331]/20 dark:border-white/10">
-                <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="card-hard p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border-2 border-emerald-500/40 shadow-[4px_4px_0px_#2B2331] space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-400 border border-[#2B2331] dark:border-white/30 flex items-center justify-center font-black text-xs text-[#2B2331]">
-                      {currentUser?.name?.[0]?.toUpperCase() || <UserIcon className="w-4 h-4" />}
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500 border border-[#2B2331] dark:border-white/30 flex items-center justify-center font-black text-xs text-white shadow-[2px_2px_0px_#2B2331]">
+                      {currentUser?.avatar ? (
+                        <img loading="lazy" decoding="async" src={currentUser.avatar} alt="Avatar" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <UserIcon className="w-4 h-4" />
+                      )}
                     </div>
                     <div className="min-w-0">
                       <div className="text-xs font-black truncate text-[#2B2331] dark:text-white">
-                        {currentUser?.name || 'Bạn (Sĩ Tử)'}
+                        {currentUser?.name || 'Bạn (Đấu Sĩ)'}
                       </div>
-                      <div className="text-[10px] font-mono font-bold text-amber-600 dark:text-amber-400">
+                      <div className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
                         {myScore} Bounty
                       </div>
                     </div>
@@ -488,7 +510,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                   </div>
                 </div>
 
-                <div className="space-y-2 text-right">
+                <div className="card-hard p-3.5 rounded-2xl bg-white/80 dark:bg-white/5 border-2 border-rose-500/40 shadow-[4px_4px_0px_#2B2331] space-y-2 text-right">
                   <div className="flex items-center gap-2 justify-end">
                     <div className="min-w-0">
                       <div className="text-xs font-black truncate text-[#2B2331] dark:text-white">
@@ -498,7 +520,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                         {opponentScore} Bounty
                       </div>
                     </div>
-                    <div className="w-8 h-8 rounded-xl bg-rose-500 border border-[#2B2331] dark:border-white/30 flex items-center justify-center font-black text-xs text-white">
+                    <div className="w-9 h-9 rounded-xl bg-rose-500 border border-[#2B2331] dark:border-white/30 flex items-center justify-center font-black text-xs text-white shadow-[2px_2px_0px_#2B2331]">
                       VS
                     </div>
                   </div>
@@ -520,7 +542,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-white/70 dark:bg-[#161c29] border-2 border-[#2B2331]/20 dark:border-white/10 space-y-4">
+              <div className="card-hard p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-[#161c29] border-2 border-[#2B2331]/20 dark:border-white/10 space-y-4 shadow-[4px_4px_0px_#2B2331]">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-black bg-[#2B2331] text-[#FBF2E1] dark:bg-white/10 dark:text-white">
@@ -532,8 +554,8 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                   </div>
 
                   {comboStreak > 1 && (
-                    <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/50 text-amber-600 dark:text-amber-400 font-mono font-black text-xs animate-pulse">
-                      <Flame className="w-3.5 h-3.5 fill-current" />
+                    <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/25 to-rose-500/25 border border-amber-400/60 text-amber-600 dark:text-amber-400 font-mono font-black text-xs animate-pulse shadow-sm">
+                      <Flame className="w-3.5 h-3.5 fill-current text-rose-500" />
                       <span>COMBO x{comboStreak}</span>
                     </div>
                   )}
@@ -545,10 +567,10 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                   </div>
                 </div>
 
-                <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
+                <div className="h-2.5 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden p-0.5 border border-[#2B2331]/15">
                   <div
-                    className={`h-full transition-all duration-1000 ${
-                      timeLeft <= 3 ? 'bg-rose-500' : 'bg-gradient-to-r from-amber-400 to-rose-500'
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      timeLeft <= 3 ? 'bg-rose-500' : 'bg-gradient-to-r from-amber-400 via-rose-500 to-amber-500'
                     }`}
                     style={{ width: `${(timeLeft / 10) * 100}%` }}
                   />
@@ -582,7 +604,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                         type="button"
                         disabled={roundResolved}
                         onClick={() => handleSelectOption(idx)}
-                        className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${styleClass}`}
+                        className={`p-3.5 rounded-xl border-2 text-left transition-all cursor-pointer flex items-center justify-between gap-2 shadow-[2px_2px_0px_#2B2331] ${styleClass}`}
                       >
                         <span className="text-xs sm:text-sm font-bold">{opt}</span>
                         {roundResolved && isCorrect && <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />}
@@ -603,7 +625,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
           )}
 
           {battleState === 'finished' && (
-            <div className="py-8 flex flex-col items-center justify-center text-center space-y-6 max-w-lg mx-auto">
+            <div className="card-hard rounded-[16px] p-6 sm:p-8 bg-[#FBF2E1] dark:bg-[#182030] border-[3px] border-[#2B2331] dark:border-white/20 text-[#2B2331] dark:text-white shadow-[6px_6px_0px_#2B2331] flex flex-col items-center justify-center text-center space-y-6 max-w-lg mx-auto animate-fade-in">
               <div className="relative">
                 <div className="w-24 h-24 rounded-3xl bg-amber-400 border-4 border-[#2B2331] dark:border-white/30 flex items-center justify-center shadow-[4px_4px_0px_#2B2331]">
                   <Trophy className="w-12 h-12 text-[#2B2331]" />
@@ -615,17 +637,24 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
 
               <div>
                 <span className="px-3 py-1 rounded-full text-xs font-mono font-black bg-amber-400/20 border border-amber-400/50 text-amber-600 dark:text-amber-400">
-                  {myScore >= opponentScore ? 'CHIẾN THẮNG HUY HOÀNG' : 'THẮNG TRẦM TRỌNG BÀI HỌC'}
+                  {myScore >= opponentScore ? 'CHIẾN THẮNG HUY HOÀNG' : 'TIẾP TỤC RÈN LUYỆN'}
                 </span>
                 <h3 className="text-2xl font-black text-[#2B2331] dark:text-white mt-2">
-                  {myScore >= opponentScore ? 'Danh Hiệu: Đấu Sĩ Tri Thức' : 'Tiếp Tục Rèn Luyện'}
+                  Thẻ Chiến Thắng Khải Hoàn (Victory Honor Card)
                 </h3>
                 <p className="text-xs text-[#2B2331]/70 dark:text-neutral-400 mt-1">
                   Điểm số đã được ghi nhận tự động vào bảng vàng thi đấu Đại Sảnh Vinh Danh
                 </p>
               </div>
 
-              <div className="w-full grid grid-cols-2 gap-4 p-4 rounded-2xl bg-[#F5E7CE] dark:bg-[#182030] border-2 border-[#2B2331]/20 dark:border-white/10 font-mono">
+              {myScore >= opponentScore && (
+                <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-500/15 border-2 border-rose-500/40 text-rose-600 dark:text-rose-400 font-mono font-black text-xs">
+                  <Flame className="w-4 h-4 fill-rose-500 text-rose-600" />
+                  <span>Chuỗi Thắng Khải Hoàn: x{winStreak} Trận Liên Tiếp</span>
+                </div>
+              )}
+
+              <div className="w-full grid grid-cols-2 gap-4 p-4 rounded-2xl bg-white/60 dark:bg-black/20 border-2 border-[#2B2331]/20 dark:border-white/10 font-mono">
                 <div>
                   <div className="text-[10px] text-[#2B2331]/60 dark:text-neutral-400 uppercase font-black">Điểm Của Bạn</div>
                   <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">{myScore} Bounty</div>
@@ -635,6 +664,19 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                   <div className="text-xl font-black text-rose-500">{opponentScore} Bounty</div>
                 </div>
               </div>
+
+              {myScore >= opponentScore && (
+                <div className="p-3 rounded-xl bg-amber-400/15 border border-amber-400/35 text-xs font-mono font-bold text-amber-800 dark:text-amber-300 w-full flex items-center justify-around">
+                  <span className="flex items-center gap-1">
+                    <Award className="w-3.5 h-3.5 text-amber-500" />
+                    +50 Điểm Uy Tín Học Thuật
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Zap className="w-3.5 h-3.5 text-amber-500" />
+                    +25 Elo Xếp Hạng
+                  </span>
+                </div>
+              )}
 
               <div className="flex gap-3 w-full flex-col sm:flex-row">
                 <button
