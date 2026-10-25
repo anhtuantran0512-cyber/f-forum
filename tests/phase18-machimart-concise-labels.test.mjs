@@ -85,6 +85,12 @@ test('Phase 18 - 3. Thực Thi Luật Nhãn Siêu Tinh Gọn (≤ 3 Từ) Tại 
     hardware.includes('<span>MacBook Pro</span>'),
     'HardwareShowcase phải dùng nhãn nút [ MacBook Pro ] (2 từ)',
   );
+
+  const questionSortSrc = read('src/utils/questionSort.ts');
+  assert.ok(
+    questionSortSrc.includes("label: 'Chưa giải'"),
+    'questionSort.ts phải dùng nhãn Chưa giải (<= 3 từ)',
+  );
 });
 
 test('Phase 18 - 4. Kiểm Thử Hồi Quy Epic 4 Chấp Nhận 0 Emoji Trong Mã Nguồn', () => {
