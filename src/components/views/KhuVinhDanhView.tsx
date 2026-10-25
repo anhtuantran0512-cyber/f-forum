@@ -13,10 +13,12 @@ import {
   Search,
   GraduationCap,
   Flame,
+  Swords,
 } from 'lucide-react';
 import type { User, DimensionView } from '../../types';
 import { ADMIN_AVATAR_URL, isLegacyAdminAvatar, normalizeAdminAvatar } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
+import { DUELISTS_STORAGE_KEY, type DuelistRecord } from '../exam/PeerBattleModal';
 import {
   getSavedAboutData,
   fetchAboutDataFromServer,
@@ -419,6 +421,62 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
   const [isGridView, setIsGridView] = useState(false);
   const [activeLitRecord, setActiveLitRecord] = useState<VinhDanhRecord | null>(null);
+
+  const [duelists, setDuelists] = useState<DuelistRecord[]>(() => {
+    try {
+      const raw = safeStorage.getItem(DUELISTS_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {
+    }
+    return [
+      {
+        id: 'duelist-1',
+        name: 'Nguyễn Đăng Khoa',
+        school: 'THPT Chuyên Lê Hồng Phong, TP.HCM',
+        avatar: '',
+        victories: 24,
+        winRate: 88,
+        bountyScore: 3200,
+        title: 'Đấu Sĩ Tri Thức',
+        recentTimestamp: Date.now() - 3600000,
+      },
+      {
+        id: 'duelist-2',
+        name: 'Trần Minh Hoàng',
+        school: 'THPT Chuyên Hà Nội - Amsterdam',
+        avatar: '',
+        victories: 19,
+        winRate: 84,
+        bountyScore: 2650,
+        title: 'Đấu Sĩ Tri Thức',
+        recentTimestamp: Date.now() - 7200000,
+      },
+      {
+        id: 'duelist-3',
+        name: 'Lê Thảo Vy',
+        school: 'THPT Chuyên Quốc Học Huế',
+        avatar: '',
+        victories: 15,
+        winRate: 79,
+        bountyScore: 2100,
+        title: 'Đấu Sĩ Tri Thức',
+        recentTimestamp: Date.now() - 10800000,
+      },
+    ];
+  });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      try {
+        const raw = safeStorage.getItem(DUELISTS_STORAGE_KEY);
+        if (raw) setDuelists(JSON.parse(raw));
+      } catch {
+      }
+    };
+    window.addEventListener('fforum_duelist_updated', handleUpdate);
+    return () => window.removeEventListener('fforum_duelist_updated', handleUpdate);
+  }, []);
+
   const [sphereRadius, setSphereRadius] = useState(() => {
     if (typeof window !== 'undefined') {
       return computeRadiusAndCardWidth(window.innerWidth, window.innerHeight).R;
@@ -1150,6 +1208,75 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   <strong className="text-lg font-mono font-bold text-cyan-300">98.2% học sinh</strong>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section className="card-hard p-6 sm:p-8 bg-[#0e131d] border-rose-500/30 space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 border border-rose-500/40 text-rose-400">
+                    REALTIME 1VS1
+                  </span>
+                  <span className="text-xs font-mono text-slate-400">Mùa giải 2026 - 2027</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2.5 font-['Fraunces','Playfair_Display',Georgia,serif]">
+                  <Swords className="w-6 h-6 text-rose-400 shrink-0" />
+                  <span>Bảng Thi Đua Đấu Sĩ Tri Thức</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Xếp hạng tranh tài đối kháng 5 câu hỏi nhanh liên môn theo thời gian thực
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('fforum_open_peer_battle'));
+                }}
+                className="btn-feastables px-4 py-2.5 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-black text-xs flex items-center gap-2 cursor-pointer border-2 border-white/20 shadow-[3px_3px_0px_#000]"
+              >
+                <Swords className="w-4 h-4 text-amber-300" />
+                <span>Vào Đấu Trường 1vs1</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {duelists.slice(0, 3).map((d, idx) => (
+                <div
+                  key={d.id}
+                  className="card-hard p-5 rounded-2xl bg-white/[0.03] border-white/10 hover:border-rose-400/50 transition-all space-y-3 relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="w-7 h-7 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 font-mono font-black text-xs flex items-center justify-center">
+                      #{idx + 1}
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-400/15 border border-amber-400/30 text-amber-300">
+                      {d.title}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h3 className="text-base font-extrabold text-white truncate">{d.name}</h3>
+                    <p className="text-xs text-slate-400 truncate">{d.school}</p>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center font-mono">
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Trận thắng</span>
+                      <strong className="text-sm font-bold text-emerald-400">{d.victories}</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Tỷ lệ</span>
+                      <strong className="text-sm font-bold text-amber-300">{d.winRate}%</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Bounty</span>
+                      <strong className="text-sm font-bold text-rose-400">{d.bountyScore}</strong>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
 

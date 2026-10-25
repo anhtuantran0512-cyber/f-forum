@@ -25,12 +25,14 @@ import {
   Globe,
   Maximize2,
   Minimize2,
+  Swords,
 } from 'lucide-react';
 import type { Club, ClubPost, User, ClubCategory, ChatMessage } from '../../types';
 import { DEFAULT_AVATAR, DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
 import { MASTER_ADMIN_EMAIL_LOWER, isMasterAdmin } from '../../config/admin';
 import { DecoratedAvatar, DecoratedName } from '../decorations/DecoratedAvatar';
 import { RoleMark } from '../RoleMark';
+import { PeerBattleModal } from '../exam/PeerBattleModal';
 import './ClubsView.css';
 
 interface ClubsViewProps {
@@ -160,7 +162,14 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isSolarStationExpanded, setIsSolarStationExpanded] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isBattleModalOpen, setIsBattleModalOpen] = useState(false);
   const [selectedClub, setSelectedClub] = useState<Club | null>(null);
+
+  useEffect(() => {
+    const handleOpenBattle = () => setIsBattleModalOpen(true);
+    window.addEventListener('fforum_open_peer_battle', handleOpenBattle);
+    return () => window.removeEventListener('fforum_open_peer_battle', handleOpenBattle);
+  }, []);
   const [rejectPromptClubId, setRejectPromptClubId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [applicationSubmitted, setApplicationSubmitted] = useState<string | null>(null);
@@ -386,6 +395,15 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                   className="w-full pl-8 pr-4 py-2 rounded-lg text-xs bg-[#0b0d12]/85 border-[1.5px] border-[#f4f1de]/15 text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]/60 transition-colors"
                 />
               </div>
+
+              <button
+                type="button"
+                onClick={() => setIsBattleModalOpen(true)}
+                className="ff-tactile-btn px-4 py-2 rounded-xl text-xs font-black bg-rose-500 hover:bg-rose-400 text-white border-2 border-[#0b0d12] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer shadow-[2px_2px_0px_#0b0d12]"
+              >
+                <Swords className="w-4 h-4 text-amber-300" />
+                <span>Đấu Trường 1vs1</span>
+              </button>
 
               {approvedClubs.length > 0 && (
                 <button
@@ -1262,6 +1280,12 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
           </div>,
           document.body,
         )}
+
+      <PeerBattleModal
+        isOpen={isBattleModalOpen}
+        onClose={() => setIsBattleModalOpen(false)}
+        currentUser={currentUser}
+      />
     </section>
   );
 };

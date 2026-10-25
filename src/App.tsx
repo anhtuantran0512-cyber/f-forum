@@ -83,6 +83,7 @@ const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxMod
 const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
 const MemorialWallModal = lazyWithRetry(() => import('./components/MemorialWallModal').then(m => ({ default: m.MemorialWallModal })));
 const DailyCheckInModal = lazyWithRetry(() => import('./components/DailyCheckInModal').then(m => ({ default: m.DailyCheckInModal })));
+const PeerBattleModal = lazyWithRetry(() => import('./components/exam/PeerBattleModal').then(m => ({ default: m.PeerBattleModal })));
 const RoleBadge = lazyWithRetry(() => import('./components/RoleBadge').then(m => ({ default: m.RoleBadge })));
 const TriVideoCrossfadeBg = lazyWithRetry(() => import('./components/TriVideoCrossfadeBg').then(m => ({ default: m.TriVideoCrossfadeBg })));
 
@@ -381,17 +382,21 @@ export const App: React.FC = () => {
 
   const [isMemorialModalOpen, setIsMemorialModalOpen] = useState(false);
   const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+  const [isBattleModalOpen, setIsBattleModalOpen] = useState(false);
 
   useEffect(() => {
     const onOpenMemorial = () => setIsMemorialModalOpen(true);
     const onOpenCheckIn = () => setIsCheckInModalOpen(true);
+    const onOpenBattle = () => setIsBattleModalOpen(true);
 
     window.addEventListener('fforum_open_memorial_wall', onOpenMemorial);
     window.addEventListener('fforum_open_daily_checkin', onOpenCheckIn);
+    window.addEventListener('fforum_open_peer_battle', onOpenBattle);
 
     return () => {
       window.removeEventListener('fforum_open_memorial_wall', onOpenMemorial);
       window.removeEventListener('fforum_open_daily_checkin', onOpenCheckIn);
+      window.removeEventListener('fforum_open_peer_battle', onOpenBattle);
     };
   }, []);
 
@@ -1660,6 +1665,14 @@ export const App: React.FC = () => {
             currentUser={currentUser}
             onOpenLoginModal={() => handleOpenAuth('login')}
             onClaimDailyReward={claimDailyReward}
+          />
+        )}
+        {isBattleModalOpen && (
+          <PeerBattleModal
+            isOpen={isBattleModalOpen}
+            onClose={() => setIsBattleModalOpen(false)}
+            currentUser={currentUser}
+            onNavigateToLeaderboard={() => handleNavigate('chronicles')}
           />
         )}
       </Suspense>

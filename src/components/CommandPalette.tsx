@@ -12,6 +12,7 @@ import {
   Headphones,
   Flame,
   Award,
+  Swords,
 } from 'lucide-react';
 
 export interface PaletteCommand {
@@ -121,6 +122,17 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
       shortcut: 'M',
       badge: 'Lưu bút',
       run: () => window.dispatchEvent(new CustomEvent('fforum_open_memorial_wall')),
+    },
+    {
+      id: 'cmd-peer-battle',
+      label: 'Đấu Trường Tranh Tài 1vs1',
+      hint: 'Đối kháng kiến thức 5 câu nhanh realtime',
+      group: 'Đấu trường',
+      icon: <Swords className="w-4 h-4 text-rose-400" />,
+      keywords: 'dau truong 1vs1 tranh tai doi khang si tu quick match',
+      shortcut: 'B',
+      badge: 'Đấu trường',
+      run: () => window.dispatchEvent(new CustomEvent('fforum_open_peer_battle')),
     },
   ], []);
 

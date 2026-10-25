@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowRight, BookOpenCheck, Check, ChevronDown, MousePointerClick, Play, Sparkles, LogIn } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, Check, ChevronDown, MousePointerClick, Play, Sparkles, LogIn, Swords, GraduationCap } from 'lucide-react';
 import type { DimensionView, User } from '../../../types';
 import { AuroraBackdrop, MagneticButton, Reveal } from '../LandingPrimitives';
 import { HardwareShowcase } from '../../HardwareShowcase';
@@ -137,34 +137,61 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAut
             </Reveal>
 
             <Reveal y={22} delay={250} className="w-full">
-              <div className="mt-8 flex w-full flex-col items-start gap-4 sm:flex-row sm:items-center">
-                <MagneticButton size="lg" onClick={onOpenAuth} className="btn-feastables ff-tactile-pop w-full sm:w-auto shadow-[0_10px_30px_rgba(245,158,11,0.25)]">
-                  <BookOpenCheck className="h-4 w-4" />
-                  {currentUser ? 'Vào bàn học F-Forum' : 'Đặt câu hỏi ngay'}
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </MagneticButton>
+              <div className="mt-8 flex w-full flex-col items-start gap-3.5 sm:flex-row sm:items-center flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('exam-vault')}
+                  className="btn-feastables ff-tactile-pop px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] font-black text-sm border-2 border-[#0b0d12] shadow-[4px_4px_0px_#0b0d12] flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0b0d12]"
+                >
+                  <GraduationCap className="h-4.5 w-4.5 text-[#0b0d12]" />
+                  <span>Khám Phá Sảnh Thi CBT</span>
+                  <ArrowRight className="h-4 w-4" />
+                </button>
 
-                {!currentUser && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('fforum_open_peer_battle'));
+                  }}
+                  className="btn-feastables ff-tactile-pop px-5 py-3 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-black text-sm border-2 border-[#0b0d12] shadow-[4px_4px_0px_#0b0d12] flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0b0d12]"
+                >
+                  <Swords className="h-4.5 w-4.5 text-amber-300" />
+                  <span>Vào Đấu Trường 1vs1</span>
+                </button>
+
+                {!currentUser ? (
+                  <div className="flex items-center gap-2">
+                    <MagneticButton
+                      size="lg"
+                      variant="ghost"
+                      className="w-full sm:w-auto backdrop-blur-md"
+                      onClick={onOpenAuth}
+                    >
+                      <BookOpenCheck className="h-4 w-4 text-amber-300" />
+                      Đăng ký
+                    </MagneticButton>
+
+                    <MagneticButton
+                      size="lg"
+                      variant="ghost"
+                      className="w-full sm:w-auto backdrop-blur-md"
+                      onClick={onOpenLogin}
+                    >
+                      <LogIn className="h-4 w-4 text-emerald-400" />
+                      Đăng nhập
+                    </MagneticButton>
+                  </div>
+                ) : (
                   <MagneticButton
                     size="lg"
                     variant="ghost"
                     className="w-full sm:w-auto backdrop-blur-md"
-                    onClick={onOpenLogin}
+                    onClick={() => onNavigate('home')}
                   >
-                    <LogIn className="h-4 w-4 text-emerald-400" />
-                    Đăng nhập tài khoản
+                    <Play className="h-4 w-4 text-amber-400" />
+                    Vào bàn học
                   </MagneticButton>
                 )}
-
-                <MagneticButton
-                  size="lg"
-                  variant="ghost"
-                  className="w-full sm:w-auto backdrop-blur-md"
-                  onClick={() => scrollToSection('kham-pha')}
-                >
-                  <Play className="h-4 w-4 text-amber-400" />
-                  Khám phá phân khu
-                </MagneticButton>
               </div>
             </Reveal>
 
