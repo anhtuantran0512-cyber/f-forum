@@ -20,6 +20,7 @@ import {
   Sparkles,
   Star,
   Sun,
+  Target,
 } from 'lucide-react';
 import type { ExamAttachment, ExamPaper, User } from '../../types';
 import { SEED_EXAMS } from '../exam/seedExamPapers';
@@ -105,8 +106,21 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
   const [toast, setToast] = useState('');
   const [savedPaperIds, setSavedPaperIds] = useState<string[]>(readSavedExamIds);
   const [isFlashcardOpen, setIsFlashcardOpen] = useState(false);
+  const [isZenMode, setIsZenMode] = useState(false);
   const requestLockRef = useRef(false);
   const toastTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.tagName === 'SELECT') return;
+      if (e.key === 'z' || e.key === 'Z' || e.key === 'f' || e.key === 'F') {
+        setIsZenMode((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     const observer = new MutationObserver(() => {
@@ -434,6 +448,15 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
           </button>
           <button
             type="button"
+            className={`ff-ui-button ff-ui-button--secondary ff-ui-button--icon ${isZenMode ? 'is-active' : ''}`}
+            onClick={() => setIsZenMode((prev) => !prev)}
+            aria-label={isZenMode ? 'Thoát chế độ tập trung Zen Focus' : 'Chế độ tập trung Zen Focus (Z/F)'}
+            title={isZenMode ? 'Thoát chế độ tập trung (Z/F)' : 'Chế độ tập trung Zen Focus (Z/F)'}
+          >
+            <Target size={16} />
+          </button>
+          <button
+            type="button"
             className="ff-ui-button ff-ui-button--secondary ff-ui-button--icon"
             onClick={handleToggleBookmark}
             aria-pressed={isSaved}
@@ -493,7 +516,7 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
           {loadError && <p className="ff-paper-viewer__inline-warning"><AlertCircle size={14} /> {loadError}</p>}
         </section>
 
-        <div className="ff-paper-viewer__layout">
+        <div className={`ff-paper-viewer__layout ${isZenMode ? 'is-zen-focus max-w-4xl mx-auto' : ''}`}>
           <section className="ff-paper-document ff-ui-card" aria-label="Nội dung đề thi">
             <div className="ff-paper-document__toolbar">
               <div className="ff-paper-document__heading">
@@ -578,8 +601,8 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
                                   <h3>Câu {solution.questionNumber}</h3>
                                   <p className="ff-paper-solution__question">{solution.question}</p>
                                   <p>{solution.solution}</p>
-                                  {solution.keyFormula && <p className="ff-paper-solution__formula">✦ Công thức then chốt: {solution.keyFormula}</p>}
-                                  {solution.tips && <p className="ff-paper-solution__tip">✦ Mẹo phòng thi: {solution.tips}</p>}
+                                  {solution.keyFormula && <p className="ff-paper-solution__formula">Công thức then chốt: {solution.keyFormula}</p>}
+                                  {solution.tips && <p className="ff-paper-solution__tip">Mẹo phòng thi: {solution.tips}</p>}
                                 </article>
                               ))}
                             </div>
@@ -614,7 +637,8 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
             </div>
           </section>
 
-          <aside className="ff-paper-sidebar">
+          {!isZenMode && (
+            <aside className="ff-paper-sidebar">
             <section className="ff-paper-side-card ff-ui-card">
               <h2>Thông tin đề</h2>
               <dl className="ff-paper-facts">
@@ -727,6 +751,7 @@ export const ExamPaperViewerView: React.FC<ExamPaperViewerViewProps> = ({
               </section>
             )}
           </aside>
+        )}
         </div>
       </div>
 

@@ -62,6 +62,20 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
   const [violationCount, setViolationCount] = useState(0);
   const [showViolationAlert, setShowViolationAlert] = useState(false);
   const [lastViolationReason, setLastViolationReason] = useState('');
+  const [isZenMode, setIsZenMode] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isSubmitted) return;
+      const target = e.target as HTMLElement;
+      if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA') return;
+      if (e.key === 'z' || e.key === 'Z' || e.key === 'f' || e.key === 'F') {
+        setIsZenMode((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isSubmitted]);
 
   useEffect(() => {
     const saved = loadCbtExamState(paper.id);
@@ -240,6 +254,9 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
   const currentQ = questions[currentIndex];
   const answeredCount = Object.keys(answers).length;
   const isUrgent = secondsLeft < 300;
+  const percentLeft = initialDurationSeconds > 0 ? Math.max(0, Math.min(100, (secondsLeft / initialDurationSeconds) * 100)) : 0;
+  const circumference = 2 * Math.PI * 9;
+  const strokeDashoffset = circumference - (percentLeft / 100) * circumference;
 
   const radarData = useMemo(() => {
     if (!cbtResult) return [];
@@ -290,80 +307,196 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
         className="ff-exam-modal ff-exam-dialog-panel w-full max-w-5xl min-h-0 rounded-3xl p-4 sm:p-6 flex flex-col overflow-hidden relative shadow-[0_25px_80px_rgba(0,0,0,0.85)] border border-white/10 bg-[#0c1017]"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className="flex items-center justify-between pb-3.5 border-b border-white/10 flex-wrap gap-2 shrink-0">
-          <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <div className="p-2.5 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30">
-              <Timer className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/20">
-                  CBT Practice Mode
-                </span>
-                {!paper.duration && (
-                  <span className="text-[10px] text-white/45" title="Bộ đếm luyện tập mặc định; không phải thời lượng đề gốc.">
-                    Bộ đếm mặc định · 45 phút
-                  </span>
-                )}
-                <span className="text-xs text-white/50">{paper.subject} · Lớp {paper.grade}</span>
-              </div>
-              <h1 id="cbt-modal-title" className="max-w-full break-words text-sm sm:text-base font-extrabold text-white">
-                {paper.title}
-              </h1>
-            </div>
-          </div>
-
-          <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
-            {violationCount > 0 && !isSubmitted && (
-              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold">
-                <ShieldAlert className="w-3.5 h-3.5" />
-                <span>Vi phạm: {violationCount}</span>
-              </span>
-            )}
-
-            {!isSubmitted ? (
-              <div
-                className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm transition-all duration-300 ${
-                  isUrgent
-                    ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse'
-                    : 'bg-white/10 border-white/15 text-white'
-                }`}
+        {isZenMode ? (
+          <header className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsZenMode(false)}
+                className="btn-feastables ff-tactile-pop px-3 py-1.5 rounded-xl bg-amber-400 text-[#0b0d12] text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="Thoát chế độ Zen Focus (Phím Z hoặc F)"
               >
-                <Clock className="w-4 h-4 text-amber-400" />
-                <span>{formatTime(secondsLeft)}</span>
+                <Target className="w-3.5 h-3.5" />
+                <span>Thoát Zen (Z/F)</span>
+              </button>
+              <span className="text-xs font-mono font-semibold text-white/70">
+                Câu {currentQ?.number || 1} / {totalQuestions}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {!isSubmitted ? (
+                <div
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm transition-all duration-300 ${
+                    isUrgent
+                      ? 'bg-amber-500/15 border-amber-400/50 text-amber-200 animate-pulse'
+                      : 'bg-white/10 border-white/15 text-white'
+                  }`}
+                >
+                  <div className="relative w-5 h-5 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 -rotate-90" viewBox="0 0 24 24">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.15)"
+                        strokeWidth="2.5"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        fill="none"
+                        stroke={isUrgent ? '#f59e0b' : '#38bdf8'}
+                        strokeWidth="2.5"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        className="transition-all duration-1000 ease-linear"
+                      />
+                    </svg>
+                    <Clock className="w-2.5 h-2.5 text-amber-400 absolute inset-0 m-auto" />
+                  </div>
+                  <span>{formatTime(secondsLeft)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsTimerPaused(!isTimerPaused)}
+                    className="ml-1 inline-flex min-h-7 min-w-7 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white cursor-pointer"
+                    aria-label={isTimerPaused ? 'Tiếp tục đếm giờ' : 'Tạm dừng đếm giờ'}
+                    title={isTimerPaused ? 'Tiếp tục' : 'Tạm dừng'}
+                  >
+                    {isTimerPaused ? <Play className="w-3 h-3 text-emerald-400" /> : <Pause className="w-3 h-3" />}
+                  </button>
+                </div>
+              ) : (
+                <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" /> Đã hoàn thành
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex min-h-8 min-w-8 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer"
+                aria-label="Đóng phòng thi"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </header>
+        ) : (
+          <header className="flex items-center justify-between pb-3.5 border-b border-white/10 flex-wrap gap-2 shrink-0">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              <div className="p-2.5 rounded-xl bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                <Timer className="w-5 h-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-amber-300 font-bold px-2 py-0.5 rounded-md bg-amber-400/10 border border-amber-400/20">
+                    CBT Practice Mode
+                  </span>
+                  {!paper.duration && (
+                    <span className="text-[10px] text-white/45" title="Bộ đếm luyện tập mặc định; không phải thời lượng đề gốc.">
+                      Bộ đếm mặc định · 45 phút
+                    </span>
+                  )}
+                  <span className="text-xs text-white/50">{paper.subject} · Lớp {paper.grade}</span>
+                </div>
+                <h1 id="cbt-modal-title" className="max-w-full break-words text-sm sm:text-base font-extrabold text-white">
+                  {paper.title}
+                </h1>
+              </div>
+            </div>
+
+            <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+              {violationCount > 0 && !isSubmitted && (
+                <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold">
+                  <ShieldAlert className="w-3.5 h-3.5" />
+                  <span>Vi phạm: {violationCount}</span>
+                </span>
+              )}
+
+              {!isSubmitted && (
                 <button
                   type="button"
-                  onClick={() => setIsTimerPaused(!isTimerPaused)}
-                  className="ml-1 inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white cursor-pointer"
-                  aria-label={isTimerPaused ? 'Tiếp tục đếm giờ' : 'Tạm dừng đếm giờ'}
-                  title={isTimerPaused ? 'Tiếp tục' : 'Tạm dừng'}
+                  onClick={() => setIsZenMode(true)}
+                  className="btn-feastables ff-tactile-pop px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all bg-white/10 text-white/80 hover:text-white border border-white/15"
+                  title="Chế độ thi tập trung sâu Zen Focus (Phím Z hoặc F)"
                 >
-                  {isTimerPaused ? <Play className="w-3.5 h-3.5 text-emerald-400" /> : <Pause className="w-3.5 h-3.5" />}
+                  <Target className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Zen Focus (Z/F)</span>
                 </button>
-              </div>
-            ) : (
-              <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" /> Đã hoàn thành
-              </div>
-            )}
+              )}
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer transition-colors"
-              aria-label="Đóng phòng thi"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </header>
+              {!isSubmitted ? (
+                <div
+                  className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm transition-all duration-300 ${
+                    isUrgent
+                      ? 'bg-amber-500/15 border-amber-400/50 text-amber-200 animate-pulse'
+                      : 'bg-white/10 border-white/15 text-white'
+                  }`}
+                >
+                  <div className="relative w-5 h-5 flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 -rotate-90" viewBox="0 0 24 24">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        fill="none"
+                        stroke="rgba(255, 255, 255, 0.15)"
+                        strokeWidth="2.5"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="9"
+                        fill="none"
+                        stroke={isUrgent ? '#f59e0b' : '#38bdf8'}
+                        strokeWidth="2.5"
+                        strokeDasharray={circumference}
+                        strokeDashoffset={strokeDashoffset}
+                        strokeLinecap="round"
+                        className="transition-all duration-1000 ease-linear"
+                      />
+                    </svg>
+                    <Clock className="w-2.5 h-2.5 text-amber-400 absolute inset-0 m-auto" />
+                  </div>
+                  <span>{formatTime(secondsLeft)}</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsTimerPaused(!isTimerPaused)}
+                    className="ml-1 inline-flex min-h-8 min-w-8 items-center justify-center rounded-lg text-white/60 hover:bg-white/10 hover:text-white cursor-pointer"
+                    aria-label={isTimerPaused ? 'Tiếp tục đếm giờ' : 'Tạm dừng đếm giờ'}
+                    title={isTimerPaused ? 'Tiếp tục' : 'Tạm dừng'}
+                  >
+                    {isTimerPaused ? <Play className="w-3.5 h-3.5 text-emerald-400" /> : <Pause className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+              ) : (
+                <div className="px-3 py-1 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4" /> Đã hoàn thành
+                </div>
+              )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar py-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl bg-white/5 text-neutral-400 hover:bg-white/10 hover:text-white cursor-pointer transition-colors"
+                aria-label="Đóng phòng thi"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </header>
+        )}
+
+        <div className={`min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar py-4 ${isZenMode ? 'bg-[#0a0e14]' : ''}`}>
           {!isSubmitted || showReviewMode ? (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-              <div className="lg:col-span-8 flex flex-col justify-between">
+            <div className={isZenMode ? 'max-w-3xl mx-auto space-y-4' : 'grid grid-cols-1 lg:grid-cols-12 gap-5'}>
+              <div className={isZenMode ? 'w-full' : 'lg:col-span-8 flex flex-col justify-between'}>
                 {currentQ && (
-                  <div className="card-hard p-5 sm:p-7 bg-[#111722] border-white/15 flex flex-col justify-between min-h-[360px] sm:min-h-[420px]">
+                  <div className={`card-hard p-5 sm:p-7 border-white/15 flex flex-col justify-between min-h-[360px] sm:min-h-[420px] ${isZenMode ? 'bg-[#0f141d]' : 'bg-[#111722]'}`}>
                     <div className="min-w-0">
                       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -498,45 +631,33 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                 )}
               </div>
 
-              <div className="lg:col-span-4 card-hard p-5 bg-[#111722] border-white/15 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Layers className="w-4 h-4 text-amber-400" /> Bảng câu hỏi ({answeredCount}/{totalQuestions})
+              {isZenMode && !isSubmitted && (
+                <div className="card-hard p-3.5 bg-[#0f141d] border-white/10 space-y-2.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-white/70">
+                    <span className="flex items-center gap-1.5 font-bold text-amber-300">
+                      <Layers className="w-3.5 h-3.5" /> Điều hướng nhanh ({answeredCount}/{totalQuestions})
                     </span>
-                    <span className="text-[11px] font-mono text-white/50">
-                      {totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0}%
-                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSubmitExam}
+                      className="btn-feastables ff-tactile-pop px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors shadow-sm"
+                    >
+                      <CheckCircle2 className="w-3 h-3" /> Nộp bài
+                    </button>
                   </div>
-
-                  <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-4">
-                    <div
-                      className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-300"
-                      style={{ width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%` }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-5 gap-2 max-h-[280px] overflow-y-auto no-scrollbar pr-1">
+                  <div className="grid grid-cols-10 sm:grid-cols-10 gap-1.5 max-h-[160px] overflow-y-auto no-scrollbar pr-0.5">
                     {questions.map((q, idx) => {
                       const isCurrent = currentIndex === idx;
                       const isAnswered = answers[q.number] !== undefined;
                       const isFlagged = flagged.includes(q.number);
-                      const isCorrect = answers[q.number] === q.correctAnswer;
 
-                      let btnStyle = 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white';
-                      if (isSubmitted) {
-                        const baseStyle = isCorrect
-                          ? 'bg-emerald-500/25 border-emerald-500/50 text-emerald-300 font-bold'
-                          : 'bg-rose-500/25 border-rose-500/50 text-rose-300 font-bold';
-                        btnStyle = isCurrent
-                          ? `${baseStyle} ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.4)]`
-                          : baseStyle;
-                      } else if (isCurrent) {
+                      let btnStyle = 'bg-white/[0.04] border-white/10 text-white/50 hover:bg-white/10 hover:text-white';
+                      if (isCurrent) {
                         btnStyle = 'border-amber-400 bg-amber-400/30 text-amber-200 font-extrabold ring-2 ring-amber-400';
-                      } else if (isAnswered) {
-                        btnStyle = 'bg-amber-400/20 border-amber-400/40 text-amber-300 font-bold';
                       } else if (isFlagged) {
-                        btnStyle = 'bg-purple-500/20 border-purple-500/40 text-purple-300';
+                        btnStyle = 'bg-amber-500/20 border-amber-400/40 text-amber-300 font-semibold';
+                      } else if (isAnswered) {
+                        btnStyle = 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold';
                       }
 
                       return (
@@ -544,46 +665,118 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
                           key={q.id}
                           type="button"
                           onClick={() => setCurrentIndex(idx)}
-                          className={`h-10 rounded-xl border text-xs font-mono font-bold flex items-center justify-center transition-all duration-150 cursor-pointer relative ${btnStyle}`}
+                          className={`h-8 rounded-lg border text-xs font-mono font-bold flex items-center justify-center transition-all cursor-pointer relative ${btnStyle}`}
                         >
                           <span>{q.number}</span>
-                          {isFlagged && !isSubmitted && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-purple-400 absolute top-1 right-1" />
+                          {isFlagged && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute top-0.5 right-0.5" />
                           )}
                         </button>
                       );
                     })}
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 mt-4 pt-3.5 border-t border-white/10 text-[11px] text-white/65">
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded bg-amber-400/30 border border-amber-400/50" /> Đã làm
+                  <div className="flex items-center gap-3 pt-1 text-[10px] text-white/60">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded bg-emerald-500/20 border border-emerald-500/40" /> Đã làm
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded bg-white/10 border border-white/20" /> Chưa làm
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded bg-amber-500/20 border border-amber-400/40" /> Xem xét
                     </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded bg-purple-500/30 border border-purple-500/50" /> Đánh dấu
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="w-2.5 h-2.5 rounded border border-amber-400 ring-1 ring-amber-400" /> Đang chọn
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 rounded bg-white/[0.04] border border-white/10" /> Chưa làm
                     </span>
                   </div>
                 </div>
+              )}
 
-                {!isSubmitted && (
-                  <div className="pt-4 border-t border-white/10 mt-4">
-                    <button
-                      type="button"
-                      onClick={handleSubmitExam}
-                      className="btn-feastables ff-tactile-pop w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_16px_rgba(16,185,129,0.35)] transition-all"
-                    >
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Nộp bài thi trực tuyến</span>
-                    </button>
+              {!isZenMode && (
+                <div className="lg:col-span-4 card-hard p-5 bg-[#111722] border-white/15 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Layers className="w-4 h-4 text-amber-400" /> Bảng câu hỏi ({answeredCount}/{totalQuestions})
+                      </span>
+                      <span className="text-[11px] font-mono text-white/50">
+                        {totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0}%
+                      </span>
+                    </div>
+
+                    <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-4">
+                      <div
+                        className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 transition-all duration-300"
+                        style={{ width: `${totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0}%` }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-5 gap-2 max-h-[280px] overflow-y-auto no-scrollbar pr-1">
+                      {questions.map((q, idx) => {
+                        const isCurrent = currentIndex === idx;
+                        const isAnswered = answers[q.number] !== undefined;
+                        const isFlagged = flagged.includes(q.number);
+                        const isCorrect = answers[q.number] === q.correctAnswer;
+
+                        let btnStyle = 'bg-white/[0.04] border-white/10 text-white/50 hover:bg-white/10 hover:text-white';
+                        if (isSubmitted) {
+                          const baseStyle = isCorrect
+                            ? 'bg-emerald-500/25 border-emerald-500/50 text-emerald-300 font-bold'
+                            : 'bg-rose-500/25 border-rose-500/50 text-rose-300 font-bold';
+                          btnStyle = isCurrent
+                            ? `${baseStyle} ring-2 ring-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.4)]`
+                            : baseStyle;
+                        } else if (isCurrent) {
+                          btnStyle = 'border-amber-400 bg-amber-400/30 text-amber-200 font-extrabold ring-2 ring-amber-400';
+                        } else if (isFlagged) {
+                          btnStyle = 'bg-amber-500/20 border-amber-400/40 text-amber-300 font-semibold';
+                        } else if (isAnswered) {
+                          btnStyle = 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 font-bold';
+                        }
+
+                        return (
+                          <button
+                            key={q.id}
+                            type="button"
+                            onClick={() => setCurrentIndex(idx)}
+                            className={`h-10 rounded-xl border text-xs font-mono font-bold flex items-center justify-center transition-all duration-150 cursor-pointer relative ${btnStyle}`}
+                          >
+                            <span>{q.number}</span>
+                            {isFlagged && !isSubmitted && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 absolute top-1 right-1" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 mt-4 pt-3.5 border-t border-white/10 text-[11px] text-white/65">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded bg-emerald-500/20 border border-emerald-500/40" /> Đã làm
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded bg-white/[0.04] border border-white/10" /> Chưa làm
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded bg-amber-500/20 border border-amber-400/40" /> Đánh dấu
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded border border-amber-400 ring-1 ring-amber-400" /> Đang chọn
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
+
+                  {!isSubmitted && (
+                    <div className="pt-4 border-t border-white/10 mt-4">
+                      <button
+                        type="button"
+                        onClick={handleSubmitExam}
+                        className="btn-feastables ff-tactile-pop w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_16px_rgba(16,185,129,0.35)] transition-all"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Nộp bài thi trực tuyến</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             cbtResult && (

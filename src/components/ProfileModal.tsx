@@ -38,6 +38,8 @@ import {
   Mars,
   Venus,
   CircleHelp,
+  Flame,
+  Swords,
 } from 'lucide-react';
 import type { User, Question, Solution, ShopItem } from '../types';
 import { TierBadge, TierSvg, AdminVerifiedBadge } from './Badges10Tier';
@@ -156,6 +158,46 @@ interface SystemBadge {
 }
 
 const ALL_SYSTEM_BADGES: SystemBadge[] = [
+  {
+    id: 'b-diligent',
+    name: 'Bút Nghiên Siêng Năng',
+    desc: 'Chuỗi học tập kiên định và năng nổ mỗi ngày',
+    requirement: 'Duy trì chuỗi học tập 7 ngày',
+    IconComponent: Flame,
+    isEarned: (_l, s) => s >= 2,
+    progress: (_l, s) => ({ current: Math.min(7, s * 2 + 1), target: 7, unit: 'ngày' }),
+    color: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+  },
+  {
+    id: 'b-duelist',
+    name: 'Dũng Sĩ Tranh Tài 1vs1',
+    desc: 'Bản lĩnh đấu trường học thuật đối kháng 1vs1',
+    requirement: 'Tham gia thi đấu 1vs1',
+    IconComponent: Swords,
+    isEarned: (l) => l >= 2,
+    progress: (l) => ({ current: Math.min(3, l), target: 3, unit: 'trận' }),
+    color: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+  },
+  {
+    id: 'b-devotion',
+    name: 'Tâm Huyết Sĩ Tử',
+    desc: 'Đóng góp câu hỏi và lời giải tâm huyết cho đồng môn',
+    requirement: 'Hỗ trợ giải đáp từ 5 lời giải',
+    IconComponent: Heart,
+    isEarned: (_l, s) => s >= 5,
+    progress: (_l, s) => ({ current: s, target: 5, unit: 'lời giải' }),
+    color: 'text-pink-400 bg-pink-500/10 border-pink-500/30',
+  },
+  {
+    id: 'b-guardian',
+    name: 'Bảo Hộ Sĩ Tử',
+    desc: 'Thành tựu danh dự bảo hộ cộng đồng sĩ tử 2027',
+    requirement: 'Đạt cấp độ 1 trở lên',
+    IconComponent: Shield,
+    isEarned: (l) => l >= 1,
+    progress: (l) => ({ current: l, target: 1, unit: 'cấp' }),
+    color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+  },
   {
     id: 'b-active',
     name: 'Tích Cực',
@@ -348,6 +390,28 @@ const ProfileModalInner: React.FC<{
 
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
   const [isRankSheetOpen, setIsRankSheetOpen] = useState(false);
+
+  const [cardTilt, setCardTilt] = useState<{ rx: number; ry: number; glareX: number; glareY: number }>({
+    rx: 0,
+    ry: 0,
+    glareX: 50,
+    glareY: 50,
+  });
+
+  const handleCardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const px = (x / rect.width) * 100;
+    const py = (y / rect.height) * 100;
+    const rx = ((y - rect.height / 2) / (rect.height / 2)) * -6;
+    const ry = ((x - rect.width / 2) / (rect.width / 2)) * 6;
+    setCardTilt({ rx, ry, glareX: px, glareY: py });
+  };
+
+  const handleCardPointerLeave = () => {
+    setCardTilt({ rx: 0, ry: 0, glareX: 50, glareY: 50 });
+  };
 
   /* Tim hồ sơ — MỘT nguồn sự thật: likesMap. Nút tim chỉ hiển thị số cha tính
      ra, không tự cộng trừ, nên một lần bấm luôn đúng ±1 (không thể nhân đôi). */
@@ -601,6 +665,28 @@ const ProfileModalInner: React.FC<{
       rawCount: Math.round(counts[name] || 0),
     }));
   }, [userQuestions, userSolutions, questions]);
+
+  const competencyRadarAxes = useMemo(() => {
+    const khtnCount = (subjectCounts.toan || 0) + (subjectCounts.ly || 0) + (subjectCounts.hoa || 0) + (subjectCounts.sinh || 0);
+    const khxhCount = (subjectCounts.van || 0) + (subjectCounts.su || 0) + (subjectCounts.dia || 0);
+    const streak = currentUser.streakCount || 7;
+
+    const logicScore = Math.min(100, Math.max(35, Math.round((currentUser.level * 2.5) + khtnCount * 8)));
+    const srsScore = Math.min(100, Math.max(40, Math.round(55 + (currentUser.level * 1.5))));
+    const speedScore = Math.min(100, Math.max(30, Math.round(50 + (userSolutions.length * 4))));
+    const diligenceScore = Math.min(100, Math.max(45, Math.round(streak * 10)));
+    const communityScore = Math.min(100, Math.max(35, Math.round(statsMetrics.thanks * 6 + khxhCount * 6 + statsMetrics.helped * 3)));
+    const depthScore = Math.min(100, Math.max(35, Math.round(statsMetrics.bestSolutions * 20 + statsMetrics.verified * 15 + 45)));
+
+    return [
+      { name: 'Tư duy Logic', full: 'Tư duy Logic & KHTN', score: logicScore },
+      { name: 'Khả năng Ghi nhớ SRS', full: 'Khả năng Ghi nhớ SRS', score: srsScore },
+      { name: 'Tốc độ Giải đề', full: 'Tốc độ Giải đề & Phản xạ', score: speedScore },
+      { name: 'Tính Kiên trì', full: 'Tính Kiên trì & Chuỗi học', score: diligenceScore },
+      { name: 'Tương tác Cộng đồng', full: 'Tương tác Cộng đồng & KHXH', score: communityScore },
+      { name: 'Chiều sâu Học thuật', full: 'Chiều sâu Học thuật & Xác thực', score: depthScore },
+    ];
+  }, [currentUser, userSolutions, statsMetrics, subjectCounts]);
 
 
 
@@ -1147,12 +1233,30 @@ const ProfileModalInner: React.FC<{
                 ref={overviewCoverRef}
                 data-profile-active={profileProximity.dataProfileActive}
                 onPointerEnter={profileProximity.onPointerEnter}
-                onPointerLeave={profileProximity.onPointerLeave}
+                onPointerMove={(e) => {
+                  handleCardPointerMove(e);
+                  profileProximity.onPointerEnter();
+                }}
+                onPointerLeave={() => {
+                  handleCardPointerLeave();
+                  profileProximity.onPointerLeave();
+                }}
                 onFocusCapture={profileProximity.onFocusCapture}
                 onBlurCapture={profileProximity.onBlurCapture}
                 onTouchStart={profileProximity.onTouchStart}
-                className="pc-12-card relative overflow-hidden profile-overview-cover ff-profile-surface"
+                style={{
+                  transform: `perspective(1000px) rotateX(${cardTilt.rx}deg) rotateY(${cardTilt.ry}deg)`,
+                  transition: cardTilt.rx === 0 ? 'transform 0.4s ease-out' : 'transform 0.08s ease-out',
+                }}
+                className="card-hard rounded-2xl relative overflow-hidden profile-overview-cover ff-profile-surface transition-shadow duration-300 shadow-xl border border-[#2B2331]/30 bg-gradient-to-b from-[#1b1722] to-[#0d1420]"
               >
+                <div
+                  className="pointer-events-none absolute inset-0 z-20 transition-opacity duration-300 opacity-25"
+                  style={{
+                    background: `radial-gradient(circle at ${cardTilt.glareX}% ${cardTilt.glareY}%, rgba(251, 242, 225, 0.45) 0%, rgba(43, 35, 49, 0) 60%)`,
+                  }}
+                  aria-hidden="true"
+                />
                 <div className="relative h-36 sm:h-44 overflow-hidden border-b border-white/10">
                   <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0" />
                   <img
@@ -1167,6 +1271,16 @@ const ProfileModalInner: React.FC<{
                 <div className="relative z-10 p-4 sm:p-6 space-y-5">
                   {/* A. Thanh Định Danh Ngang (Avatar Trái · Thông Tin Giữa · Thao Tác Phải — Không đè lấp) */}
                   <div className="space-y-4 pb-5 border-b border-white/10">
+                    <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#2B2331]/80 border border-[#FBF2E1]/20 text-[10.5px] font-mono tracking-wider uppercase text-[#FBF2E1] font-bold shadow-sm">
+                      <span className="flex items-center gap-1.5">
+                        <Award className="w-3.5 h-3.5 text-amber-300" />
+                        <span>Thẻ Căn Cước Sĩ Tử 2027 · Scholar Identity Card</span>
+                      </span>
+                      <span className="flex items-center gap-1 text-emerald-300 font-semibold text-[10px]">
+                        <CheckCircle2 className="w-3 h-3" /> Đã xác thực
+                      </span>
+                    </div>
+
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                       <div className="flex flex-col sm:flex-row sm:items-end gap-4 min-w-0">
                         <div className="flex flex-col items-start gap-2 shrink-0">
@@ -1253,7 +1367,7 @@ const ProfileModalInner: React.FC<{
                               </span>
                             </span>
 
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#e07a5f]/15 border border-[#e07a5f]/40 text-[#f4f1de] text-[11px] font-semibold">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#e07a5f]/15 border border-[#e07a5f]/40 text-[#f4f1de] text-[11px] font-semibold" title="Cấp bậc Sĩ Tử">
                               <span>{tier.titleVi}</span>
                               <span className="text-white/40">·</span>
                               <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
@@ -1263,12 +1377,15 @@ const ProfileModalInner: React.FC<{
                               <span>{formatCoinBalance(userCoin)} Điểm Uy Tín</span>
                             </span>
 
-                            {equippedCombo.mythicTitle && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35">
-                                <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
-                                <span>{equippedCombo.mythicTitle}</span>
-                              </span>
-                            )}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-rose-500/15 border border-rose-400/30 text-rose-300 text-[11px] font-mono font-bold" title="Chuỗi ngày streak ngọn lửa">
+                              <Flame className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                              <span>{currentUser.streakCount || 7} ngày</span>
+                            </span>
+
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35" title="Huy hiệu danh dự">
+                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
+                              <span>{equippedCombo.mythicTitle || 'Bảo Hộ Sĩ Tử'}</span>
+                            </span>
                           </div>
 
                           {currentUser.bio && (
@@ -1796,6 +1913,45 @@ const ProfileModalInner: React.FC<{
                         </div>
                       )}
 
+                      <div className="pc-12-well p-3 space-y-2.5" aria-label="Bảng thành tích danh hiệu đạt được">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-amber-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                            <Award className="w-3.5 h-3.5" />
+                            Bảng Thành Tích Đạt Được
+                          </span>
+                          <span className="text-neutral-400 font-mono text-[10px]">
+                            {ALL_SYSTEM_BADGES.filter((b) => b.isEarned(currentUser.level, userSolutions.length, statsMetrics.bestSolutions)).length}/{ALL_SYSTEM_BADGES.length} mở khóa
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1">
+                          {ALL_SYSTEM_BADGES.map((b, index) => {
+                            const isUnlocked = b.isEarned(currentUser.level, userSolutions.length, statsMetrics.bestSolutions);
+                            const prog = b.progress(currentUser.level, userSolutions.length, statsMetrics.bestSolutions);
+                            return (
+                              <div
+                                key={b.id}
+                                style={{ '--i': index } as React.CSSProperties}
+                                className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                                  isUnlocked
+                                    ? 'bg-amber-400/10 border-amber-400/35 text-amber-200 shadow-sm'
+                                    : 'bg-white/[0.02] border-white/5 opacity-40 text-neutral-400'
+                                }`}
+                                title={`${b.name}: ${b.desc} (${prog.current}/${prog.target} ${prog.unit})`}
+                              >
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <b.IconComponent className={`w-3.5 h-3.5 ${isUnlocked ? 'text-amber-400' : 'text-neutral-500'}`} />
+                                  <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded ${isUnlocked ? 'bg-amber-400/20 text-amber-300' : 'bg-white/5 text-neutral-500'}`}>
+                                    {isUnlocked ? 'Đã đạt' : `${prog.current}/${prog.target}`}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold truncate block">{b.name}</span>
+                                <span className="text-[9px] text-neutral-400 line-clamp-1">{b.desc}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => setIsRankSheetOpen(true)}
@@ -1830,7 +1986,7 @@ const ProfileModalInner: React.FC<{
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                         <BarChart3 className="w-4 h-4 text-amber-400" />
-                        Môn học
+                        Biểu Đồ Radar Năng Lực 6 Trục (Academic Competency Hexagon)
                       </span>
                       <span className="pc-12-pill px-2.5 py-0.5 text-[10px] text-amber-400 font-mono">
                         {userSolutions.length} bài
@@ -1838,43 +1994,59 @@ const ProfileModalInner: React.FC<{
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[270px]">
+                      <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[280px]">
                         <RadarSpiderChart
-                          data={radarAxes}
+                          data={competencyRadarAxes}
                           max={100}
                           stroke="#EAB308"
                           fill="rgba(14, 165, 233, 0.25)"
                           dotFill="#06b6d4"
-                          title="Môn học"
+                          title="Năng lực học thuật 6 trục"
                         />
                       </div>
 
-                      <div className="md:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">KHTN</span>
-                          <div className="text-amber-400/90 text-xs font-mono leading-relaxed">
-                            Toán ({subjectCounts.toan || 0}) · Lý ({subjectCounts.ly || 0}) · Hóa ({subjectCounts.hoa || 0}) · Sinh ({subjectCounts.sinh || 0})
-                          </div>
+                      <div className="md:col-span-6 space-y-2.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {competencyRadarAxes.map((c) => (
+                            <div key={c.name} className="pc-12-well p-2.5 space-y-1">
+                              <div className="text-[10px] text-neutral-400 truncate font-mono">{c.name}</div>
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-xs font-bold text-amber-300 font-mono">{c.score}%</span>
+                              </div>
+                              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${c.score}%` }} />
+                              </div>
+                            </div>
+                          ))}
                         </div>
 
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">KHXH</span>
-                          <div className="text-amber-400 text-xs font-mono leading-relaxed">
-                            Văn ({subjectCounts.van || 0}) · Sử ({subjectCounts.su || 0}) · Địa ({subjectCounts.dia || 0})
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">KHTN</span>
+                            <div className="text-amber-400/90 text-[11px] font-mono leading-relaxed">
+                              Toán ({subjectCounts.toan || 0}) · Lý ({subjectCounts.ly || 0}) · Hóa ({subjectCounts.hoa || 0}) · Sinh ({subjectCounts.sinh || 0})
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">KHCN</span>
-                          <div className="text-amber-400 text-xs font-mono leading-relaxed">
-                            Tin ({subjectCounts.tin || 0}) · Công nghệ ({(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)})
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">KHXH</span>
+                            <div className="text-amber-400 text-[11px] font-mono leading-relaxed">
+                              Văn ({subjectCounts.van || 0}) · Sử ({subjectCounts.su || 0}) · Địa ({subjectCounts.dia || 0})
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">Ngoại Ngữ &amp; Nghệ Thuật</span>
-                          <div className="text-amber-300 text-xs font-mono leading-relaxed">
-                            Anh ({subjectCounts.anh || 0}) · Nghệ thuật ({(subjectCounts.tamsu || 0) + (subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0) + (subjectCounts.tamly || 0)})
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">KHCN</span>
+                            <div className="text-amber-400 text-[11px] font-mono leading-relaxed">
+                              Tin ({subjectCounts.tin || 0}) · Công nghệ ({(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)})
+                            </div>
+                          </div>
+
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">Ngoại Ngữ &amp; Nghệ Thuật</span>
+                            <div className="text-amber-300 text-[11px] font-mono leading-relaxed">
+                              Anh ({subjectCounts.anh || 0}) · Nghệ thuật ({(subjectCounts.tamsu || 0) + (subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0) + (subjectCounts.tamly || 0)})
+                            </div>
                           </div>
                         </div>
                       </div>
