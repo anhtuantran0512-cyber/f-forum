@@ -14,10 +14,11 @@ import {
   Lightbulb,
   Flame,
   WifiOff,
+  BookOpen,
 } from 'lucide-react';
 import type { ExamPaper, ExamCBTQuestion } from '../../types';
 import { getExamCBTQuestions } from './cbtData';
-import { playChime } from '../../utils/audio';
+import { playChime, playPaperPageFlip, playCrystallineChime } from '../../utils/audio';
 import {
   saveOfflineFlashcardProgress,
   loadOfflineFlashcardProgress,
@@ -34,6 +35,21 @@ export interface ExamFlashcardModalProps {
 
 type FilterMode = 'all' | 'review' | 'mastered';
 
+const SCHOLASTIC_12_SUBJECTS = [
+  'Toán học',
+  'Vật lý',
+  'Hóa học',
+  'Sinh học',
+  'Lịch sử',
+  'Địa lý',
+  'Ngữ văn',
+  'Tiếng Anh',
+  'Tin học',
+  'Triết học',
+  'Thiên văn',
+  'Nghệ thuật',
+];
+
 export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
   paper,
   isOpen,
@@ -47,7 +63,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
   const [rawIndex, setRawIndex] = useState(0);
   const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
   const [isCompletedView, setIsCompletedView] = useState(false);
-  const [isOnline, setIsOnline] = useState(() => typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [isOnline, setIsOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [swipeOffset, setSwipeOffset] = useState<number>(0);
@@ -79,7 +95,6 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
     }
   }, [paper.id, allQuestions.length]);
 
-  /* Danh sách câu hỏi sau khi áp dụng bộ lọc trạng thái */
   const activeQuestions = useMemo(() => {
     if (filterMode === 'mastered') {
       return allQuestions.filter((q) => masteredIds.has(q.id));
@@ -90,7 +105,6 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
     return allQuestions;
   }, [allQuestions, filterMode, masteredIds, reviewIds]);
 
-  /* Đảm bảo chỉ số câu hỏi hợp lệ trong mọi trường hợp lọc */
   const currentIndex = activeQuestions.length > 0 && rawIndex >= activeQuestions.length ? 0 : rawIndex;
   const currentQuestion = activeQuestions[currentIndex] || activeQuestions[0] || null;
   const isFlipped = currentQuestion ? flippedCardId === currentQuestion.id : false;
@@ -98,6 +112,11 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
   const totalCount = allQuestions.length;
   const masteredCount = masteredIds.size;
   const reviewCount = reviewIds.size;
+  const learningCount = Math.max(0, totalCount - masteredCount - reviewCount);
+
+  const masteredPct = totalCount > 0 ? Math.round((masteredCount / totalCount) * 100) : 0;
+  const reviewPct = totalCount > 0 ? Math.round((reviewCount / totalCount) * 100) : 0;
+  const learningPct = totalCount > 0 ? Math.max(0, 100 - masteredPct - reviewPct) : 0;
 
   const handleNext = useCallback(() => {
     setFlippedCardId(null);
@@ -119,6 +138,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
   const handleToggleFlip = useCallback(() => {
     if (!currentQuestion) return;
     setFlippedCardId((prev) => (prev === currentQuestion.id ? null : currentQuestion.id));
+    playPaperPageFlip();
     playChime('send');
   }, [currentQuestion]);
 
@@ -134,6 +154,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
       next.delete(currentQuestion.id);
       return next;
     });
+    playCrystallineChime();
     playChime('success');
     handleNext();
   }, [currentQuestion, handleNext]);
@@ -159,7 +180,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
       `paper_${paper.id}`,
       currentIndex,
       Array.from(masteredIds),
-      Array.from(reviewIds)
+      Array.from(reviewIds),
     );
   }, [paper.id, currentIndex, masteredIds, reviewIds]);
 
@@ -189,7 +210,6 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
     setIsSwiping(false);
   };
 
-  /* Bắt phím tắt trợ năng cho việc ôn tập siêu tốc */
   useEffect(() => {
     if (!isOpen) return;
 
@@ -230,37 +250,35 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, isCompletedView, reviewIds.size, handleToggleFlip, handleNext, handlePrev, handleMarkMastered, handleMarkReview]);
+  }, [isOpen, isCompletedView, handleToggleFlip, handleNext, handlePrev, handleMarkMastered, handleMarkReview, onClose, reviewIds.size]);
 
-  if (!isOpen || typeof document === 'undefined') return null;
+  if (!isOpen) return null;
 
   return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-label="Thẻ ghi nhớ & Ôn tập nhanh"
-      className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in"
-      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md animate-fade-in"
     >
-      <div
-        className="liquid-glass modal-container card-hard w-full max-w-2xl rounded-2xl p-4 sm:p-6 relative flex flex-col max-h-[94vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Top Header Bar */}
-        <div className="flex items-center justify-between pb-3 border-b border-dashed border-[#f4f1de]/15 mb-4 shrink-0 gap-3">
+      <div className="relative w-full max-w-2xl max-h-[92vh] flex flex-col rounded-[22px] bg-[#161a24] border-[1.5px] border-[#f4f1de]/20 text-[#f4f1de] shadow-[0_24px_64px_rgba(0,0,0,0.85)] p-4 sm:p-6 overflow-hidden">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-dashed border-[#f4f1de]/15 shrink-0">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#f2cc8f]/18 border-[1.5px] border-[#f2cc8f]/40 flex items-center justify-center text-[#f2cc8f] shrink-0 shadow-[2px_2px_0px_rgba(4,6,11,0.8)]">
-              <Sparkles className="w-4 h-4" />
+            <div className="w-10 h-10 rounded-2xl bg-[#f2cc8f]/20 border border-[#f2cc8f]/40 flex items-center justify-center text-[#f2cc8f] shrink-0 shadow-sm">
+              <Sparkles className="w-5 h-5 text-[#f2cc8f]" />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="ff-typo-poster !text-base sm:!text-lg text-[#f4f1de]">
-                  <span className="ff-swash-cap text-base">T</span>hẻ Ghi Nhớ &amp; Ôn Tập Nhanh
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm sm:text-base font-bold text-[#f4f1de] truncate">
+                  <span className="ff-swash-cap text-sm">T</span>hẻ Ghi Nhớ &amp; Ôn Tập Nhanh
                 </h3>
-                <span className="sr-only">Ôn từng thẻ, nhớ sâu hơn.</span>
+                <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#f2cc8f]/15 border border-[#f2cc8f]/30 text-[10.5px] font-bold text-[#f2cc8f]">
+                  <BookOpen className="w-3 h-3" />
+                  {paper.subject || 'Toán học'}
+                </span>
               </div>
-              <p className="text-xs text-[#9a978e] truncate max-w-md mt-0.5">
-                {paper.title} · Môn {paper.subject} Lớp {paper.grade}
+              <p className="text-xs text-[#9a978e] truncate">
+                {paper.title} · Ôn từng thẻ, nhớ sâu hơn.
               </p>
             </div>
           </div>
@@ -297,84 +315,131 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
           </div>
         </div>
 
-        {/* Filter Pills & Progress Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 shrink-0">
-          <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#0b0d12]/70 border border-[#f4f1de]/12 w-fit">
-            <button
-              type="button"
-              onClick={() => {
-                setFilterMode('all');
-                setRawIndex(0);
-                setFlippedCardId(null);
-                setIsCompletedView(false);
-              }}
-              className={`ff-tactile-btn px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterMode === 'all'
-                  ? 'bg-[#f4f1de] text-[#0b0d12]'
-                  : 'text-[#9a978e] hover:text-[#f4f1de]'
-              }`}
-            >
-              Tất cả ({totalCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFilterMode('review');
-                setRawIndex(0);
-                setFlippedCardId(null);
-                setIsCompletedView(false);
-              }}
-              className={`ff-tactile-btn px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterMode === 'review'
-                  ? 'bg-[#e07a5f] text-[#0b0d12]'
-                  : 'text-[#9a978e] hover:text-[#e07a5f]'
-              }`}
-            >
-              Cần ôn lại ({reviewCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFilterMode('mastered');
-                setRawIndex(0);
-                setFlippedCardId(null);
-                setIsCompletedView(false);
-              }}
-              className={`ff-tactile-btn px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                filterMode === 'mastered'
-                  ? 'bg-[#81b29a] text-[#0b0d12]'
-                  : 'text-[#9a978e] hover:text-[#81b29a]'
-              }`}
-            >
-              Đã thuộc ({masteredCount})
-            </button>
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-2 border-b border-white/5 shrink-0">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[#9a978e] shrink-0 mr-1">Phân luồng:</span>
+          {SCHOLASTIC_12_SUBJECTS.map((sub) => {
+            const isCurrent = (paper.subject || '').includes(sub.replace(' học', '')) || (sub === 'Toán học' && (paper.subject || '').includes('Toán'));
+            return (
+              <span
+                key={sub}
+                className={`px-2 py-0.5 rounded-lg text-[10.5px] font-semibold whitespace-nowrap transition-colors shrink-0 ${
+                  isCurrent
+                    ? 'bg-[#FBF2E1] text-[#2B2331] font-bold border border-[#2B2331]/30 shadow-sm'
+                    : 'bg-white/5 text-[#9a978e] border border-white/5'
+                }`}
+              >
+                {sub}
+              </span>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-col gap-2.5 my-3 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5 p-1 rounded-xl bg-[#0b0d12]/70 border border-[#f4f1de]/12 w-fit">
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('all');
+                  setRawIndex(0);
+                  setFlippedCardId(null);
+                  setIsCompletedView(false);
+                }}
+                className={`ff-tactile-btn px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  filterMode === 'all'
+                    ? 'bg-[#f4f1de] text-[#0b0d12]'
+                    : 'text-[#9a978e] hover:text-[#f4f1de]'
+                }`}
+              >
+                Tất cả ({totalCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('review');
+                  setRawIndex(0);
+                  setFlippedCardId(null);
+                  setIsCompletedView(false);
+                }}
+                className={`ff-tactile-btn px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  filterMode === 'review'
+                    ? 'bg-[#e07a5f] text-[#0b0d12]'
+                    : 'text-[#9a978e] hover:text-[#e07a5f]'
+                }`}
+              >
+                Cần ôn lại ({reviewCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilterMode('mastered');
+                  setRawIndex(0);
+                  setFlippedCardId(null);
+                  setIsCompletedView(false);
+                }}
+                className={`ff-tactile-btn px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  filterMode === 'mastered'
+                    ? 'bg-[#81b29a] text-[#0b0d12]'
+                    : 'text-[#9a978e] hover:text-[#81b29a]'
+                }`}
+              >
+                Đã thuộc ({masteredCount})
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 font-mono text-xs text-[#d8d5ce] flex-wrap justify-end">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/35 text-amber-300 text-[11px] font-bold">
+                <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <span>Chuỗi 7 ngày</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] text-[#81b29a]">
+                <span>Tỷ lệ nhớ:</span>
+                <strong className="font-bold text-[#f4f1de]">{Math.round((masteredCount / Math.max(1, totalCount)) * 100)}%</strong>
+              </span>
+              <div className="flex items-center gap-1.5">
+                <span>Đã nắm vững:</span>
+                <span className="font-extrabold text-[#f2cc8f]">
+                  {masteredCount}/{totalCount}
+                </span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 font-mono text-xs text-[#d8d5ce] flex-wrap justify-end">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/35 text-amber-300 text-[11px] font-bold">
-              <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span>Chuỗi 7 ngày</span>
-            </span>
-            <span className="inline-flex items-center gap-1 text-[11px] text-[#81b29a]">
-              <span>Tỷ lệ nhớ:</span>
-              <strong className="font-bold text-[#f4f1de]">{Math.round((masteredCount / Math.max(1, totalCount)) * 100)}%</strong>
-            </span>
-            <div className="flex items-center gap-1.5">
-              <span>Đã nắm vững:</span>
-              <span className="font-extrabold text-[#f2cc8f]">
-                {masteredCount}/{totalCount}
+          <div className="p-2 rounded-xl bg-black/40 border border-white/10 flex flex-col gap-1.5">
+            <div className="flex items-center justify-between text-[10.5px] font-mono">
+              <span className="text-emerald-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                Đã thuộc: {masteredCount} ({masteredPct}%)
+              </span>
+              <span className="text-amber-400 flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                Đang học: {learningCount} ({learningPct}%)
+              </span>
+              <span className="text-[#ff9b71] flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-[#73324c] border border-[#ff9b71]" />
+                Cần ôn gấp: {reviewCount} ({reviewPct}%)
               </span>
             </div>
-            <div className="w-24 h-2 bg-[#0b0d12] rounded-full overflow-hidden border border-[#f4f1de]/12">
+            <div className="w-full h-2.5 bg-[#0b0d12] rounded-full overflow-hidden flex border border-[#f4f1de]/15">
               <div
-                className="h-full bg-gradient-to-r from-[#81b29a] to-[#f2cc8f] transition-all duration-300"
-                style={{ width: `${totalCount > 0 ? (masteredCount / totalCount) * 100 : 0}%` }}
+                className="h-full bg-emerald-500 transition-all duration-500 ease-out"
+                style={{ width: `${masteredPct}%` }}
+                title={`Đã thuộc: ${masteredCount}`}
+              />
+              <div
+                className="h-full bg-amber-500 transition-all duration-500 ease-out"
+                style={{ width: `${learningPct}%` }}
+                title={`Đang học: ${learningCount}`}
+              />
+              <div
+                className="h-full bg-[#73324c] transition-all duration-500 ease-out"
+                style={{ width: `${reviewPct}%` }}
+                title={`Cần ôn gấp: ${reviewCount}`}
               />
             </div>
           </div>
         </div>
 
-        {/* Card Body */}
         {isCompletedView ? (
           <div className="flex flex-col items-center justify-center text-center py-10 px-4 space-y-4 rounded-2xl bg-[#0b0d12]/75 border-[1.5px] border-[#f2cc8f]/35 shadow-[3px_3px_0px_rgba(4,6,11,0.85)]">
             <div className="w-16 h-16 rounded-2xl bg-[#f2cc8f]/18 border border-[#f2cc8f]/40 flex items-center justify-center text-[#f2cc8f] shadow-lg">
@@ -399,27 +464,12 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
               <div className="p-3 rounded-xl bg-[#151a26] border border-[#e07a5f]/35 text-center">
                 <span className="text-[11px] text-[#e07a5f] font-bold block">Cần ôn lại</span>
                 <span className="text-xl font-extrabold font-mono text-[#f4f1de]">
-                  {reviewCount}/{totalCount}
+                  {reviewCount}
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-4">
-              {reviewCount > 0 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setFilterMode('review');
-                    setRawIndex(0);
-                    setFlippedCardId(null);
-                    setIsCompletedView(false);
-                  }}
-                  className="ff-tactile-btn px-4 py-2 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Ôn lại {reviewCount} câu chưa thuộc</span>
-                </button>
-              )}
+            <div className="flex items-center gap-3 pt-4">
               <button
                 type="button"
                 onClick={() => {
@@ -450,7 +500,6 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
           </div>
         ) : currentQuestion ? (
           <div className="flex-1 flex flex-col space-y-4">
-            {/* 3D Flashcard Container */}
             <div
               className="ff-flashcard-perspective relative cursor-pointer select-none touch-pan-y"
               onClick={handleToggleFlip}
@@ -484,8 +533,7 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                 </div>
               )}
               <div className={`ff-flashcard-inner ${isFlipped ? 'is-flipped' : ''}`}>
-                {/* Mặt trước của Thẻ (Front: Câu hỏi, chuyên đề, độ khó) */}
-                <div className="ff-flashcard-face ff-flashcard-front card-hard p-5 sm:p-7">
+                <div className="ff-flashcard-face ff-flashcard-front card-hard rounded-[16px] p-5 sm:p-7">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -514,17 +562,16 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                       </span>
                     </div>
 
-                    <h4 className="text-sm sm:text-base font-bold text-[#f4f1de] leading-relaxed mt-4">
+                    <h4 className="text-sm sm:text-base font-bold text-[#FBF2E1] leading-relaxed mt-4">
                       {currentQuestion.question}
                     </h4>
 
-                    {/* Danh sách lựa chọn tham khảo */}
                     {currentQuestion.options && currentQuestion.options.length > 0 && (
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-4 pt-3 border-t border-dashed border-[#f4f1de]/10">
                         {currentQuestion.options.map((opt) => (
                           <div
                             key={opt.id}
-                            className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-xs text-[#d8d5ce] flex items-start gap-2"
+                            className="p-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs text-[#d8d5ce] flex items-start gap-2"
                           >
                             <span className="w-5 h-5 rounded-md bg-[#f2cc8f]/15 text-[#f2cc8f] font-mono font-bold flex items-center justify-center shrink-0 text-[11px]">
                               {opt.id}
@@ -545,26 +592,24 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                   </div>
                 </div>
 
-                {/* Mặt sau của Thẻ (Back: Đáp án chuẩn, công thức, giải thích) */}
-                <div className="ff-flashcard-face ff-flashcard-back card-hard p-5 sm:p-7">
+                <div className="ff-flashcard-face ff-flashcard-back card-hard rounded-[16px] p-5 sm:p-7">
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-3">
                       <div className="flex items-center gap-2">
-                        <span className="px-2.5 py-0.5 rounded-lg text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                        <span className="px-2.5 py-0.5 rounded-lg text-xs font-extrabold bg-emerald-600/20 text-emerald-800 dark:text-emerald-300 border border-emerald-600/40 flex items-center gap-1">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Đáp án đúng: {currentQuestion.correctAnswer}
                         </span>
-                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono text-[#f2cc8f] bg-[#f2cc8f]/15 border border-[#f2cc8f]/30">
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-mono text-[#2B2331] dark:text-[#f2cc8f] bg-black/5 dark:bg-[#f2cc8f]/15 border border-black/10 dark:border-[#f2cc8f]/30">
                           {currentQuestion.topic}
                         </span>
                       </div>
-                      <span className="font-mono text-[11px] text-[#f2cc8f]">Mặt sau</span>
+                      <span className="font-mono text-[11px] text-[#2B2331] dark:text-[#f2cc8f]">Mặt sau</span>
                     </div>
 
-                    {/* Công thức trọng tâm nếu có */}
                     {currentQuestion.keyFormula && (
-                      <div className="p-3 rounded-xl bg-[#f2cc8f]/10 border border-[#f2cc8f]/35 text-[#f2cc8f] text-xs font-mono mb-3.5 flex items-start gap-2">
-                        <Lightbulb className="w-4 h-4 text-[#f2cc8f] shrink-0 mt-0.5" />
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-600/35 text-[#2B2331] dark:text-[#f2cc8f] text-xs font-mono mb-3.5 flex items-start gap-2">
+                        <Lightbulb className="w-4 h-4 text-amber-600 dark:text-[#f2cc8f] shrink-0 mt-0.5" />
                         <div>
                           <strong className="block text-[11px] uppercase tracking-wider mb-0.5">
                             Công thức &amp; Định lý cốt lõi:
@@ -574,16 +619,15 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
                       </div>
                     )}
 
-                    {/* Lời giải chi tiết */}
-                    <div className="p-3.5 rounded-xl bg-black/40 border border-white/10 text-xs sm:text-sm text-[#f4f1de] leading-relaxed space-y-1.5">
-                      <span className="font-bold text-[#81b29a] block text-xs uppercase tracking-wide">
+                    <div className="p-3.5 rounded-xl bg-black/5 dark:bg-black/40 border border-black/10 dark:border-white/10 text-xs sm:text-sm text-[#2B2331] dark:text-[#f4f1de] leading-relaxed space-y-1.5">
+                      <span className="font-bold text-emerald-700 dark:text-[#81b29a] block text-xs uppercase tracking-wide">
                         Hướng dẫn phương pháp giải:
                       </span>
-                      <p className="text-[#dad7d0]">{currentQuestion.explanation}</p>
+                      <p className="text-[#3b3240] dark:text-[#dad7d0]">{currentQuestion.explanation}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t border-dashed border-[#f4f1de]/12 text-xs text-[#9a978e]">
+                  <div className="flex items-center justify-between pt-4 border-t border-dashed border-black/10 dark:border-[#f4f1de]/12 text-xs text-[#2B2331]/70 dark:text-[#9a978e]">
                     <span className="flex items-center gap-1.5">
                       <RotateCcw className="w-3.5 h-3.5 text-[#81b29a]" />
                       Bấm lại để xem câu hỏi
@@ -594,7 +638,6 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
               </div>
             </div>
 
-            {/* Bottom Controls Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
@@ -670,62 +713,22 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
             </p>
           </div>
         ) : (
-          <div className="p-8 sm:p-12 text-center rounded-2xl bg-[#0b0d12]/75 border-[1.5px] border-[#f4f1de]/15 shadow-[3px_3px_0px_rgba(4,6,11,0.85)] flex flex-col items-center justify-center space-y-3.5">
-            <div className="w-14 h-14 rounded-2xl bg-[#81b29a]/15 border border-[#81b29a]/35 flex items-center justify-center text-[#81b29a] shadow-[2px_2px_0px_rgba(4,6,11,0.8)]">
-              {filterMode === 'review' ? (
-                <CheckCircle2 className="w-7 h-7 text-[#81b29a]" />
-              ) : filterMode === 'mastered' ? (
-                <Lightbulb className="w-7 h-7 text-[#f2cc8f]" />
-              ) : (
-                <Sparkles className="w-7 h-7 text-[#f2cc8f]" />
-              )}
-            </div>
-            <div>
-              <h4 className="text-sm sm:text-base font-extrabold text-[#f4f1de]">
-                <span className="ff-swash-cap text-base">
-                  {filterMode === 'review' ? 'X' : filterMode === 'mastered' ? 'C' : 'K'}
-                </span>
-                {filterMode === 'review'
-                  ? 'uất sắc! Bạn không còn câu hỏi nào cần ôn lại'
-                  : filterMode === 'mastered'
-                  ? 'hưa có câu hỏi nào được đánh dấu đã thuộc'
-                  : 'hông có câu hỏi nào trong danh mục lọc này'}
-              </h4>
-              <p className="text-xs text-[#a39f96] max-w-md mt-1 leading-relaxed">
-                {filterMode === 'review'
-                  ? 'Toàn bộ các nội dung quan trọng đã được bạn làm chủ. Hãy thử sức ngay với bài thi trắc nghiệm tính giờ để củng cố phản xạ!'
-                  : filterMode === 'mastered'
-                  ? 'Mỗi lần lật thẻ là một bước khắc sâu kiến thức. Hãy bấm vào thẻ và chọn "Đã nắm vững" khi ghi nhớ nhé!'
-                  : 'Hãy quay lại chế độ hiển thị toàn bộ đề để tiếp tục hành trình ôn luyện chủ động.'}
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setFilterMode('all');
-                  setRawIndex(0);
-                  setFlippedCardId(null);
-                  setIsCompletedView(false);
-                }}
-                className="ff-tactile-btn px-4 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold cursor-pointer"
-              >
-                Xem tất cả câu hỏi ({totalCount})
-              </button>
-              {filterMode === 'review' && onOpenCbt && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onClose();
-                    onOpenCbt();
-                  }}
-                  className="ff-tactile-btn px-4 py-2 rounded-xl bg-[#81b29a] hover:bg-[#95c4ae] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Timer className="w-3.5 h-3.5" />
-                  <span>Vào thi thử CBT</span>
-                </button>
-              )}
-            </div>
+          <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+            <p className="text-sm text-[#9a978e]">
+              {filterMode === 'review'
+                ? 'Tuyệt vời! Bạn không còn câu hỏi nào cần ôn lại.'
+                : 'Chưa có câu hỏi nào trong mục này.'}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setFilterMode('all');
+                setRawIndex(0);
+              }}
+              className="px-4 py-2 rounded-xl bg-[#f4f1de] text-[#0b0d12] text-xs font-bold"
+            >
+              Xem tất cả câu hỏi
+            </button>
           </div>
         )}
       </div>
@@ -733,5 +736,3 @@ export const ExamFlashcardModal: React.FC<ExamFlashcardModalProps> = ({
     document.body,
   );
 };
-
-export default ExamFlashcardModal;

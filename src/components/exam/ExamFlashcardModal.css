@@ -10,7 +10,7 @@
   min-height: 380px;
   height: 400px;
   transform-style: preserve-3d;
-  transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.25, 1);
   will-change: transform;
   touch-action: manipulation;
 }
@@ -32,45 +32,41 @@
   height: 100%;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  border-radius: 1.25rem;
+  border-radius: 16px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow:
-    0 16px 36px -12px rgba(0, 0, 0, 0.65),
-    3px 3px 0 rgba(4, 6, 11, 0.85),
-    inset 0 1px 0 rgba(244, 241, 222, 0.12);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.45);
 }
 
 .ff-flashcard-front {
-  background: linear-gradient(165deg, rgba(22, 27, 40, 0.96) 0%, rgba(13, 17, 26, 0.98) 100%);
-  border: 1.5px solid rgba(244, 241, 222, 0.18);
+  background: #2B2331;
+  color: #FBF2E1;
+  border: 1.5px solid rgba(251, 242, 225, 0.22);
   transform: rotateY(0deg);
 }
 
 .ff-flashcard-back {
-  background: linear-gradient(165deg, rgba(20, 26, 38, 0.97) 0%, rgba(11, 15, 23, 0.99) 100%);
-  border: 1.5px solid rgba(242, 204, 143, 0.36);
+  background: #FBF2E1;
+  color: #2B2331;
+  border: 1.5px solid rgba(43, 35, 49, 0.28);
+  box-shadow: 4px 4px 0px rgba(43, 35, 49, 0.35);
   transform: rotateY(180deg);
 }
 
 html.light .ff-flashcard-front {
-  background: linear-gradient(165deg, rgba(255, 253, 248, 0.98) 0%, rgba(247, 243, 232, 0.98) 100%);
-  border-color: rgba(28, 25, 23, 0.18);
-  box-shadow:
-    0 16px 36px -12px rgba(28, 25, 23, 0.15),
-    3px 3px 0 rgba(28, 25, 23, 0.14),
-    inset 0 1px 0 #ffffff;
+  background: #FBF2E1;
+  color: #2B2331;
+  border: 1.5px solid rgba(43, 35, 49, 0.22);
+  box-shadow: 4px 4px 0px rgba(43, 35, 49, 0.2);
 }
 
 html.light .ff-flashcard-back {
-  background: linear-gradient(165deg, rgba(255, 251, 240, 0.98) 0%, rgba(245, 238, 222, 0.98) 100%);
-  border-color: rgba(180, 83, 9, 0.36);
-  box-shadow:
-    0 16px 36px -12px rgba(28, 25, 23, 0.15),
-    3px 3px 0 rgba(28, 25, 23, 0.14),
-    inset 0 1px 0 #ffffff;
+  background: #2B2331;
+  color: #FBF2E1;
+  border: 1.5px solid rgba(251, 242, 225, 0.28);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.35);
 }
 
 @media (prefers-reduced-motion: reduce) {
