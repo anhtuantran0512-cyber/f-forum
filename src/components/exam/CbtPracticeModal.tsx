@@ -19,11 +19,18 @@ import {
   Pause,
   Play,
   Target,
+  ShieldAlert,
 } from 'lucide-react';
 import type { ExamPaper, ExamCBTQuestion, CBTResult } from '../../types';
 import { getExamCBTQuestions } from './cbtData';
 import { safeStorage } from '../../utils/storage';
 import { playChime } from '../../utils/audio';
+import {
+  saveCbtExamState,
+  loadCbtExamState,
+  clearCbtExamState,
+  setupExamSecurityGuard,
+} from '../../security/examSecurityGuard';
 
 export const CBT_HISTORY_KEY = 'fforum_cbt_history';
 
@@ -51,6 +58,51 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [showReviewMode, setShowReviewMode] = useState(false);
   const [cbtResult, setCbtResult] = useState<CBTResult | null>(null);
+
+  const [violationCount, setViolationCount] = useState(0);
+  const [showViolationAlert, setShowViolationAlert] = useState(false);
+  const [lastViolationReason, setLastViolationReason] = useState('');
+
+  useEffect(() => {
+    const saved = loadCbtExamState(paper.id);
+    if (saved && saved.answers && !isSubmitted) {
+      setAnswers(saved.answers);
+      if (typeof saved.secondsLeft === 'number' && saved.secondsLeft > 0) {
+        setSecondsLeft(saved.secondsLeft);
+      }
+      if (typeof saved.currentIndex === 'number' && saved.currentIndex < totalQuestions) {
+        setCurrentIndex(saved.currentIndex);
+      }
+      if (Array.isArray(saved.flagged)) {
+        setFlagged(saved.flagged);
+      }
+    }
+  }, [paper.id, totalQuestions]);
+
+  useEffect(() => {
+    if (isSubmitted) return;
+    saveCbtExamState(paper.id, {
+      paperId: paper.id,
+      answers,
+      secondsLeft,
+      currentIndex,
+      flagged,
+      savedAt: Date.now(),
+    });
+  }, [paper.id, answers, secondsLeft, currentIndex, flagged, isSubmitted]);
+
+  useEffect(() => {
+    if (isSubmitted) return;
+    const cleanup = setupExamSecurityGuard({
+      isActive: !isSubmitted && !isTimerPaused,
+      onViolation: (count, reason) => {
+        setViolationCount(count);
+        setLastViolationReason(reason);
+        setShowViolationAlert(true);
+      },
+    });
+    return cleanup;
+  }, [isSubmitted, isTimerPaused]);
 
   useEffect(() => {
     if (isSubmitted || isTimerPaused) return;
@@ -125,12 +177,13 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
     setCbtResult(res);
     setIsSubmitted(true);
     setShowConfirmSubmit(false);
+    clearCbtExamState(paper.id);
     onComplete?.(res);
     try {
       playChime();
     } catch {
     }
-  }, [calculateResult, onComplete]);
+  }, [calculateResult, onComplete, paper.id]);
 
   useEffect(() => {
     if (secondsLeft === 0 && !isSubmitted) {
@@ -165,6 +218,7 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
   };
 
   const handleRestartExam = () => {
+    clearCbtExamState(paper.id);
     setAnswers({});
     setFlagged([]);
     setSecondsLeft(initialDurationSeconds);
@@ -173,6 +227,8 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
     setShowReviewMode(false);
     setCbtResult(null);
     setCurrentIndex(0);
+    setViolationCount(0);
+    setShowViolationAlert(false);
   };
 
   const formatTime = (totalSec: number) => {
@@ -258,6 +314,13 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
+            {violationCount > 0 && !isSubmitted && (
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 text-xs font-mono font-bold">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Vi phạm: {violationCount}</span>
+              </span>
+            )}
+
             {!isSubmitted ? (
               <div
                 className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl border font-mono font-bold text-xs sm:text-sm transition-all duration-300 ${
@@ -807,6 +870,37 @@ export const CbtPracticeModal: React.FC<CbtPracticeModalProps> = ({
             )
           )}
         </div>
+
+        {showViolationAlert && !isSubmitted && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in">
+            <div className="w-full max-w-md space-y-4 rounded-2xl border-2 border-rose-500 bg-neutral-900 p-5 text-center sm:p-6 card-hard shadow-2xl">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/40 flex items-center justify-center mx-auto">
+                <ShieldAlert className="w-7 h-7" />
+              </div>
+              <div className="space-y-1">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                  CẢNH BÁO GIÁM SÁT THI CBT
+                </span>
+                <h3 className="text-base sm:text-lg font-black text-white">
+                  Bạn đã rời khỏi phòng thi!
+                </h3>
+              </div>
+              <p className="text-xs text-neutral-300 leading-relaxed">
+                Hệ thống phát hiện hành vi: <strong className="text-rose-400">{lastViolationReason}</strong> (Vi phạm lần thứ <strong className="text-amber-400">{violationCount}</strong>).
+                Mọi hành vi chuyển tab hoặc rời tiêu điểm đều được ghi nhận vào nhật ký kiểm định.
+              </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowViolationAlert(false)}
+                  className="btn-feastables ff-tactile-pop px-6 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs cursor-pointer shadow-md"
+                >
+                  Tôi Đã Hiểu, Quay Lại Làm Bài
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {showConfirmSubmit && (
           <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">

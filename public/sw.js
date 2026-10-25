@@ -7,10 +7,15 @@
  *      mua vật phẩm, trang bị...) ngay khi thiết bị có mạng trở lại.
  */
 
-const CACHE_NAME = 'fforum-swr-cache-v1';
+const CACHE_NAME = 'fforum-swr-cache-v2';
 const SWR_PATH_PREFIXES = [
   '/assets/decorations/',
+  '/assets/',
   '/media/',
+  '/fonts/',
+  '/favicon.svg',
+  '/icons.svg',
+  '/manifest.webmanifest',
   '/api/edge/catalog',
 ];
 
@@ -34,6 +39,7 @@ self.addEventListener('activate', (event) => {
 });
 
 const isStaleWhileRevalidateTarget = (url) => {
+  if (url.hostname === 'fonts.gstatic.com' || url.hostname === 'fonts.googleapis.com') return true;
   if (url.origin !== self.location.origin) return false;
   return SWR_PATH_PREFIXES.some((prefix) => url.pathname.startsWith(prefix));
 };

@@ -1251,9 +1251,14 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                     <span className="w-7 h-7 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 font-mono font-black text-xs flex items-center justify-center">
                       #{idx + 1}
                     </span>
-                    <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-400/15 border border-amber-400/30 text-amber-300">
-                      {d.title}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-400/15 border border-amber-400/30 text-amber-300">
+                        {d.title}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                        Bảo Hộ Sĩ Tử
+                      </span>
+                    </div>
                   </div>
 
                   <div>

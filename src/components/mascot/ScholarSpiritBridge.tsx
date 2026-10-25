@@ -36,6 +36,27 @@ declare global {
 export const ScholarSpiritBridge: React.FC = () => {
   const [settings, setSettings] = useState<SpiritSettings>(loadSpiritSettings);
   const [poemIdx, setPoemIdx] = useState(0);
+  const [celebrationPoem, setCelebrationPoem] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleDuelistVictory = () => {
+      setCelebrationPoem('Bút nghiên sáng rực bảng vàng son,<br>Đấu Sĩ Tri Thức khải hoàn rạng danh!');
+      window.__astralDragonCfg?.triggerPulse?.();
+      window.__astralDragonCfg?.ascendDragon?.();
+    };
+    const handleStreak = () => {
+      setCelebrationPoem('Bảy ngày bền bỉ vượt trùng khơi,<br>Trúc xanh vươn thẳng ngút trời Sao Khuê!');
+      window.__astralDragonCfg?.triggerPulse?.();
+    };
+
+    window.addEventListener('fforum_duelist_updated', handleDuelistVictory);
+    window.addEventListener('fforum_streak_completed', handleStreak);
+
+    return () => {
+      window.removeEventListener('fforum_duelist_updated', handleDuelistVictory);
+      window.removeEventListener('fforum_streak_completed', handleStreak);
+    };
+  }, []);
 
   useEffect(() => {
     const handleSettingsChanged = (e: Event) => {
@@ -88,9 +109,9 @@ export const ScholarSpiritBridge: React.FC = () => {
     'Biển học mênh mông rèn chí lớn,<br>Đèn khuya sáng tỏ bậc kỳ tài.',
   ];
   const safeIdx = poemIdx % poems.length;
-  const currentPoem = poems[safeIdx];
+  const currentPoem = celebrationPoem || poems[safeIdx];
   const crestSvg = (preset?.crest && crests?.[preset.crest]) || crests?.seal || '';
-  const stampText = preset?.stamp || 'Kỷ niệm F-Forum';
+  const stampText = celebrationPoem ? 'Bảo Hộ Sĩ Tử' : (preset?.stamp || 'Kỷ niệm F-Forum');
 
   return (
     <aside id="fForumPoeticCard" className="fforum-poetic-card">

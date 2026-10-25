@@ -36,8 +36,18 @@ import {
   AlertCircle,
   Clock,
   BookOpen,
+  Download,
+  X as XClose,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
+import {
+  initPwaInstallListener,
+  subscribePwaInstallState,
+  promptPwaInstall,
+  isPwaBannerDismissed,
+  dismissPwaBanner,
+  registerPwaServiceWorker,
+} from './utils/pwaInstall';
 import { CommandPaletteModal as CommandPalette, type PaletteCommand } from './components/CommandPaletteModal';
 import { readFocusSession, requestFocusStop, startFocusSession } from './utils/focusSession';
 import { searchCorpus, type SearchHit } from './utils/globalSearch';
@@ -416,6 +426,16 @@ export const App: React.FC = () => {
   /* Light Mode: Navbar bật/tắt class `light` trên <html>. Theo dõi để tạm dừng các
      video nền mà CSS đã ẩn ở các trang nội dung (lớp chuyển đổi sáng — xem
      scripts/generate-light-adapter.mjs) thay vì để chúng giải mã ngầm tốn GPU/pin. */
+  const [canInstallPwa, setCanInstallPwa] = useState(false);
+  const [isPwaDismissed, setIsPwaDismissed] = useState(() => isPwaBannerDismissed());
+
+  useEffect(() => {
+    initPwaInstallListener();
+    registerPwaServiceWorker();
+    const unsubscribe = subscribePwaInstallState(setCanInstallPwa);
+    return () => unsubscribe();
+  }, []);
+
   const [isLightTheme, setIsLightTheme] = useState<boolean>(
     () => typeof document !== 'undefined' && document.documentElement.classList.contains('light')
   );
@@ -1756,6 +1776,56 @@ export const App: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {canInstallPwa && !isPwaDismissed && (
+        <aside
+          role="region"
+          aria-label="Cài đặt ứng dụng PWA F-Forum"
+          className="fixed bottom-6 right-6 z-[105] max-w-sm rounded-2xl bg-[#FBF2E1] dark:bg-[#151a26] text-[#2B2331] dark:text-[#f4f1de] border-2 border-[#2B2331] dark:border-white/20 p-4 shadow-[6px_6px_0px_#2B2331] dark:shadow-[6px_6px_0px_rgba(0,0,0,0.8)] card-hard animate-fade-up"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-400 border border-[#2B2331] dark:border-white/20 flex items-center justify-center font-black text-sm text-[#0b0d12] shadow-[2px_2px_0px_#2B2331]">
+                F
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-black text-[#2B2331] dark:text-white">
+                  Cài Đặt App F-Forum 2027
+                </h4>
+                <p className="text-[11px] text-[#2B2331]/70 dark:text-neutral-400 mt-0.5 leading-snug">
+                  Mở tức thì dưới 0.5s, học offline không gián đoạn
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                dismissPwaBanner();
+                setIsPwaDismissed(true);
+              }}
+              aria-label="Đóng thông báo cài đặt"
+              className="p-1 rounded-lg text-[#2B2331]/60 dark:text-neutral-400 hover:text-black dark:hover:text-white cursor-pointer"
+            >
+              <XClose className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                const installed = await promptPwaInstall();
+                if (installed) {
+                  setIsPwaDismissed(true);
+                }
+              }}
+              className="btn-feastables w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] font-black text-xs border border-[#2B2331] dark:border-white/20 shadow-[2px_2px_0px_#2B2331] flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Cài Đặt App Học Tập</span>
+            </button>
+          </div>
+        </aside>
       )}
 
       {authOutcome && <OwlOutcome flow={authOutcome} onSkip={dismissAuthOutcome} />}

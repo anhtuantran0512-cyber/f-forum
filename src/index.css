@@ -92,7 +92,6 @@ html.light {
   text-wrap: balance;
 }
 
-/* Master Prompt Phase 2: Typography & "One More Try" styling */
 :is(.ff-app-shell, .landing-root, body) :is(h1, h2):not(.font-sans) {
   font-family: 'Fraunces', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
   letter-spacing: -0.015em;
@@ -105,7 +104,6 @@ html.light {
   display: inline-block;
 }
 
-/* Crisp 16px border card without fuzzy AI slop shadow */
 .card-hard {
   border-radius: 16px;
   border: 1.5px solid var(--border-subtle, rgba(244, 241, 222, 0.16));
@@ -120,7 +118,6 @@ html.light .card-hard {
   box-shadow: 4px 4px 0px rgba(41, 37, 32, 0.14);
 }
 
-/* Feastables 3D tactile pop buttons */
 .btn-feastables, .ff-tactile-pop {
   position: relative;
   border: 2px solid var(--ff-btn-shadow);
