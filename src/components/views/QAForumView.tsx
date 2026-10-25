@@ -38,7 +38,9 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  BookOpen,
 } from 'lucide-react';
+import { StepSolutionAccordion } from '../exam/StepSolutionAccordion';
 import type {
   Question,
   Solution,
@@ -3476,9 +3478,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             </div>
 
                             <div className="ff-qa-answer-copy p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                              <p className="ff-qa-prose text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
-                                {sol.content}
-                              </p>
+                              {sol.content.includes('Bước 1') || sol.content.includes('[spoiler]') || sol.content.length > 200 ? (
+                                <StepSolutionAccordion
+                                  solutionRaw={sol.content}
+                                  subject={selectedQuestion?.subject}
+                                />
+                              ) : (
+                                <p className="ff-qa-prose text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
+                                  {sol.content}
+                                </p>
+                              )}
                             </div>
 
                             {sol.imageUrl && (
@@ -3639,6 +3648,22 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           </div>
                         </div>
                       )}
+
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-xs text-[#9a978e]">Trình bày lập luận bài giải:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const template = 'Bước 1: Phân tích đề bài và điều kiện xác định:\n\nBước 2: Thiết lập phương trình & biến đổi:\n\nBước 3: Biện luận kết quả và kết luận:\n';
+                            setSolutionText(prev => prev ? prev + '\n\n' + template : template);
+                          }}
+                          className="ff-tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 text-xs font-semibold cursor-pointer transition-colors"
+                          title="Chèn mẫu 3 bước giải chuẩn mực"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Chèn mẫu 3 bước giải chuẩn</span>
+                        </button>
+                      </div>
 
                       <textarea
                         id="field-2"
@@ -3836,9 +3861,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           <span>{activeAiState.solution.providerName} · {activeAiState.solution.model}</span>
                           {activeAiState.solution.imageCount > 0 && <span>· đã gửi {activeAiState.solution.imageCount} ảnh</span>}
                         </div>
-                        <div className="max-h-[min(48vh,28rem)] overflow-y-auto pr-1 text-xs leading-[1.8] text-[#f4f1de] whitespace-pre-wrap break-words">
-                          {activeAiState.solution.answer}
-                        </div>
+                        <StepSolutionAccordion
+                          solutionRaw={activeAiState.solution.answer}
+                          subject={selectedQuestion?.subject}
+                        />
                       </div>
                     )}
 

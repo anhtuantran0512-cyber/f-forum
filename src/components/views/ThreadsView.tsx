@@ -10,7 +10,7 @@ import {
   Repeat2, Flag, Trash2, MessageSquareQuote, X,
   Search, Hash, Image as ImageIcon, Clock, TrendingUp,
   Bookmark, ZoomIn, BookOpen, PenLine, Sparkles,
-  Lightbulb, Eye, EyeOff,
+  Lightbulb,
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
@@ -22,6 +22,7 @@ import { useVirtualWindow } from '../../utils/virtualWindow';
 import { useInteractionDebounce } from '../../utils/interactionScheduler';
 import { ReactionPicker } from '../ui/ReactionPicker';
 import { canCreateForumPost } from '../../utils/communityRoles';
+import { StepSolutionAccordion } from '../exam/StepSolutionAccordion';
 import './ThreadsView.css';
 
 const SAVED_THREADS_KEY = 'fforum_saved_threads_v1';
@@ -62,33 +63,9 @@ const parseSpoilerContent = (text: string) => {
 };
 
 const ThreadSolutionSpoiler: React.FC<{ solutionText: string }> = ({ solutionText }) => {
-  const [isOpen, setIsOpen] = useState(false);
   return (
-    <div className="thread-solution-box my-3 rounded-xl border border-dashed border-[#81b29a]/40 bg-[#81b29a]/08 p-3.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1.5 text-xs font-bold text-[#81b29a]">
-          <Lightbulb className="w-4 h-4 text-[#e9c46a]" />
-          <span>Ẩn lời giải từng bước</span>
-        </span>
-        <button
-          type="button"
-          onClick={() => setIsOpen(!isOpen)}
-          className="ff-tactile-btn inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#81b29a]/20 hover:bg-[#81b29a]/30 text-[#81b29a] text-[11px] font-bold border border-[#81b29a]/40 cursor-pointer transition-colors"
-          title={isOpen ? 'Ẩn lời giải' : 'Mở xem lời giải'}
-        >
-          {isOpen ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-          <span>{isOpen ? 'Ẩn lời giải' : 'Mở xem lời giải'}</span>
-        </button>
-      </div>
-      {isOpen ? (
-        <div className="mt-3 pt-3 border-t border-dashed border-[#81b29a]/25 text-xs sm:text-sm text-[#dad7d0] leading-relaxed whitespace-pre-wrap animate-fade-in">
-          {solutionText}
-        </div>
-      ) : (
-        <p className="mt-1 text-[11px] text-[#9a978e] italic">
-          Lời giải đã được ẩn để tránh nhìn đáp án ngay lập tức. Bấm để mở từng bước.
-        </p>
-      )}
+    <div className="thread-solution-box my-3">
+      <StepSolutionAccordion solutionRaw={solutionText} />
     </div>
   );
 };
