@@ -542,7 +542,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     className="ff-tactile-btn px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md"
                   >
                     <FileText className="w-3.5 h-3.5" />
-                    <span>Vào phòng CLB</span>
+                    <span>Vào CLB</span>
                   </button>
 
                   <button
@@ -939,7 +939,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                       className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#f2cc8f] hover:bg-[#e07a5f] text-[#0b0d12] border-[1.5px] border-[#f4f1de] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
                     >
                       <Upload className="w-4 h-4" />
-                      <span>+ Tải tệp ảnh</span>
+                      <span>Tải ảnh</span>
                     </label>
                     <input
                       id="club-cover-upload"

@@ -2634,7 +2634,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     title="In đề thi chuẩn khổ A4 hoặc xuất PDF"
                   >
                     <Printer className="w-4 h-4 text-[#81b29a]" />
-                    <span>In Đề / PDF</span>
+                    <span>In đề thi</span>
                   </button>
                 )}
 

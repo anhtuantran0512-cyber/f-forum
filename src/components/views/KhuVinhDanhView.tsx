@@ -890,7 +890,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 className="btn-feastables px-4 py-2.5 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-black text-xs flex items-center gap-2 cursor-pointer border-2 border-white/20 shadow-[3px_3px_0px_#000]"
               >
                 <Swords className="w-4 h-4 text-amber-300" />
-                <span>Vào Đấu Trường 1vs1</span>
+                <span>Đấu Trường 1vs1</span>
               </button>
             </div>
 
@@ -1066,7 +1066,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 onClick={() => onNavigate?.('exam-vault')}
                 className="btn-feastables ff-tactile-pop px-5 py-2.5 rounded-xl bg-amber-400 text-[#0b0d12] text-xs font-black flex items-center gap-2 cursor-pointer shadow-md"
               >
-                <span>Vào Kho Đề Thi CBT</span>
+                <span>Kho Đề Thi</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
               <button
@@ -1074,7 +1074,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 onClick={() => onNavigate?.('qa')}
                 className="btn-feastables ff-tactile-pop px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-bold flex items-center gap-2 cursor-pointer"
               >
-                <span>Sàn Hỏi Đáp Học Thuật</span>
+                <span>Hỏi Đáp Bài</span>
               </button>
             </div>
           </section>

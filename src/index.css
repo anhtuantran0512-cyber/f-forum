@@ -6984,3 +6984,100 @@ html.light .ff-toast-capsule {
   animation: none !important;
 }
 
+.ff-qa-card,
+.thread-card,
+.ff-exam-card,
+.bento-card,
+.ff-chat-bubble {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s ease !important;
+}
+
+.ff-qa-card:hover {
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.85),
+              0 0 20px -5px rgba(233, 196, 106, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.thread-card:hover {
+  box-shadow: 0 20px 42px -20px rgba(0, 0, 0, 0.75),
+              0 0 18px -4px rgba(142, 182, 154, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.ff-exam-card:hover {
+  box-shadow: 0 20px 42px -18px rgba(0, 0, 0, 0.8),
+              0 0 22px -4px rgba(251, 191, 36, 0.14),
+              inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.btn-feastables,
+.ff-tactile-btn,
+.action-text-btn,
+.threads-filter-pill,
+.ff-qa-filter-chip {
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1),
+              background-color 0.16s ease,
+              border-color 0.16s ease,
+              box-shadow 0.16s ease !important;
+}
+
+.btn-feastables:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px -4px rgba(251, 191, 36, 0.45);
+}
+
+.btn-feastables:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.modal-container {
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75),
+              0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+html.light .modal-container {
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.18),
+              0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-qa-card,
+  .thread-card,
+  .ff-exam-card,
+  .bento-card,
+  .btn-feastables,
+  .ff-tactile-btn {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+

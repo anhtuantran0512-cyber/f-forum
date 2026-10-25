@@ -171,7 +171,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
             className="ff-tactile-btn w-full sm:w-auto ff-glass-depth-1 rounded-xl px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-bold text-[#f4f1de] inline-flex items-center justify-center gap-2 hover:border-[#81b29a]/60 cursor-pointer"
           >
             <HelpCircle className="w-4 h-4 text-[#81b29a]" />
-            <span>Hỏi Đáp Bài Tập</span>
+            <span>Hỏi Bài Tập</span>
           </button>
 
           <button
