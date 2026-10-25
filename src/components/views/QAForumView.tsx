@@ -2028,7 +2028,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
 
                           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[5px] bg-[#f2cc8f]/18 border border-[#f2cc8f]/45 text-xs font-mono font-bold text-[#f2cc8f] shadow-sm">
                             <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
-                            <span>+{q.bountyCoin || 50} Bounty Points</span>
+                            <span>+{q.bountyCoin || 50} Điểm Uy Tín</span>
                           </span>
 
                           {q.isSolved || bestSol ? (
@@ -2846,12 +2846,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-dashed border-[#f4f1de]/12">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-xs font-bold text-[#f4f1de]">
-                        Cược Coin thưởng:
+                        Treo thưởng Điểm Uy Tín:
                       </span>
                       <div className="ask2027-coin-badge px-2.5 py-1 rounded-full flex items-center gap-1.5">
                         <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
                         <span className="text-[11px] font-mono font-bold text-[#f2cc8f]">
-                          Số dư: {formatCoinBalance(userBalance)} Coin
+                          Số dư: {formatCoinBalance(userBalance)} Uy Tín
                         </span>
                       </div>
                     </div>
@@ -2869,7 +2869,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           −
                         </button>
                         <span className="px-2.5 text-xs sm:text-sm font-mono font-extrabold text-[#f2cc8f] min-w-[74px] text-center">
-                          {bountyCoin} Coin
+                          {bountyCoin} Uy Tín
                         </span>
                         <button
                           type="button"
@@ -3454,15 +3454,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                     <span>Đáp án chuẩn (+{bestBonusCoin} Coin)</span>
                                   </span>
                                 )}
-                                {sol.content && sol.content.trim().split(/\s+/).filter(Boolean).length >= 80 && (
-                                  <span
-                                    className="heartfelt-badge"
-                                    title="Lời giải chuyên sâu, diễn giải cặn kẽ trên 80 từ"
-                                  >
-                                    <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                                    <span>Tâm Huyết Sĩ Tử</span>
-                                  </span>
-                                )}
                                 {selectedQuestion.teacherPinnedSolutionId === sol.id && (
                                   <span
                                     className="px-2.5 py-1 rounded-lg bg-[#f2cc8f]/14 border border-[#f2cc8f]/40 text-[#f2cc8f] text-[11px] font-bold inline-flex items-center gap-1.5"
@@ -3660,22 +3651,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       />
 
                       <MathSymbolsBar onInsert={sym => setSolutionText(prev => prev + sym)} />
-
-                      {solutionText.trim().length > 0 && solutionText.trim().split(/\s+/).filter(Boolean).length < 25 && (
-                        <div className="slop-warning-banner">
-                          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                          <span>
-                            Học thuật chuyên sâu: Lời giải hiện tại khá ngắn ({solutionText.trim().split(/\s+/).filter(Boolean).length} từ). Hãy bổ sung các bước biến đổi chi tiết hoặc dẫn chứng phương pháp để người đọc hiểu trọn vẹn và tăng tỷ lệ nhận Coin thưởng!
-                          </span>
-                        </div>
-                      )}
-
-                      {solutionText.trim().split(/\s+/).filter(Boolean).length >= 80 && (
-                        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs font-semibold">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                          <span>Lời giải tâm huyết ({solutionText.trim().split(/\s+/).filter(Boolean).length} từ)! Bài giải này đạt chuẩn nhận huy hiệu "Tâm Huyết Sĩ Tử".</span>
-                        </div>
-                      )}
 
                       <div className="pt-3 border-t border-dashed border-[#f4f1de]/15 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex items-center gap-3 flex-wrap">

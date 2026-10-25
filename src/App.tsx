@@ -1838,7 +1838,7 @@ export const App: React.FC = () => {
         headline={decoEquipBurst.tick > 0 ? `Đã trang bị: ${decoEquipBurst.name}` : undefined}
       />
 
-      {currentView === 'landing' && <ScholarSpiritBridge />}
+      {currentView === 'landing' && <ScholarSpiritBridge currentView={currentView} />}
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
       {isResourceLoading && (

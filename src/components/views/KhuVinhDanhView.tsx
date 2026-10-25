@@ -333,6 +333,25 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 }) => {
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
+  
+  useEffect(() => {
+    let animId: number | null = null;
+    const isGridView = true;
+    const shouldRunAnimation = () =>
+      !document.hidden && !isGridView;
+    const scheduleTick = () => {};
+    const onVisibilityChange = () => {
+      if (!shouldRunAnimation()) return;
+      if (animId || !shouldRunAnimation()) return;
+      scheduleTick();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
   const [activeTabMode, setActiveTabMode] = useState<'hall' | 'archive'>('hall');
   const [subjectFilter, setSubjectFilter] = useState<'all' | 'natural' | 'social' | 'specialized'>('all');
   const [subjectSearchQuery, setSubjectSearchQuery] = useState('');

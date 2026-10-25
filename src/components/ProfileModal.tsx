@@ -1259,8 +1259,8 @@ const ProfileModalInner: React.FC<{
                               <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
                             </span>
 
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold">
-                              <span>{formatCoinBalance(userCoin)} Coin</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold" title="Điểm Uy Tín Học Thuật">
+                              <span>{formatCoinBalance(userCoin)} Điểm Uy Tín</span>
                             </span>
 
                             {equippedCombo.mythicTitle && (

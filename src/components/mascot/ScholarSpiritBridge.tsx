@@ -33,10 +33,16 @@ declare global {
   }
 }
 
-export const ScholarSpiritBridge: React.FC = () => {
+export interface ScholarSpiritBridgeProps {
+  currentView?: string;
+}
+
+export const ScholarSpiritBridge: React.FC<ScholarSpiritBridgeProps> = ({ currentView }) => {
   const [settings, setSettings] = useState<SpiritSettings>(loadSpiritSettings);
   const [poemIdx, setPoemIdx] = useState(0);
   const [celebrationPoem, setCelebrationPoem] = useState<string | null>(null);
+
+  const isLanding = !currentView || currentView === 'landing';
 
   useEffect(() => {
     const handleDuelistVictory = () => {
@@ -72,10 +78,12 @@ export const ScholarSpiritBridge: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    const shouldRun = isLanding && settings.enabled;
+
     window.FORUM_SPIRIT_CONFIG = {
       species: settings.species,
       skin: settings.skin,
-      paused: !settings.enabled,
+      paused: !shouldRun,
       scale: settings.scale,
       showLotus: settings.showLotus,
     };
@@ -88,15 +96,30 @@ export const ScholarSpiritBridge: React.FC = () => {
       document.body.appendChild(script);
     } else if (window.__astralDragonCfg) {
       const cfg = window.__astralDragonCfg;
-      cfg.paused = !settings.enabled;
+      cfg.paused = !shouldRun;
       if (cfg.setSpecies) cfg.setSpecies(settings.species);
       if (cfg.rebuildSkin) cfg.rebuildSkin(settings.skin);
       cfg.scale = settings.scale;
       cfg.showLotus = settings.showLotus;
     }
-  }, [settings]);
 
-  if (!settings.enabled || !settings.showCard) {
+    const mascotCanvases = document.querySelectorAll('canvas[style*="2147483000"]');
+    mascotCanvases.forEach((c) => {
+      (c as HTMLElement).style.display = shouldRun ? '' : 'none';
+    });
+
+    return () => {
+      if (window.__astralDragonCfg) {
+        window.__astralDragonCfg.paused = true;
+      }
+      const unmountCanvases = document.querySelectorAll('canvas[style*="2147483000"]');
+      unmountCanvases.forEach((c) => {
+        (c as HTMLElement).style.display = 'none';
+      });
+    };
+  }, [settings, isLanding]);
+
+  if (!isLanding || !settings.enabled || !settings.showCard) {
     return null;
   }
 

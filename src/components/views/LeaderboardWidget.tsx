@@ -428,12 +428,12 @@ export const LeaderboardWidget: React.FC<LeaderboardWidgetProps> = ({
                 <OdometerDigits
                   value={metric === 'hours' ? myPeriodMinutes / 60 : meEntry?.points ?? 0}
                   decimals={metric === 'hours' ? 1 : 0}
-                  unit={metric === 'hours' ? 'giờ' : 'điểm'}
+                  unit={metric === 'hours' ? 'giờ' : 'Uy Tín'}
                   size="md"
                   ariaLabel={
                     metric === 'hours'
                       ? `${myPeriodIsEstimated ? 'Ước tính ' : ''}${(myPeriodMinutes / 60).toFixed(1)} giờ học`
-                      : `${meEntry?.points ?? 0} điểm`
+                      : `${meEntry?.points ?? 0} Điểm Uy Tín Học Thuật`
                   }
                 />
               </>

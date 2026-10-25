@@ -1324,13 +1324,15 @@ button:not(:disabled):active {
   font-family: inherit;
   font-style: inherit;
   font-weight: inherit;
-  font-size: 1em;
+  font-size: inherit;
   line-height: inherit;
   letter-spacing: inherit;
-  text-transform: inherit;
+  text-transform: none;
   padding-right: 0;
   color: inherit;
   background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
   -webkit-text-fill-color: currentColor;
   transform: none;
   animation: none;
@@ -1345,12 +1347,16 @@ button:not(:disabled):active {
 html.light .ff-swash-cap {
   color: inherit;
   background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
   -webkit-text-fill-color: currentColor;
 }
 
 html.light :is(.ff-keep-dark, .signature-profile) .ff-swash-cap {
   color: inherit;
   background: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
   -webkit-text-fill-color: currentColor;
 }
 
