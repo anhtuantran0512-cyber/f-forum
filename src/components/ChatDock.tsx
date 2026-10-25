@@ -76,12 +76,25 @@ const CHANNELS: {
 ];
 
 const STUDY_MATH_FORMULAS = [
+  { label: 'Phân số a/b', code: '\\frac{a}{b}' },
+  { label: 'Căn √(x)', code: '√(x)' },
   { label: 'Tích phân', code: '$$\\int_{a}^{b} f(x)dx$$' },
   { label: 'Đạo hàm', code: "$$f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x)-f(x)}{\\Delta x}$$" },
   { label: 'Bậc hai Delta', code: '$$\\Delta = b^2 - 4ac$$' },
   { label: 'Giới hạn', code: '$$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$' },
   { label: 'Hệ thức Euler', code: '$$e^{i\\pi} + 1 = 0$$' },
   { label: 'Tổng Sigma', code: '$$\\sum_{i=1}^{n} x_i$$' },
+];
+
+const MATH_SCIENCE_SYMBOLS = [
+  { label: '√', symbol: '√', title: 'Căn bậc hai √(x)' },
+  { label: 'π', symbol: 'π', title: 'Số Pi' },
+  { label: '∑', symbol: '∑', title: 'Tổng Sigma' },
+  { label: '∫', symbol: '∫', title: 'Tích phân' },
+  { label: 'Δ', symbol: 'Δ', title: 'Delta' },
+  { label: '±', symbol: '±', title: 'Cộng trừ' },
+  { label: '∞', symbol: '∞', title: 'Vô cực' },
+  { label: '→', symbol: '→', title: 'Suy ra' },
 ];
 
 interface FloatingStudyActionsProps {
@@ -92,76 +105,48 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
   const [isMathOpen, setIsMathOpen] = useState(false);
 
   return (
-    <div className="ff-study-actions-bar flex items-center gap-1.5 mb-2 overflow-x-auto no-scrollbar py-0.5">
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setIsMathOpen(!isMathOpen)}
-          className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#81b29a]/15 hover:bg-[#81b29a]/25 text-[#81b29a] border border-[#81b29a]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
-          title="Chèn nhanh công thức Toán học chuẩn LaTeX"
-        >
-          <Calculator className="w-3 h-3" />
-          <span>Toán</span>
-        </button>
-
-        {isMathOpen && (
-          <div className="absolute bottom-full mb-1.5 left-0 z-30 w-52 rounded-xl bg-[#141b28] border border-[#81b29a]/40 p-1.5 shadow-xl space-y-1">
-            <div className="px-2 py-1 text-[9.5px] font-mono font-bold text-[#81b29a] uppercase border-b border-white/10 flex items-center justify-between">
-              <span>Công thức thường gặp</span>
-              <button
-                type="button"
-                onClick={() => setIsMathOpen(false)}
-                className="text-[#9a978e] hover:text-white"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            {STUDY_MATH_FORMULAS.map((f, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  onInsertText(f.code);
-                  setIsMathOpen(false);
-                }}
-                className="w-full text-left px-2 py-1 rounded-lg text-xs text-[#dad7d0] hover:text-white hover:bg-[#81b29a]/20 flex items-center justify-between cursor-pointer"
-              >
-                <span>{f.label}</span>
-                <span className="text-[9.5px] font-mono text-[#81b29a] truncate max-w-[80px]">{f.code}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center gap-1 shrink-0">
-        {[
-          { label: 'π', symbol: 'π', title: 'Chèn ký hiệu Pi' },
-          { label: '√(x)', symbol: '√(x)', title: 'Chèn căn bậc hai' },
-          { label: 'a/b', symbol: '\\frac{a}{b}', title: 'Chèn phân số' },
-          { label: 'Δ', symbol: 'Δ', title: 'Chèn biệt thức Delta' },
-          { label: '∫', symbol: '∫', title: 'Chèn tích phân' },
-          { label: '∑', symbol: '∑', title: 'Chèn tổng Sigma' },
-        ].map((item) => (
+    <div className="ff-study-actions-bar flex flex-col gap-1 mb-2">
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+        <div className="relative shrink-0">
           <button
-            key={item.label}
             type="button"
-            onClick={() => onInsertText(item.symbol)}
-            className="ff-tactile-pop btn-feastables px-1.5 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/35 text-amber-200 border border-amber-400/40 text-[10px] font-mono font-black cursor-pointer transition-all"
-            title={item.title}
+            onClick={() => setIsMathOpen(!isMathOpen)}
+            className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#81b29a]/15 hover:bg-[#81b29a]/25 text-[#81b29a] border border-[#81b29a]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+            title="Công thức LaTeX"
           >
-            {item.label}
+            <Calculator className="w-3 h-3" />
+            <span>Toán</span>
           </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => onInsertText('\n[spoiler]Đáp án: [/spoiler]')}
-          className="ff-tactile-pop btn-feastables px-1.5 py-0.5 rounded-md bg-purple-500/20 hover:bg-purple-500/35 text-purple-200 border border-purple-400/40 text-[10px] font-mono font-black cursor-pointer transition-all flex items-center gap-0.5"
-          title="Chèn định dạng spoiler ẩn đáp án"
-        >
-          <Lightbulb className="w-2.5 h-2.5 text-purple-300" />
-          <span>Ẩn</span>
-        </button>
+
+          {isMathOpen && (
+            <div className="absolute bottom-full mb-1.5 left-0 z-30 w-52 rounded-xl bg-[#141b28] border border-[#81b29a]/40 p-1.5 shadow-xl space-y-1">
+              <div className="px-2 py-1 text-[9.5px] font-mono font-bold text-[#81b29a] uppercase border-b border-white/10 flex items-center justify-between">
+                <span>Công thức mẫu</span>
+                <button
+                  type="button"
+                  onClick={() => setIsMathOpen(false)}
+                  className="text-[#9a978e] hover:text-white"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              {STUDY_MATH_FORMULAS.map((f, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    onInsertText(f.code);
+                    setIsMathOpen(false);
+                  }}
+                  className="w-full text-left px-2 py-1 rounded-lg text-xs text-[#dad7d0] hover:text-white hover:bg-[#81b29a]/20 flex items-center justify-between cursor-pointer"
+                >
+                  <span>{f.label}</span>
+                  <span className="text-[9.5px] font-mono text-[#81b29a] truncate max-w-[80px]">{f.code}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         <button
           type="button"
@@ -173,27 +158,84 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
           <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
           <span>Giải chi tiết</span>
         </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Tóm tắt bước]**\n- B1: Xác định yêu cầu bài toán\n- B2: Phương pháp áp dụng\n- B3: Kết quả và đối chiếu')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Tóm tắt các bước giải ngắn gọn"
+          aria-label="Tóm tắt bước"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Tóm tắt bước</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Công thức nhanh]**\n- Công thức: \n- Điều kiện áp dụng: \n- Ví dụ tính nhanh: ')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Công thức giải nhanh & áp dụng"
+          aria-label="Công thức nhanh"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Công thức nhanh</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Cách giải khác]**\n- Phương pháp 2: (Giải nhanh / Hình học / Đại số)\n- Các bước: \n- So sánh kết quả: ')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Phương pháp & cách tiếp cận khác"
+          aria-label="Cách giải khác"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Cách giải khác</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n[spoiler]Đáp án: [/spoiler]')}
+          className="ff-tactile-pop btn-feastables px-1.5 py-0.5 rounded-md bg-purple-500/20 hover:bg-purple-500/35 text-purple-200 border border-purple-400/40 text-[10px] font-mono font-black cursor-pointer transition-all flex items-center gap-0.5 shrink-0"
+          title="Chèn định dạng spoiler ẩn đáp án"
+        >
+          <Lightbulb className="w-2.5 h-2.5 text-purple-300" />
+          <span>Ẩn</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('[Pomodoro 25p] Mời các bạn cùng tham gia phiên học tập trung 25 phút ngay bây giờ!')}
+          className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#f2cc8f]/15 hover:bg-[#f2cc8f]/25 text-[#f2cc8f] border border-[#f2cc8f]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+          title="Mời bạn bè cùng học Pomodoro 25 phút"
+        >
+          <Timer className="w-3 h-3" />
+          <span>Pomodoro 25p</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('[SOS Cứu trợ bài tập] Bài này mình đang vướng, nhờ các bạn hỗ trợ với ạ: ')}
+          className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#e07a5f]/15 hover:bg-[#e07a5f]/25 text-[#ffc6b1] border border-[#e07a5f]/40 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+          title="Gắn thẻ cứu trợ bài tập SOS khẩn cấp"
+        >
+          <AlertCircle className="w-3 h-3 text-[#e07a5f]" />
+          <span>SOS</span>
+        </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => onInsertText('[Pomodoro 25p] Mời các bạn cùng tham gia phiên học tập trung 25 phút ngay bây giờ!')}
-        className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#f2cc8f]/15 hover:bg-[#f2cc8f]/25 text-[#f2cc8f] border border-[#f2cc8f]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
-        title="Mời bạn bè cùng học Pomodoro 25 phút"
-      >
-        <Timer className="w-3 h-3" />
-        <span>Pomodoro 25p</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => onInsertText('[SOS Cứu trợ bài tập] Bài này mình đang vướng, nhờ các bạn hỗ trợ với ạ: ')}
-        className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#e07a5f]/15 hover:bg-[#e07a5f]/25 text-[#ffc6b1] border border-[#e07a5f]/40 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
-        title="Gắn thẻ cứu trợ bài tập SOS khẩn cấp"
-      >
-        <AlertCircle className="w-3 h-3 text-[#e07a5f]" />
-        <span>SOS</span>
-      </button>
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+        {MATH_SCIENCE_SYMBOLS.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => onInsertText(item.symbol)}
+            className="ff-tactile-pop btn-feastables px-1.5 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/35 text-amber-200 border border-amber-400/40 text-[10px] font-mono font-black cursor-pointer transition-all shrink-0"
+            title={item.title}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };

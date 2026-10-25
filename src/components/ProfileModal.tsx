@@ -1377,11 +1377,11 @@ const ProfileModalInner: React.FC<{
                           <button
                             type="button"
                             onClick={() => setIsReporting(true)}
-                            className="pc-12-btn px-2.5 py-1.5 rounded-xl text-red-300 text-[11px] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
-                            title="Tố cáo người dùng này"
+                            className="pc-12-btn p-1.5 rounded-xl text-red-300 hover:text-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                            title="Tố cáo"
+                            aria-label="Tố cáo"
                           >
                             <Flag className="w-3.5 h-3.5 text-red-400" />
-                            <span>Tố cáo</span>
                           </button>
                         )}
 
@@ -1399,11 +1399,11 @@ const ProfileModalInner: React.FC<{
                               });
                             }
                           }}
-                          className="pc-12-btn px-2.5 py-1.5 rounded-xl text-neutral-200 text-[11px] font-medium inline-flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Chia sẻ hồ sơ"
+                          className="pc-12-btn p-1.5 rounded-xl text-neutral-200 hover:text-white inline-flex items-center justify-center transition-colors cursor-pointer"
+                          title="Chia sẻ"
+                          aria-label="Chia sẻ"
                         >
                           <Share2 className="w-3.5 h-3.5" />
-                          <span>Chia sẻ</span>
                         </button>
                       </div>
                     </div>
@@ -1421,9 +1421,11 @@ const ProfileModalInner: React.FC<{
                           <button
                             type="button"
                             onClick={() => openShopAtCategory(null)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-xs font-bold transition cursor-pointer"
+                            className="inline-flex items-center justify-center p-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 transition cursor-pointer"
+                            title="Cửa hàng"
+                            aria-label="Cửa hàng"
                           >
-                            <PaletteIcon className="w-3.5 h-3.5" /> Cửa hàng
+                            <PaletteIcon className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -2495,7 +2497,7 @@ const ProfileModalInner: React.FC<{
                   <button
                     type="submit"
                     disabled={isSaving || mediaBusy !== null}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:opacity-90 active:scale-95 text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:opacity-90 text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>{isSaving ? 'Đang lưu...' : mediaBusy ? '…' : 'Lưu'}</span>
