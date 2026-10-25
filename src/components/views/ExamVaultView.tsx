@@ -1842,7 +1842,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
             {filteredPapers.map((paper) => {
               const isSaved = savedExams.includes(paper.id);
               const isPublicPaper = !paper.status || paper.status === 'approved';
@@ -1874,7 +1874,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     openExamViewer(paper.id);
                   }}
                   data-exam-id={paper.id}
-                  className={`ff-exam-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between cursor-pointer relative overflow-visible group ${
+                  className={`ff-exam-card rounded-2xl p-4.5 sm:p-5.5 lg:p-6 flex flex-col justify-between cursor-pointer relative overflow-visible group ${
                     isPending ? 'border-amber-400/40 bg-amber-950/20' : ''
                   }`}
                 >
@@ -2052,9 +2052,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           }}
                           className="btn-feastables ff-tactile-pop inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-2 py-1.5 text-xs font-black text-[#0b0d12] shadow-sm hover:bg-amber-300 transition-all col-span-2 sm:col-span-1"
                           title="Luyện Thi Ngay · Bắt Đầu Thi CBT"
+                          aria-label="Luyện Thi Ngay · Bắt Đầu Thi CBT"
                         >
                           <Zap className="w-3.5 h-3.5 text-[#0b0d12]" />
-                          <span>Luyện Thi Ngay · Bắt Đầu Thi CBT</span>
+                          <span>Thi CBT</span>
                         </button>
                         {/* Admin approval actions if pending */}
                         {isPending && isStaffOrAdmin && (

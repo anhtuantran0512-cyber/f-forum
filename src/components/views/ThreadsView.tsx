@@ -532,11 +532,12 @@ const ThreadCard = React.memo<{
                 onClick={() => viewModel.onToggleSave?.(rootThread.id)}
                 className={`action-text-btn subtle ${viewModel.isSaved?.(rootThread.id) ? 'is-saved' : ''}`}
                 title={viewModel.isSaved?.(rootThread.id) ? 'Bỏ lưu bài viết' : 'Lưu bài viết'}
+                aria-label={viewModel.isSaved?.(rootThread.id) ? 'Bỏ lưu bài viết' : 'Lưu bài viết'}
                 aria-pressed={Boolean(viewModel.isSaved?.(rootThread.id))}
               >
                 <Bookmark className="w-4 h-4" />
               </button>
-              <button type="button" onClick={() => setIsReportOpen(true)} className="action-text-btn subtle" title="Báo cáo vi phạm">
+              <button type="button" onClick={() => setIsReportOpen(true)} className="action-text-btn subtle" title="Báo cáo vi phạm" aria-label="Báo cáo vi phạm">
                 <Flag className="w-4 h-4" />
               </button>
             </div>

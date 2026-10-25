@@ -1832,9 +1832,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         </div>
 
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6 items-start">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-7 min-h-0 pb-6 items-start">
           {/* Left: Questions Feed */}
-          <div ref={questionFeedRef} className="ff-qa-feed lg:col-span-8 space-y-2.5 pb-6">
+          <div ref={questionFeedRef} className="ff-qa-feed lg:col-span-8 space-y-4 sm:space-y-5 pb-8">
             <div
               className="p-3.5 sm:p-4 rounded-xl backdrop-blur-md border border-white/10 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs mb-1"
               style={{
@@ -1894,7 +1894,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>Xem tất cả câu hỏi</span>
+                  <span>Xem tất cả</span>
                 </button>
               </div>
             ) : showSavedOnly || searchTerm || selectedTag !== 'all' ? (
@@ -1940,7 +1940,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Đặt câu hỏi đầu tiên</span>
+                  <span>Đặt câu hỏi</span>
                 </button>
               </div>
             )
@@ -1986,7 +1986,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
                   data-question-id={q.id}
                   ref={setQuestionCardRef}
-                  className={`ff-virtual-card ff-qa-card card-hard cursor-pointer p-4 sm:p-5 group ${
+                  className={`ff-virtual-card ff-qa-card card-hard cursor-pointer p-4 sm:p-5.5 lg:p-6 group ${
                     q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}
                 >
