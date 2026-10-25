@@ -272,6 +272,28 @@ const getCompactPaperTitle = (paper: ExamPaper): string => {
   return title || paper.title;
 };
 
+const ASSESSMENT_TRACKS = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'gdpt2018', label: 'GDPT 2018 (3 Phần Chuẩn)' },
+  { id: 'hsa', label: 'ĐGNL HSA (ĐHQG Hà Nội)' },
+  { id: 'vact', label: 'ĐGNL V-ACT (ĐHQG TP.HCM)' },
+  { id: 'tsa', label: 'ĐGTD TSA (Bách Khoa Hà Nội)' },
+] as const;
+
+const getExamStructureBadge = (paper: ExamPaper): string => {
+  const text = (paper.title + ' ' + (paper.summary || '') + ' ' + paper.school).toLowerCase();
+  if (text.includes('tsa') || text.includes('tư duy')) {
+    return 'ĐGTD TSA (Bách Khoa Hà Nội) · 40 câu';
+  }
+  if (text.includes('v-act') || text.includes('apt') || text.includes('đhqg-hcm') || text.includes('tp. hồ chí minh')) {
+    return 'ĐGNL V-ACT (ĐHQG TP.HCM) · 60 câu';
+  }
+  if (text.includes('hsa') || text.includes('đhqg hà nội') || text.includes('đhkhtn')) {
+    return 'ĐGNL HSA (ĐHQG Hà Nội) · 50 câu';
+  }
+  return 'GDPT 2018 (3 Phần Chuẩn) · 40 câu';
+};
+
 export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   currentUser,
   onNavigate,
@@ -353,6 +375,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const [selectedSchool, setSelectedSchool] = useState<string>('Tất cả trường');
   const [selectedYear, setSelectedYear] = useState<string>('Tất cả năm');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('Tất cả mức độ');
+  const [selectedAssessmentTrack, setSelectedAssessmentTrack] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'likes' | 'rating'>('newest');
   const [activeTab, setActiveTab] = useState<'all' | 'syllabus' | 'exams' | 'saved' | 'cached' | 'my_submissions'>('all');
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
@@ -967,6 +990,28 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       result = result.filter((p) => p.schoolYear === selectedYear);
     }
 
+    if (selectedAssessmentTrack === 'gdpt2018') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return p.grade === 12 || text.includes('gdpt') || text.includes('2018') || text.includes('3 phần') || text.includes('thpt');
+      });
+    } else if (selectedAssessmentTrack === 'hsa') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return text.includes('hsa') || text.includes('đhqg hà nội') || text.includes('đhkhtn');
+      });
+    } else if (selectedAssessmentTrack === 'vact') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return text.includes('v-act') || text.includes('apt') || text.includes('đhqg-hcm') || text.includes('tp. hồ chí minh');
+      });
+    } else if (selectedAssessmentTrack === 'tsa') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return text.includes('tsa') || text.includes('tư duy') || text.includes('bách khoa');
+      });
+    }
+
     /* Sorting */
     if (sortBy === 'likes') {
       result.sort((a, b) => (b.likes ?? -1) - (a.likes ?? -1));
@@ -978,6 +1023,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   }, [
     allPapers,
     activeTab,
+    selectedAssessmentTrack,
     searchTerm,
     selectedGrade,
     selectedExamType,
@@ -1361,6 +1407,27 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                 <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${active ? 'bg-amber-400 text-[#0b0d12]' : 'bg-white/10 text-white/60'}`}>
                   {tab.count}
                 </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="py-2.5 border-b border-white/10 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {ASSESSMENT_TRACKS.map((track) => {
+            const active = selectedAssessmentTrack === track.id;
+            return (
+              <button
+                key={track.id}
+                type="button"
+                onClick={() => setSelectedAssessmentTrack(track.id)}
+                aria-pressed={active}
+                className={`px-3 py-1.5 rounded-[12px] text-xs font-mono font-bold whitespace-nowrap transition-all duration-150 cursor-pointer border card-hard ${
+                  active
+                    ? 'bg-[#FBF2E1] text-[#2B2331] border-[#2B2331] shadow-sm font-extrabold'
+                    : 'bg-white/[0.04] text-white/70 border-white/10 hover:bg-white/[0.08] hover:text-white'
+                }`}
+              >
+                {track.label}
               </button>
             );
           })}
@@ -1969,6 +2036,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         </span>
                       )}
 
+                      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+                        <div className="card-hard rounded-[16px] px-3 py-1.5 text-xs font-mono font-bold bg-[#FBF2E1] text-[#2B2331] inline-flex items-center gap-1.5 shadow-sm border border-[#2B2331]/20">
+                          <Layers className="w-3.5 h-3.5 text-[#2B2331]" />
+                          <span>{getExamStructureBadge(paper)}</span>
+                        </div>
+                      </div>
+
                       <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
                         <button
                           type="button"
@@ -1977,10 +2051,10 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                             setCbtExam(paper);
                           }}
                           className="btn-feastables ff-tactile-pop inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-2 py-1.5 text-xs font-black text-[#0b0d12] shadow-sm hover:bg-amber-300 transition-all col-span-2 sm:col-span-1"
-                          title="Bắt đầu thi CBT trực tuyến"
+                          title="Luyện Thi Ngay · Bắt Đầu Thi CBT"
                         >
                           <Zap className="w-3.5 h-3.5 text-[#0b0d12]" />
-                          <span>Bắt Đầu Thi CBT</span>
+                          <span>Luyện Thi Ngay · Bắt Đầu Thi CBT</span>
                         </button>
                         {/* Admin approval actions if pending */}
                         {isPending && isStaffOrAdmin && (

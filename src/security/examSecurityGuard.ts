@@ -2,7 +2,7 @@ import { safeStorage } from '../utils/storage';
 
 export interface CbtExamSavedState {
   paperId: string;
-  answers: Record<number, 'A' | 'B' | 'C' | 'D'>;
+  answers: Record<number, 'A' | 'B' | 'C' | 'D' | Record<string, boolean> | string | number>;
   secondsLeft: number;
   currentIndex: number;
   flagged: number[];
