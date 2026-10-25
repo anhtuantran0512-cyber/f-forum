@@ -619,7 +619,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       const exists = prev.includes(examId);
       const next = exists ? prev.filter((id) => id !== examId) : [...prev, examId];
       safeStorage.setItem(SAVED_EXAMS_KEY, JSON.stringify(next));
-      showToast(exists ? 'Đã bỏ lưu đề thi khỏi thư viện.' : 'Đã lưu đề thi vào kho cá nhân thành công!');
+      showToast(exists ? 'Đã bỏ lưu' : 'Đã lưu bài');
       try {
         playChime();
       } catch {
@@ -686,7 +686,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     try {
       const snapshot = await rateExamPaper(paperId, stars);
       saveInteractionSnapshot(paperId, snapshot);
-      showToast(`Đã ghi nhận ${stars} sao của bạn.`);
+      showToast('Đã ghi nhận');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Không thể lưu đánh giá.');
     } finally {
@@ -761,7 +761,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(url).catch(() => {});
     }
-    showToast('Đã sao chép liên kết đề thi! Đang chuyển sang Câu Lạc Bộ để bạn chia sẻ...');
+    showToast('Đã sao chép');
     try {
       playChime();
     } catch {
@@ -1915,6 +1915,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                           </span>
                         )}
 
+                        {paper.verified && (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                            <ShieldCheck className="w-2.5 h-2.5" /> Đề chuẩn
+                          </span>
+                        )}
+
                         {cachedExamIds.includes(paper.id) && (
                           <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold ff-cached-pill flex items-center gap-1">
                             <HardDrive className="w-2.5 h-2.5" /> Offline
@@ -2262,7 +2268,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               )}
               {activePreview.verified && (
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Đã kiểm duyệt
+                  <ShieldCheck className="w-3 h-3" /> Đề chuẩn
                 </span>
               )}
             </div>
@@ -3054,7 +3060,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       {/* 10. TOAST NOTIFICATION                                   */}
       {/* ======================================================== */}
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-amber-400/50 bg-neutral-900/95 px-4 py-2.5 text-xs font-semibold text-amber-200 shadow-[0_12px_36px_rgba(0,0,0,0.65)] backdrop-blur-xl animate-fade-up">
+        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-neutral-950/85 px-4 py-2 text-xs font-semibold text-amber-200 shadow-xl backdrop-blur-md ff-toast-capsule" role="status" aria-live="polite">
           <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
           <span className="break-words">{toastMessage}</span>
         </div>

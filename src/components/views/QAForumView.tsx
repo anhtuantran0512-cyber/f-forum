@@ -28,6 +28,7 @@ import {
   Flag,
   User as UserIcon,
   Coins,
+  Flame,
   Bookmark,
   BookmarkCheck,
   Brain,
@@ -1433,7 +1434,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const wasSaved = isQuestionSaved(savedMap, savedOwnerKey, questionId);
     persistSavedMap(toggleSavedQuestion(savedMap, savedOwnerKey, questionId, !wasSaved));
     pushNotification({
-      title: wasSaved ? 'Đã bỏ lưu câu hỏi' : 'Đã lưu câu hỏi',
+      title: wasSaved ? 'Đã bỏ lưu' : 'Đã lưu bài',
       body: wasSaved
         ? 'Câu hỏi đã được gỡ khỏi danh sách đã lưu.'
         : 'Xem lại bất cứ lúc nào trong mục Đã lưu.',
@@ -2034,14 +2035,14 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           </span>
 
                           {q.isSolved || bestSol ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-bold bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/50 shadow-sm">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-medium bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/50 shadow-sm">
                               <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                              <span>Đã kiểm chứng bởi Thủ khoa</span>
+                              <span>Đã giải</span>
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-semibold bg-[#e07a5f]/15 text-[#f2cc8f] border border-[#e07a5f]/30">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-medium bg-[#e07a5f]/15 text-[#f2cc8f] border border-[#e07a5f]/30">
                               <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
-                              <span>Chờ Thủ khoa giải</span>
+                              <span>Chờ lời giải</span>
                             </span>
                           )}
 
@@ -3051,19 +3052,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   </span>
 
                   {selectedQuestion.isSolved ? (
-                    <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-xs font-bold text-[#d8f3dc] inline-flex items-center gap-1.5">
+                    <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-xs font-medium text-[#d8f3dc] inline-flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                      <span>Đã có đáp án chuẩn</span>
+                      <span>Đã giải</span>
                     </span>
                   ) : activeSolutions.length === 0 ? (
-                    <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
+                    <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5 text-xs font-medium">
                       <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
-                      <span>Đang chờ lời giải</span>
+                      <span>Chờ lời giải</span>
                     </span>
                   ) : (
-                    <span className="ff-organic-sage-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                      <span>Đang thảo luận ({activeSolutions.length}/3)</span>
+                    <span className="ff-organic-sage-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5 text-xs font-medium">
+                      <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Sôi nổi</span>
                     </span>
                   )}
 

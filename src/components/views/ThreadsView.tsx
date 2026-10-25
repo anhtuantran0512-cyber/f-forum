@@ -386,6 +386,17 @@ const ThreadCard = React.memo<{
             }`}>
               {academicMeta.difficulty}
             </span>
+            {(childReplies.length >= 2 || totalReactionCount >= 3) ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#e07a5f]/15 text-[#f2cc8f] border border-[#e07a5f]/30">
+                <Flame className="w-3 h-3 text-[#e07a5f]" />
+                <span>Sôi nổi</span>
+              </span>
+            ) : Date.now() - rootThread.createdAtMs < 3600000 ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#81b29a]/15 text-[#81b29a] border border-[#81b29a]/30">
+                <Clock className="w-3 h-3 text-[#81b29a]" />
+                <span>Mới nhất</span>
+              </span>
+            ) : null}
           </div>
           {showActions && (
             <div className="thread-top-actions">
@@ -839,11 +850,19 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const readerReturnFocusRef = useRef<HTMLElement | null>(null);
   const lightboxReturnFocusRef = useRef<HTMLElement | null>(null);
 
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!toastMsg) return undefined;
+    const timer = window.setTimeout(() => setToastMsg(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [toastMsg]);
+
   const toggleSaveThread = useCallback((threadId: string) => {
     setSavedIds((prev) => {
       const exists = prev.includes(threadId);
       const next = exists ? prev.filter((id) => id !== threadId) : [threadId, ...prev];
       safeStorage.setItem(SAVED_THREADS_KEY, JSON.stringify(next));
+      setToastMsg(exists ? 'Đã bỏ lưu' : 'Đã lưu bài');
       return next;
     });
   }, []);
@@ -1143,7 +1162,10 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const viewModel = useMemo(
     () => ({
       onReply: (parentId: string, content: string) => void onReplyThread(parentId, content),
-      onReact: (id: string, type: ThreadReactionType) => void onReact(id, type),
+      onReact: (id: string, type: ThreadReactionType) => {
+        setToastMsg('Đã ghi nhận');
+        void onReact(id, type);
+      },
       onRepost: (id: string, type: 'simple' | 'quote', content?: string) => void onRepost(id, type, content),
       onReport: (id: string, reason: string) => void onReport(id, reason),
       onDelete: (id: string) => void onDelete?.(id),
@@ -1650,6 +1672,13 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
             onError={(e) => handleImageError(e, '')}
             className="thread-lightbox-img"
           />
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-neutral-950/85 px-4 py-2 text-xs font-semibold text-neutral-100 shadow-xl backdrop-blur-md ff-toast-capsule" role="status" aria-live="polite">
+          <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+          <span>{toastMsg}</span>
         </div>
       )}
     </section>

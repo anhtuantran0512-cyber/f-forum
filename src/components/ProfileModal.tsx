@@ -1393,7 +1393,7 @@ const ProfileModalInner: React.FC<{
                               pushNotification({
                                 type: 'system',
                                 category: 'system',
-                                title: 'Đã Sao Chép Liên Kết',
+                                title: 'Đã sao chép',
                                 body: `Đã copy liên kết hồ sơ của ${currentUser.name}.`,
                                 targetView: 'home',
                               });

@@ -1582,27 +1582,26 @@ export const App: React.FC = () => {
       <PotatoSuggestion />
       <SecurityNoticeToast />
 
-      {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed top-20 sm:top-24 right-4 sm:right-6 z-50 animate-fade-up">
-          <div className="liquid-glass rounded-2xl bg-neutral-950/95 border border-white/20 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-sm">
-            <div className="shrink-0 p-2 rounded-xl bg-white/10">
+          <div className="ff-toast-capsule rounded-full bg-neutral-950/85 border border-white/10 px-4 py-2 shadow-xl backdrop-blur-md flex items-center gap-2.5 max-w-sm" role="status" aria-live="polite">
+            <div className="shrink-0 p-1 rounded-full bg-white/10">
               {toastMessage.type === 'error' ? (
-                <AlertCircle className="w-5 h-5 text-rose-400" />
+                <AlertCircle className="w-4 h-4 text-rose-400" />
               ) : toastMessage.type === 'level' ? (
-                <Trophy className="w-5 h-5 text-amber-400" />
+                <Trophy className="w-4 h-4 text-amber-400" />
               ) : toastMessage.type === 'xp' ? (
-                <Sparkles className="w-5 h-5 text-amber-300" />
+                <Sparkles className="w-4 h-4 text-amber-300" />
               ) : toastMessage.type === 'success' ? (
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
               ) : (
-                <Info className="w-5 h-5 text-blue-400" />
+                <Info className="w-4 h-4 text-blue-400" />
               )}
             </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">{toastMessage.title}</h4>
+            <div className="min-w-0">
+              <h4 className="text-xs font-semibold text-white tracking-tight truncate" title={toastMessage.title}>{toastMessage.title}</h4>
               {toastMessage.subtitle && (
-                <p className="text-[11px] text-neutral-300 mt-0.5 leading-snug">
+                <p className="text-[11px] text-neutral-300 truncate opacity-85 leading-tight" title={toastMessage.subtitle}>
                   {toastMessage.subtitle}
                 </p>
               )}

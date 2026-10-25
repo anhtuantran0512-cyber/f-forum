@@ -81,8 +81,9 @@ export function ShareRow({ url, title }: ShareRowProps) {
         type="button"
         className={`ff-share__btn ff-share__btn--copy${copied ? ' is-copied' : ''}`}
         onClick={() => void copyLink()}
-        data-tip={copied ? 'Đã chép!' : 'Chép liên kết'}
-        aria-label={copied ? 'Đã chép liên kết' : 'Chép liên kết câu hỏi'}
+        title={copied ? 'Đã sao chép liên kết vào bộ nhớ tạm' : 'Chép liên kết'}
+        data-tip={copied ? 'Đã sao chép' : 'Chép liên kết'}
+        aria-label={copied ? 'Đã sao chép' : 'Chép liên kết câu hỏi'}
       >
         {copied ? <Check className="w-4 h-4" /> : <Link2 className="w-4 h-4" />}
       </button>
@@ -91,7 +92,7 @@ export function ShareRow({ url, title }: ShareRowProps) {
           <Share2 className="w-4 h-4" />
         </button>
       )}
-      <span className="sr-only" aria-live="polite">{copied ? 'Đã chép liên kết vào bộ nhớ tạm' : ''}</span>
+      <span className="sr-only" aria-live="polite">{copied ? 'Đã sao chép' : ''}</span>
     </div>
   );
 }
