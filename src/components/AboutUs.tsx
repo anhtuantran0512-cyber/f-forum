@@ -1278,7 +1278,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                     <label className="text-xs text-neutral-300">URL hình ảnh hoặc Tải ảnh từ máy (*):</label>
                     <label htmlFor="field" className="text-[11px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer inline-flex items-center gap-1 font-mono">
                       <Upload size={12} />
-                      <span>Chọn file từ máy</span>
+                      <span>Chọn tệp</span>
                       <input id="field"
                         type="file"
                         accept="image/*"
@@ -1458,7 +1458,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                     <label className="text-xs text-neutral-300">URL hoặc Tải lên Ảnh Đại Diện (*):</label>
                     <label htmlFor="field-2" className="text-[11px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer inline-flex items-center gap-1 font-mono">
                       <Upload size={12} />
-                      <span>Chọn file từ máy</span>
+                      <span>Chọn tệp</span>
                       <input id="field-2"
                         type="file"
                         accept="image/*"
@@ -1607,7 +1607,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                           <label className="text-[11px] text-neutral-400">URL hoặc Tải lên Hình ảnh:</label>
                           <label htmlFor="field-3" className="text-[10px] text-[#f2cc8f] hover:text-[#f4f1de] cursor-pointer inline-flex items-center gap-1 font-mono">
                             <Upload size={11} />
-                            <span>Tải ảnh từ máy</span>
+                            <span>Tải ảnh</span>
                             <input id="field-3"
                               type="file"
                               accept="image/*"
@@ -1657,7 +1657,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors cursor-pointer"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Khôi phục mặc định ban đầu</span>
+                  <span>Khôi phục gốc</span>
                 </button>
 
                 <div className="flex items-center gap-3">
@@ -1730,7 +1730,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
                   className="w-full py-2 px-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs text-[#f2cc8f] font-mono flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Hoặc Tải ảnh lên từ máy tính</span>
+                  <span>Tải từ máy</span>
                 </button>
               </div>
 

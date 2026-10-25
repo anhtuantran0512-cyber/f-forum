@@ -1408,7 +1408,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       className="ff-tactile-btn w-full px-3 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <Rocket className="w-3.5 h-3.5 text-[#e07a5f]" />
-                      <span>Xem Bản nâng cấp (Update)</span>
+                      <span>Bản nâng cấp</span>
                     </button>
                   )}
                 </Card>

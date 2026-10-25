@@ -144,7 +144,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAut
                   className="btn-feastables ff-tactile-pop px-5 py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] font-black text-sm border-2 border-[#0b0d12] shadow-[4px_4px_0px_#0b0d12] flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0b0d12]"
                 >
                   <GraduationCap className="h-4.5 w-4.5 text-[#0b0d12]" />
-                  <span>Khám Phá Sảnh Thi CBT</span>
+                  <span>Sảnh Thi CBT</span>
                   <ArrowRight className="h-4 w-4" />
                 </button>
 
@@ -156,7 +156,7 @@ export const LandingHero: React.FC<LandingHeroProps> = ({ currentUser, onOpenAut
                   className="btn-feastables ff-tactile-pop px-5 py-3 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-black text-sm border-2 border-[#0b0d12] shadow-[4px_4px_0px_#0b0d12] flex items-center justify-center gap-2 cursor-pointer transition-all active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#0b0d12]"
                 >
                   <Swords className="h-4.5 w-4.5 text-amber-300" />
-                  <span>Vào Đấu Trường 1vs1</span>
+                  <span>Đấu Trường 1vs1</span>
                 </button>
 
                 {!currentUser ? (

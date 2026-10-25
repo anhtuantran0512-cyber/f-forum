@@ -697,7 +697,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                   className="btn-feastables flex-1 py-3 rounded-2xl text-xs font-black bg-rose-500 text-white border-2 border-[#2B2331] dark:border-white/20 shadow-[4px_4px_0px_#2B2331] flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <RotateCcw className="w-4 h-4" />
-                  <span>Tái Đấu Trận Khác</span>
+                  <span>Tái Đấu Ngay</span>
                 </button>
 
                 {onNavigateToLeaderboard && (
@@ -710,7 +710,7 @@ export const PeerBattleModal: React.FC<PeerBattleModalProps> = ({
                     className="btn-feastables flex-1 py-3 rounded-2xl text-xs font-black bg-[#2B2331] text-[#FBF2E1] dark:bg-amber-400 dark:text-[#2B2331] border-2 border-[#2B2331] dark:border-white/20 shadow-[4px_4px_0px_#2B2331] flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Trophy className="w-4 h-4" />
-                    <span>Xem Bảng Thi Đua</span>
+                    <span>Bảng Thi Đua</span>
                   </button>
                 )}
               </div>

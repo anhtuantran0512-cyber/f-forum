@@ -17,6 +17,11 @@ test('Phase 25 - 2. Chuan Hoa Nhan Dieu Huong & Nut Thao Tac Sieu Tinh Gon (<= 3
   const clubs = read('src/components/views/ClubsView.tsx');
   const hall = read('src/components/views/KhuVinhDanhView.tsx');
   const exam = read('src/components/views/ExamVaultView.tsx');
+  const battle = read('src/components/exam/PeerBattleModal.tsx');
+  const checkin = read('src/components/DailyCheckInModal.tsx');
+  const hero = read('src/components/landing/sections/LandingHero.tsx');
+  const about = read('src/components/AboutUs.tsx');
+  const settings = read('src/components/SettingsModal.tsx');
 
   assert.ok(home.includes('<span>Hỏi Bài Tập</span>'), 'HomeView nut hoi bai phai <= 3 tu');
   assert.ok(clubs.includes('<span>Vào CLB</span>'), 'ClubsView nut vao clb phai <= 3 tu');
@@ -25,6 +30,12 @@ test('Phase 25 - 2. Chuan Hoa Nhan Dieu Huong & Nut Thao Tac Sieu Tinh Gon (<= 3
   assert.ok(hall.includes('<span>Kho Đề Thi</span>'), 'KhuVinhDanhView nut kho de thi phai <= 3 tu');
   assert.ok(hall.includes('<span>Hỏi Đáp Bài</span>'), 'KhuVinhDanhView nut san hoi dap phai <= 3 tu');
   assert.ok(exam.includes('<span>In đề thi</span>'), 'ExamVaultView nut in de thi phai <= 3 tu');
+  assert.ok(battle.includes('<span>Tái Đấu Ngay</span>'), 'PeerBattleModal nut tai dau phai <= 3 tu');
+  assert.ok(battle.includes('<span>Bảng Thi Đua</span>'), 'PeerBattleModal nut bang thi dua phai <= 3 tu');
+  assert.ok(checkin.includes('Bật khiên') && checkin.includes('Điểm danh ngay'), 'DailyCheckInModal nut phai <= 3 tu');
+  assert.ok(hero.includes('<span>Sảnh Thi CBT</span>') && hero.includes('<span>Đấu Trường 1vs1</span>'), 'LandingHero nut phai <= 3 tu');
+  assert.ok(about.includes('<span>Chọn tệp</span>') && about.includes('<span>Khôi phục gốc</span>'), 'AboutUs nut phai <= 3 tu');
+  assert.ok(settings.includes('<span>Bản nâng cấp</span>'), 'SettingsModal nut phai <= 3 tu');
 });
 
 test('Phase 25 - 3. Bao Toan 100% 3 Asset 3D Nguyen Ban Va Switcher Thiet Bi Icon-Only', () => {

@@ -418,7 +418,7 @@ export const DailyCheckInModal: React.FC<DailyCheckInModalProps> = ({
                     }`}
                   >
                     <Shield className="w-4 h-4 text-sky-600" />
-                    <span>{hasShield ? 'Khiên đã kích hoạt' : 'Bật khiên bảo vệ'}</span>
+                    <span>{hasShield ? 'Khiên đã bật' : 'Bật khiên'}</span>
                   </button>
                 </div>
               </div>
@@ -477,7 +477,7 @@ export const DailyCheckInModal: React.FC<DailyCheckInModalProps> = ({
                   }`}
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{hasClaimedToday ? 'Đã điểm danh hôm nay' : 'Điểm danh ngay (+18 Coin)'}</span>
+                  <span>{hasClaimedToday ? 'Đã điểm danh' : 'Điểm danh ngay'}</span>
                 </button>
               </div>
             </div>
