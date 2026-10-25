@@ -895,6 +895,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="relative flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-1 min-w-0 nav-center-tabs"
           >
             {navItems.map((item, idx) => {
+              if (item.id === 'memory' && currentView !== 'memory') return null;
               const isActive = currentView === item.id;
 
               return (
@@ -1476,19 +1477,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onViewChange('memory');
+                  onViewChange('coming-soon');
                   setIsMobileMenuOpen(false);
                 }}
-                data-active={currentView === 'memory' ? 'true' : 'false'}
+                data-active={currentView === 'coming-soon' ? 'true' : 'false'}
                 className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
-                aria-label="Miền Ký Ức"
-                title="Miền Ký Ức"
+                aria-label="Bản nâng cấp"
+                title="Bản nâng cấp"
               >
-                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-pink-400/25 to-fuchsia-500/10 border border-pink-300/30 flex items-center justify-center">
-                  <Film className="w-4 h-4 text-pink-300" />
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-purple-400/25 to-pink-500/10 border border-purple-300/30 flex items-center justify-center">
+                  <Rocket className="w-4 h-4 text-purple-300" />
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
-                  Ký ức
+                  Nâng cấp
                 </span>
               </button>
 

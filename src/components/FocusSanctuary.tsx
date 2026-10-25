@@ -15,7 +15,6 @@ import {
   VolumeX,
   CloudRain,
   Compass,
-  Maximize2,
   Target,
   RefreshCw,
   Sparkles,
@@ -91,7 +90,7 @@ const FocusSanctuaryInner: React.FC<{
   const [lifetimeMinutes, setLifetimeMinutes] = useState(() => getLifetimeFocusMinutes());
 
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
-  const [interactive3D, setInteractive3D] = useState(true);
+  const [autoRotate360, setAutoRotate360] = useState(true);
 
   const [atmosphereDimmer, setAtmosphereDimmer] = useState<number>(() => {
     const saved = safeStorage.getItem('fforum_focus_dimmer');
@@ -103,11 +102,7 @@ const FocusSanctuaryInner: React.FC<{
     safeStorage.setItem('fforum_focus_dimmer', String(val));
   }, []);
 
-  const [livePeersCount] = useState<number>(() => {
-    const hour = new Date().getHours();
-    const base = hour >= 20 || hour <= 2 ? 46 : hour >= 13 && hour <= 17 ? 35 : 28;
-    return base + Math.floor(Math.random() * 8);
-  });
+  const [livePeersCount] = useState<number>(1);
 
   const audioEngineRef = useRef<{
     ctx: AudioContext | null;
@@ -513,7 +508,7 @@ const FocusSanctuaryInner: React.FC<{
           src={MACHI_MART_3D_URL}
           title="Machi Mart Đêm Mưa 3D Focus Sanctuary"
           className={`w-full h-full border-0 transition-opacity duration-700 ${
-            interactive3D ? 'pointer-events-auto' : 'pointer-events-none'
+            !autoRotate360 ? 'pointer-events-auto' : 'pointer-events-none'
           }`}
           allow="accelerometer; autoplay; camera; encrypted-media; gyroscope; picture-in-picture"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
@@ -537,20 +532,20 @@ const FocusSanctuaryInner: React.FC<{
       </div>
 
       <header
-        className="floating-glass-top absolute top-4 inset-x-4 sm:inset-x-8 z-30 flex items-center justify-between px-5 py-3.5 rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
+        className="floating-glass-top absolute top-4 inset-x-4 sm:inset-x-8 z-30 flex items-center justify-between px-5 py-3 rounded-2xl backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
         style={{
-          background: 'rgba(9, 12, 18, 0.68)',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          background: 'rgba(5, 7, 12, 0.35)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300 shadow-md">
-            <Compass className="w-5 h-5 animate-spin-slow" />
+          <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-300 shadow-md">
+            <Compass className="w-4.5 h-4.5 animate-spin-slow" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-sm sm:text-base font-serif font-bold text-white tracking-wide">
-                Phòng Tập Trung · Machi Mart Đêm Mưa
+                Phòng Tập Trung
               </h1>
               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -565,8 +560,8 @@ const FocusSanctuaryInner: React.FC<{
               </span>
               <span>·</span>
               <span>Hôm nay: {formatDuration(totals.todayMinutes)}</span>
-              <span className="hidden lg:inline text-slate-400">
-                · Đóng cửa sổ này vẫn KHÔNG mất phiên học — đồng hồ chạy theo thời gian thật
+              <span className="sr-only">
+                Đóng cửa sổ này vẫn KHÔNG mất phiên học
               </span>
             </div>
           </div>
@@ -601,16 +596,16 @@ const FocusSanctuaryInner: React.FC<{
 
           <button
             type="button"
-            onClick={() => setInteractive3D(!interactive3D)}
+            onClick={() => setAutoRotate360(!autoRotate360)}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
-              interactive3D
+              autoRotate360
                 ? 'bg-amber-500/20 text-amber-300 border-amber-400/40'
                 : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
             }`}
-            title="Bật/Tắt chế độ xoay góc nhìn 3D Machi Mart"
+            title="Tự động xoay 360 quanh không gian 3D Machi Mart"
           >
-            <Maximize2 className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">{interactive3D ? 'Đang xoay 3D' : 'Khóa góc nhìn'}</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${autoRotate360 ? 'animate-spin-slow' : ''}`} />
+            <span className="hidden md:inline">{autoRotate360 ? 'Tự xoay 360' : 'Dừng xoay'}</span>
           </button>
 
           <button
@@ -625,10 +620,10 @@ const FocusSanctuaryInner: React.FC<{
       </header>
 
       <aside
-        className="floating-glass-left absolute left-4 sm:left-8 top-24 bottom-24 sm:bottom-28 w-[310px] sm:w-[340px] z-20 flex flex-col justify-between p-5 rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-y-auto"
+        className="floating-glass-left absolute left-4 sm:left-8 top-24 bottom-24 sm:bottom-28 w-[310px] sm:w-[340px] z-20 flex flex-col justify-between p-5 rounded-2xl backdrop-blur-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] overflow-y-auto"
         style={{
-          background: 'rgba(9, 12, 18, 0.72)',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          background: 'rgba(5, 7, 12, 0.38)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
         <div className="space-y-4">
@@ -791,12 +786,12 @@ const FocusSanctuaryInner: React.FC<{
       </aside>
 
       <aside
-        className={`floating-glass-right absolute right-4 sm:right-8 top-24 bottom-24 sm:bottom-28 z-20 flex flex-col p-5 rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] transition-all duration-300 ${
+        className={`floating-glass-right absolute right-4 sm:right-8 top-24 bottom-24 sm:bottom-28 z-20 flex flex-col p-5 rounded-2xl backdrop-blur-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] transition-all duration-300 ${
           isNotesCollapsed ? 'w-[64px] items-center' : 'w-[310px] sm:w-[340px]'
         }`}
         style={{
-          background: 'rgba(9, 12, 18, 0.72)',
-          border: '1px solid rgba(148, 163, 184, 0.15)',
+          background: 'rgba(5, 7, 12, 0.38)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
         <div className="w-full flex items-center justify-between pb-3 border-b border-white/10">
@@ -871,10 +866,10 @@ const FocusSanctuaryInner: React.FC<{
       </aside>
 
       <footer
-        className="floating-glass-bottom absolute bottom-3 sm:bottom-4 inset-x-3 sm:inset-x-8 z-30 flex flex-col gap-2.5 p-3 sm:px-5 sm:py-3 rounded-2xl backdrop-blur-xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
+        className="floating-glass-bottom absolute bottom-3 sm:bottom-4 inset-x-3 sm:inset-x-8 z-30 flex flex-col gap-2.5 p-3 sm:px-5 sm:py-3 rounded-2xl backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.6)]"
         style={{
-          background: 'rgba(9, 12, 18, 0.78)',
-          border: '1px solid rgba(148, 163, 184, 0.18)',
+          background: 'rgba(5, 7, 12, 0.45)',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
         }}
       >
         <div className="flex items-center justify-between gap-3">
