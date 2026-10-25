@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Machi Mart 24/7 · Không Gian Tĩnh Tâm Đêm Mưa 3D</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #04060a;
+      color: #FBF2E1;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    #canvas3d {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    #canvas3d:active {
+      cursor: grabbing;
+    }
+    .hud-overlay {
+      position: absolute;
+      top: 14px;
+      left: 16px;
+      z-index: 10;
+      pointer-events: none;
+    }
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #fef3c7;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    }
+    .brand-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite ease-in-out;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+    .hud-controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hud-btn {
+      padding: 7px 13px;
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      color: #f8fafc;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .hud-btn:hover {
+      background: rgba(30, 41, 59, 0.9);
+      border-color: rgba(251, 191, 36, 0.5);
+      color: #fef08a;
+      transform: translateY(-1px);
+    }
+    .hud-btn:active {
+      transform: translateY(0);
+    }
+    .hud-status {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      z-index: 10;
+      font-size: 10.5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: rgba(255, 255, 255, 0.55);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .hint-chip {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+  </style>
+</head>
+<body>
+  <div class="hud-overlay">
+    <div class="brand-pill">
+      <div class="brand-dot"></div>
+      <span>MACHI MART 24/7 · KHÔNG GIAN TĨNH TÂM</span>
+    </div>
+  </div>
+
+  <div class="hud-status">
+    <span class="hint-chip">Kéo chuột xoay góc nhìn 3D</span>
+    <span class="hint-chip">Cuộn để zoom</span>
+  </div>
+
+  <div class="hud-controls">
+    <button id="btnRainSound" class="hud-btn" type="button" title="Bật/Tắt âm thanh mưa">
+      <span id="soundIcon">Tiếng mưa: Tắt</span>
+    </button>
+    <button id="btnResetCam" class="hud-btn" type="button" title="Đặt lại góc nhìn">
+      <span>Góc nhìn chuẩn</span>
+    </button>
+  </div>
+
+  <canvas id="canvas3d"></canvas>
+
+  <script>
+    (function() {
+      var canvas = document.getElementById('canvas3d');
+      var ctx = canvas.getContext('2d');
+
+      var width = 0, height = 0;
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      var cam = {
+        rotX: 0.38,
+        rotY: -0.55,
+        targetRotX: 0.38,
+        targetRotY: -0.55,
+        zoom: 1.0,
+        targetZoom: 1.0,
+        dist: 450
+      };
+
+      var isDragging = false;
+      var lastPointer = { x: 0, y: 0 };
+
+      window.addEventListener('pointerdown', function(e) {
+        if (e.target.closest('.hud-controls') || e.target.closest('.hud-overlay')) return;
+        isDragging = true;
+        lastPointer.x = e.clientX;
+        lastPointer.y = e.clientY;
+      });
+
+      window.addEventListener('pointermove', function(e) {
+        if (!isDragging) return;
+        var dx = e.clientX - lastPointer.x;
+        var dy = e.clientY - lastPointer.y;
+        lastPointer.x = e.clientX;
+        lastPointer.y = e.clientY;
+
+        cam.targetRotY += dx * 0.005;
+        cam.targetRotX = Math.max(0.08, Math.min(1.2, cam.targetRotX + dy * 0.005));
+      });
+
+      window.addEventListener('pointerup', function() { isDragging = false; });
+      window.addEventListener('pointercancel', function() { isDragging = false; });
+
+      window.addEventListener('wheel', function(e) {
+        cam.targetZoom = Math.max(0.65, Math.min(1.8, cam.targetZoom - e.deltaY * 0.001));
+      }, { passive: true });
+
+      document.getElementById('btnResetCam').addEventListener('click', function() {
+        cam.targetRotX = 0.38;
+        cam.targetRotY = -0.55;
+        cam.targetZoom = 1.0;
+      });
+
+      var audioCtx = null;
+      var noiseNode = null;
+      var isAudioPlaying = false;
+
+      function toggleRainSound() {
+        if (!audioCtx) {
+          var AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) audioCtx = new AudioContextClass();
+        }
+        if (!audioCtx) return;
+
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        if (isAudioPlaying) {
+          if (noiseNode) {
+            noiseNode.stop();
+            noiseNode.disconnect();
+            noiseNode = null;
+          }
+          isAudioPlaying = false;
+          document.getElementById('soundIcon').innerText = 'Tiếng mưa: Tắt';
+        } else {
+          var bufferSize = 2 * audioCtx.sampleRate;
+          var noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          var output = noiseBuffer.getChannelData(0);
+          var b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+          for (var i = 0; i < bufferSize; i++) {
+            var white = Math.random() * 2 - 1;
+            b0 = 0.99886 * b0 + white * 0.0555179;
+            b1 = 0.99332 * b1 + white * 0.0750759;
+            b2 = 0.96900 * b2 + white * 0.1538520;
+            b3 = 0.86650 * b3 + white * 0.3104856;
+            b4 = 0.55000 * b4 + white * 0.5329522;
+            b5 = -0.7616 * b5 - white * 0.0168980;
+            output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.04;
+            b6 = white * 0.115926;
+          }
+
+          var whiteNoise = audioCtx.createBufferSource();
+          whiteNoise.buffer = noiseBuffer;
+          whiteNoise.loop = true;
+
+          var filter = audioCtx.createBiquadFilter();
+          filter.type = 'lowpass';
+          filter.frequency.value = 1100;
+
+          var gain = audioCtx.createGain();
+          gain.gain.value = 0.28;
+
+          whiteNoise.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          whiteNoise.start(0);
+          noiseNode = whiteNoise;
+          isAudioPlaying = true;
+          document.getElementById('soundIcon').innerText = 'Tiếng mưa: Bật';
+        }
+      }
+
+      document.getElementById('btnRainSound').addEventListener('click', toggleRainSound);
+
+      var rainDrops = [];
+      for (var r = 0; r < 240; r++) {
+        rainDrops.push({
+          x: (Math.random() - 0.5) * 600,
+          y: Math.random() * 400 - 100,
+          z: (Math.random() - 0.5) * 600,
+          len: Math.random() * 16 + 10,
+          speed: Math.random() * 8 + 14
+        });
+      }
+
+      var ripples = [];
+      function addRipple(x, z) {
+        if (ripples.length > 30) return;
+        ripples.push({ x: x, z: z, r: 1, maxR: Math.random() * 12 + 6, alpha: 0.7 });
+      }
+
+      function project(x, y, z) {
+        var cosY = Math.cos(cam.rotY), sinY = Math.sin(cam.rotY);
+        var x1 = x * cosY - z * sinY;
+        var z1 = x * sinY + z * cosY;
+
+        var cosX = Math.cos(cam.rotX), sinX = Math.sin(cam.rotX);
+        var y2 = y * cosX - z1 * sinX;
+        var z2 = y * sinX + z1 * cosX;
+
+        var distance = cam.dist + z2;
+        if (distance <= 10) return null;
+
+        var scale = (cam.dist / distance) * cam.zoom;
+        var px = width / 2 + x1 * scale;
+        var py = height / 2 - y2 * scale;
+
+        return { x: px, y: py, scale: scale, depth: z2 };
+      }
+
+      function drawQuad(p1, p2, p3, p4, fillStyle, strokeStyle) {
+        var pt1 = project(p1.x, p1.y, p1.z);
+        var pt2 = project(p2.x, p2.y, p2.z);
+        var pt3 = project(p3.x, p3.y, p3.z);
+        var pt4 = project(p4.x, p4.y, p4.z);
+
+        if (!pt1 || !pt2 || !pt3 || !pt4) return;
+
+        ctx.beginPath();
+        ctx.moveTo(pt1.x, pt1.y);
+        ctx.lineTo(pt2.x, pt2.y);
+        ctx.lineTo(pt3.x, pt3.y);
+        ctx.lineTo(pt4.x, pt4.y);
+        ctx.closePath();
+
+        if (fillStyle) {
+          ctx.fillStyle = fillStyle;
+          ctx.fill();
+        }
+        if (strokeStyle) {
+          ctx.strokeStyle = strokeStyle;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      var storeWidth = 140;
+      var storeHeight = 85;
+      var storeDepth = 110;
+
+      function renderStore(time) {
+        var pulse = Math.sin(time * 0.002) * 0.05 + 0.95;
+
+        drawQuad(
+          { x: -350, y: 0, z: -350 },
+          { x: 350, y: 0, z: -350 },
+          { x: 350, y: 0, z: 350 },
+          { x: -350, y: 0, z: 350 },
+          '#090d15',
+          'rgba(255,255,255,0.03)'
+        );
+
+        drawQuad(
+          { x: -280, y: 2, z: 20 },
+          { x: 280, y: 2, z: 20 },
+          { x: 280, y: 2, z: 240 },
+          { x: -280, y: 2, z: 240 },
+          '#06080d',
+          'rgba(255,255,255,0.04)'
+        );
+
+        var glowPt = project(0, 0, 70);
+        if (glowPt) {
+          var rg = ctx.createRadialGradient(glowPt.x, glowPt.y, 10 * glowPt.scale, glowPt.x, glowPt.y, 180 * glowPt.scale);
+          rg.addColorStop(0, 'rgba(251, 191, 36, 0.22)');
+          rg.addColorStop(0.5, 'rgba(56, 189, 248, 0.08)');
+          rg.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          ctx.fillStyle = rg;
+          ctx.beginPath();
+          ctx.arc(glowPt.x, glowPt.y, 180 * glowPt.scale, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        drawQuad(
+          { x: -160, y: 4, z: -130 },
+          { x: 160, y: 4, z: -130 },
+          { x: 160, y: 4, z: 20 },
+          { x: -160, y: 4, z: 20 },
+          '#131a26',
+          'rgba(255,255,255,0.08)'
+        );
+
+        var sw = storeWidth / 2;
+        var sh = storeHeight;
+        var sd = storeDepth;
+
+        drawQuad(
+          { x: -sw, y: 4, z: -sd },
+          { x: sw, y: 4, z: -sd },
+          { x: sw, y: sh, z: -sd },
+          { x: -sw, y: sh, z: -sd },
+          '#0f141f',
+          '#1e293b'
+        );
+
+        drawQuad(
+          { x: -sw, y: 4, z: -sd },
+          { x: -sw, y: 4, z: 0 },
+          { x: -sw, y: sh, z: 0 },
+          { x: -sw, y: sh, z: -sd },
+          '#111827',
+          '#1e293b'
+        );
+
+        drawQuad(
+          { x: sw, y: 4, z: 0 },
+          { x: sw, y: 4, z: -sd },
+          { x: sw, y: sh, z: -sd },
+          { x: sw, y: sh, z: 0 },
+          '#141d2e',
+          '#1e293b'
+        );
+
+        drawQuad(
+          { x: -sw, y: 4, z: 0 },
+          { x: sw, y: 4, z: 0 },
+          { x: sw, y: sh, z: 0 },
+          { x: -sw, y: sh, z: 0 },
+          'rgba(254, 240, 138, 0.45)',
+          'rgba(251, 191, 36, 0.5)'
+        );
+
+        drawQuad(
+          { x: -sw + 10, y: 10, z: 1 },
+          { x: -10, y: 10, z: 1 },
+          { x: -10, y: sh - 25, z: 1 },
+          { x: -sw + 10, y: sh - 25, z: 1 },
+          'rgba(254, 243, 199, ' + (0.75 * pulse) + ')',
+          '#f59e0b'
+        );
+
+        drawQuad(
+          { x: 10, y: 10, z: 1 },
+          { x: sw - 10, y: 10, z: 1 },
+          { x: sw - 10, y: sh - 25, z: 1 },
+          { x: 10, y: sh - 25, z: 1 },
+          'rgba(217, 249, 157, ' + (0.7 * pulse) + ')',
+          '#10b981'
+        );
+
+        drawQuad(
+          { x: -sw - 8, y: sh - 20, z: 10 },
+          { x: sw + 8, y: sh - 20, z: 10 },
+          { x: sw + 8, y: sh + 2, z: 10 },
+          { x: -sw - 8, y: sh + 2, z: 10 },
+          '#0b1329',
+          '#38bdf8'
+        );
+
+        var signCenter = project(0, sh - 10, 12);
+        if (signCenter) {
+          ctx.save();
+          ctx.font = 'bold ' + Math.max(10, Math.floor(13 * signCenter.scale)) + 'px ui-sans-serif, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#fef08a';
+          ctx.shadowColor = '#f59e0b';
+          ctx.shadowBlur = 12;
+          ctx.fillText('MACHI MART  24/7', signCenter.x, signCenter.y);
+          ctx.restore();
+        }
+
+        drawQuad(
+          { x: -sw - 12, y: sh + 2, z: 16 },
+          { x: sw + 12, y: sh + 2, z: 16 },
+          { x: sw + 8, y: sh + 10, z: -sd - 10 },
+          { x: -sw - 8, y: sh + 10, z: -sd - 10 },
+          '#080c14',
+          '#1e293b'
+        );
+
+        var vmX = sw + 12;
+        drawQuad(
+          { x: vmX, y: 4, z: -20 },
+          { x: vmX + 28, y: 4, z: -20 },
+          { x: vmX + 28, y: 60, z: -20 },
+          { x: vmX, y: 60, z: -20 },
+          '#dc2626',
+          '#f87171'
+        );
+        drawQuad(
+          { x: vmX + 4, y: 22, z: -19 },
+          { x: vmX + 24, y: 22, z: -19 },
+          { x: vmX + 24, y: 54, z: -19 },
+          { x: vmX + 4, y: 54, z: -19 },
+          'rgba(254, 226, 226, 0.85)',
+          '#ffffff'
+        );
+
+        var lpX = -sw - 30;
+        var lpZ = 40;
+        var lpBase = project(lpX, 0, lpZ);
+        var lpTop = project(lpX, 110, lpZ);
+        if (lpBase && lpTop) {
+          ctx.beginPath();
+          ctx.moveTo(lpBase.x, lpBase.y);
+          ctx.lineTo(lpTop.x, lpTop.y);
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = Math.max(2, 3 * lpBase.scale);
+          ctx.stroke();
+
+          var bulb = project(lpX + 12, 105, lpZ);
+          if (bulb) {
+            ctx.beginPath();
+            ctx.arc(bulb.x, bulb.y, Math.max(4, 7 * bulb.scale), 0, Math.PI * 2);
+            ctx.fillStyle = '#fef08a';
+            ctx.shadowColor = '#facc15';
+            ctx.shadowBlur = 16;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+          }
+        }
+      }
+
+      function renderRain() {
+        ctx.strokeStyle = 'rgba(186, 230, 253, 0.45)';
+        ctx.lineWidth = 1;
+
+        for (var i = 0; i < rainDrops.length; i++) {
+          var d = rainDrops[i];
+          d.y -= d.speed;
+
+          if (d.y <= 0) {
+            addRipple(d.x, d.z);
+            d.y = 350 + Math.random() * 50;
+            d.x = (Math.random() - 0.5) * 600;
+            d.z = (Math.random() - 0.5) * 600;
+          }
+
+          var p1 = project(d.x, d.y, d.z);
+          var p2 = project(d.x, d.y - d.len, d.z);
+          if (p1 && p2) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          }
+        }
+
+        for (var k = ripples.length - 1; k >= 0; k--) {
+          var rip = ripples[k];
+          rip.r += 0.4;
+          rip.alpha -= 0.025;
+          if (rip.alpha <= 0 || rip.r >= rip.maxR) {
+            ripples.splice(k, 1);
+            continue;
+          }
+
+          var rp = project(rip.x, 2, rip.z);
+          if (rp) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(rp.x, rp.y, rip.r * rp.scale, (rip.r * 0.4) * rp.scale, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(186, 230, 253, ' + rip.alpha + ')';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+          }
+        }
+      }
+
+      function loop(timestamp) {
+        cam.rotX += (cam.targetRotX - cam.rotX) * 0.08;
+        cam.rotY += (cam.targetRotY - cam.rotY) * 0.08;
+        cam.zoom += (cam.targetZoom - cam.zoom) * 0.08;
+
+        ctx.fillStyle = '#05070c';
+        ctx.fillRect(0, 0, width, height);
+
+        renderStore(timestamp);
+        renderRain();
+
+        requestAnimationFrame(loop);
+      }
+
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

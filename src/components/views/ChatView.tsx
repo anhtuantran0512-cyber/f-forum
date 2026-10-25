@@ -203,10 +203,11 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
           type="button"
           onClick={() => onInsertText('\n**[Bước giải chi tiết]**\n- Bước 1: Phân tích đề bài & điều kiện xác định...\n- Bước 2: Biến đổi phương trình tương đương...\n- Bước 3: Biện luận & đưa ra kết luận nghiệm...')}
           className="ff-tactile-pop btn-feastables px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[11px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
-          title="Chèn mẫu cấu trúc các bước giải chi tiết"
+          title="Gửi Bước Giải Chi Tiết - Chèn mẫu cấu trúc các bước giải chi tiết"
+          aria-label="Gửi Bước Giải Chi Tiết"
         >
           <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
-          <span>Gửi Bước Giải Chi Tiết</span>
+          <span>Giải chi tiết</span>
         </button>
       </div>
 
@@ -974,17 +975,26 @@ export const ChatView: React.FC<ChatViewProps> = ({
                   <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#81b29a]/20 text-emerald-300 border border-[#81b29a]/40">
                     Toán học · Lớp 12
                   </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center gap-1 shadow-sm">
+                  <span
+                    className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center gap-1 shadow-sm"
+                    title="+50 Điểm Thưởng (Bounty)"
+                  >
                     <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-                    +50 Điểm Thưởng (Bounty)
+                    +50 Bounty
                   </span>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                  <span
+                    className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1"
+                    title="Thủ khoa kiểm chứng"
+                  >
                     <CheckCircle2 className="w-2.5 h-2.5" />
-                    Thủ khoa kiểm chứng
+                    Thủ khoa duyệt
                   </span>
-                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-1">
+                  <span
+                    className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-1"
+                    title="Đã có lời giải chuẩn"
+                  >
                     <CheckCircle2 className="w-2.5 h-2.5" />
-                    Đã có lời giải chuẩn
+                    Lời giải chuẩn
                   </span>
                 </div>
 

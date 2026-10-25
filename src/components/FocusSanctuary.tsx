@@ -58,7 +58,8 @@ interface FocusSanctuaryProps {
   equippedItemId?: string;
 }
 
-const MACHI_MART_3D_URL = 'https://01a16606-3f4a-7e46-a701-0c5f36bb2e5c.arena.site/?embed=true';
+const MACHI_MART_FALLBACK_URL = 'https://01a16606-3f4a-7e46-a701-0c5f36bb2e5c.arena.site/?embed=true';
+const MACHI_MART_3D_URL = typeof window !== 'undefined' ? '/machi-mart-3d.html' : MACHI_MART_FALLBACK_URL;
 
 const FocusSanctuaryInner: React.FC<{
   onClose: () => void;

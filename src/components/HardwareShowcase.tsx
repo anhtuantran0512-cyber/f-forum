@@ -55,6 +55,8 @@ export const HardwareShowcase: React.FC<HardwareShowcaseProps> = ({
         <button
           type="button"
           onClick={() => setDeviceType('iphone')}
+          title="Điện Thoại (iPhone 16 Pro)"
+          aria-label="Điện Thoại (iPhone 16 Pro)"
           className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
             deviceType === 'iphone'
               ? 'bg-amber-400 text-[#0b0d12] shadow-md font-black'
@@ -62,12 +64,14 @@ export const HardwareShowcase: React.FC<HardwareShowcaseProps> = ({
           }`}
         >
           <Smartphone className="w-4 h-4" />
-          <span>Điện Thoại (iPhone 16 Pro)</span>
+          <span>iPhone 16 Pro</span>
         </button>
 
         <button
           type="button"
           onClick={() => setDeviceType('macbook')}
+          title="Máy Tính (MacBook Pro)"
+          aria-label="Máy Tính (MacBook Pro)"
           className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
             deviceType === 'macbook'
               ? 'bg-amber-400 text-[#0b0d12] shadow-md font-black'
@@ -75,7 +79,7 @@ export const HardwareShowcase: React.FC<HardwareShowcaseProps> = ({
           }`}
         >
           <Laptop className="w-4 h-4" />
-          <span>Máy Tính (MacBook Pro)</span>
+          <span>MacBook Pro</span>
         </button>
       </div>
 
@@ -351,9 +355,12 @@ export const HardwareShowcase: React.FC<HardwareShowcaseProps> = ({
                             </p>
 
                             <div className="mt-2 pt-1.5 border-t border-white/10 flex items-center justify-between">
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                              <span
+                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[8.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                                title="Thủ khoa kiểm chứng"
+                              >
                                 <CheckCircle2 className="w-2.5 h-2.5" />
-                                Thủ khoa kiểm chứng
+                                Thủ khoa duyệt
                               </span>
                               <span className="text-[9px] text-amber-300 font-semibold flex items-center gap-0.5">
                                 Chi tiết <ChevronRight className="w-3 h-3" />
