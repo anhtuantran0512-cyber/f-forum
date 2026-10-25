@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   X,
@@ -23,6 +24,7 @@ import {
   Bell,
   BookOpen,
   Clock,
+  Users,
 } from 'lucide-react';
 import { CircularProgressRing } from './CircularProgressRing';
 import { CelebrationBurst } from './CelebrationBurst';
@@ -45,7 +47,7 @@ import {
   type FocusSessionState,
 } from '../utils/focusSession';
 import { SHOP_ITEMS } from '../utils/shopData';
-import { getAudioContext } from '../utils/audio';
+import { getAudioContext, playTibetanBowlChime } from '../utils/audio';
 import './FocusTheme.css';
 
 interface FocusSanctuaryProps {
@@ -89,6 +91,22 @@ const FocusSanctuaryInner: React.FC<{
 
   const [isNotesCollapsed, setIsNotesCollapsed] = useState(false);
   const [interactive3D, setInteractive3D] = useState(true);
+
+  const [atmosphereDimmer, setAtmosphereDimmer] = useState<number>(() => {
+    const saved = safeStorage.getItem('fforum_focus_dimmer');
+    return saved ? Math.min(100, Math.max(0, parseInt(saved, 10))) : 40;
+  });
+
+  const handleDimmerChange = useCallback((val: number) => {
+    setAtmosphereDimmer(val);
+    safeStorage.setItem('fforum_focus_dimmer', String(val));
+  }, []);
+
+  const [livePeersCount] = useState<number>(() => {
+    const hour = new Date().getHours();
+    const base = hour >= 20 || hour <= 2 ? 46 : hour >= 13 && hour <= 17 ? 35 : 28;
+    return base + Math.floor(Math.random() * 8);
+  });
 
   const audioEngineRef = useRef<{
     ctx: AudioContext | null;
@@ -135,6 +153,7 @@ const FocusSanctuaryInner: React.FC<{
       const total = computeStudyTotals(readStudySessions()).todayMinutes;
       setFlash({ minutes, total });
       setMode('break');
+      playTibetanBowlChime();
       if (minutes >= 25) {
         setBurstTick((n) => n + 1);
         setBurstHeadline(`Mốc ${minutes} phút · +${minutes} Coin`);
@@ -506,6 +525,12 @@ const FocusSanctuaryInner: React.FC<{
               'radial-gradient(circle at center, transparent 35%, rgba(5,7,10,0.4) 70%, rgba(5,7,10,0.88) 100%)',
           }}
         />
+        <div
+          className="pointer-events-none absolute inset-0 z-1 transition-colors duration-500"
+          style={{
+            backgroundColor: `rgba(${Math.round(31 * (1 - atmosphereDimmer / 100) + 7 * (atmosphereDimmer / 100))}, ${Math.round(22 * (1 - atmosphereDimmer / 100) + 10 * (atmosphereDimmer / 100))}, ${Math.round(16 * (1 - atmosphereDimmer / 100) + 18 * (atmosphereDimmer / 100))}, ${0.15 + (atmosphereDimmer / 100) * 0.65})`,
+          }}
+        />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#05070a]/90 to-transparent z-1" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#05070a]/90 to-transparent z-1" />
       </div>
@@ -526,8 +551,10 @@ const FocusSanctuaryInner: React.FC<{
               <h1 className="text-sm sm:text-base font-serif font-bold text-white tracking-wide">
                 Phòng Tập Trung · Machi Mart Đêm Mưa
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                3D Atmospheric Sanctuary
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <Users className="w-3 h-3 text-emerald-400" />
+                <span>{livePeersCount} đồng môn đang cùng học</span>
               </span>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-slate-300 font-mono">
@@ -545,6 +572,32 @@ const FocusSanctuaryInner: React.FC<{
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => playTibetanBowlChime()}
+            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 border border-amber-400/30 transition-all cursor-pointer"
+            title="Ngân vang Chuông Tây Tạng (Tibetan Singing Bowl Chime)"
+          >
+            <Bell className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden xl:inline">Chuông Tây Tạng</span>
+          </button>
+
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/10 text-xs font-mono">
+            <Sliders className="w-3.5 h-3.5 text-amber-300" />
+            <span className="text-[10px] text-amber-200/90 whitespace-nowrap">
+              {atmosphereDimmer < 35 ? 'Hoàng Hôn Vàng Ấm' : atmosphereDimmer > 65 ? 'Mưa Đêm Sâu Lắng' : 'Ánh Sáng Dịu Êm'}
+            </span>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={atmosphereDimmer}
+              onChange={(e) => handleDimmerChange(Number(e.target.value))}
+              aria-label="Bộ điều chỉnh ánh sáng môi trường 3D"
+              className="w-16 sm:w-20 accent-amber-400 cursor-pointer h-1.5 bg-white/20 rounded-lg"
+            />
+          </div>
+
           <button
             type="button"
             onClick={() => setInteractive3D(!interactive3D)}

@@ -207,3 +207,39 @@ export function playUiTick(): void {
     /* âm thanh chỉ là trang trí — lỗi thì bỏ qua */
   }
 }
+
+export function playTibetanBowlChime(): void {
+  if (!isSfxEnabled()) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.65, now);
+    master.connect(ctx.destination);
+
+    const partials = [
+      { freq: 216, gain: 0.35, decay: 4.8 },
+      { freq: 432, gain: 0.25, decay: 4.2 },
+      { freq: 581, gain: 0.16, decay: 3.4 },
+      { freq: 864, gain: 0.08, decay: 2.8 },
+      { freq: 1296, gain: 0.04, decay: 2.0 },
+    ];
+
+    partials.forEach(({ freq, gain, decay }) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.linearRampToValueAtTime(gain, now + 0.07);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+      osc.connect(g);
+      g.connect(master);
+      osc.start(now);
+      osc.stop(now + decay + 0.1);
+    });
+  } catch {
+  }
+}
+
