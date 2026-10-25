@@ -174,6 +174,7 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
         {[
           { label: 'π', symbol: 'π', title: 'Chèn ký hiệu Pi' },
           { label: '√(x)', symbol: '√(x)', title: 'Chèn căn bậc hai' },
+          { label: 'a/b', symbol: '\\frac{a}{b}', title: 'Chèn phân số' },
           { label: 'Δ', symbol: 'Δ', title: 'Chèn biệt thức Delta' },
           { label: '∫', symbol: '∫', title: 'Chèn tích phân' },
           { label: '∑', symbol: '∑', title: 'Chèn tổng Sigma' },
@@ -196,6 +197,16 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
         >
           <Lightbulb className="w-3 h-3 text-purple-300" />
           <span>Spoiler Ẩn</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Bước giải chi tiết]**\n- Bước 1: Phân tích đề bài & điều kiện xác định...\n- Bước 2: Biến đổi phương trình tương đương...\n- Bước 3: Biện luận & đưa ra kết luận nghiệm...')}
+          className="ff-tactile-pop btn-feastables px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[11px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Chèn mẫu cấu trúc các bước giải chi tiết"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+          <span>Gửi Bước Giải Chi Tiết</span>
         </button>
       </div>
 
@@ -280,6 +291,8 @@ export const ChatView: React.FC<ChatViewProps> = ({
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorId: string; authorName: string; excerpt: string } | null>(null);
   const [inputText, setInputText] = useState('');
   const [isChallengeSolutionOpen, setIsChallengeSolutionOpen] = useState(false);
+  const [selectedLaziSubject, setSelectedLaziSubject] = useState<string>('Tất cả môn');
+  const [selectedLaziGrade, setSelectedLaziGrade] = useState<string>('Tất cả lớp');
   const cooldown = useChatCooldown();
   const [isSending, setIsSending] = useState(false);
   const [sendStatus, setSendStatus] = useState('');
@@ -898,6 +911,44 @@ export const ChatView: React.FC<ChatViewProps> = ({
               aria-relevant="additions"
               aria-label="Tin nhắn cuộc trò chuyện"
             >
+              <div className="mb-3 p-2.5 rounded-xl bg-[#141b28]/80 border border-white/10 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10.5px] font-mono text-amber-300 font-bold mr-1">Môn học:</span>
+                  {['Tất cả môn', 'Toán', 'Lý', 'Hóa', 'Sinh', 'Văn', 'Anh'].map((subj) => (
+                    <button
+                      key={subj}
+                      type="button"
+                      onClick={() => setSelectedLaziSubject(subj)}
+                      className={`px-2 py-0.5 rounded-lg text-[10.5px] font-bold border transition-colors cursor-pointer ${
+                        selectedLaziSubject === subj
+                          ? 'bg-amber-400 text-[#0b0d12] border-amber-400 font-extrabold'
+                          : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {subj}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10.5px] font-mono text-cyan-300 font-bold mr-1">Khối lớp:</span>
+                  {['Tất cả lớp', 'Lớp 10', 'Lớp 11', 'Lớp 12'].map((gr) => (
+                    <button
+                      key={gr}
+                      type="button"
+                      onClick={() => setSelectedLaziGrade(gr)}
+                      className={`px-2 py-0.5 rounded-lg text-[10.5px] font-bold border transition-colors cursor-pointer ${
+                        selectedLaziGrade === gr
+                          ? 'bg-cyan-400 text-[#0b0d12] border-cyan-400 font-extrabold'
+                          : 'bg-white/5 text-white/60 border-white/10 hover:text-white'
+                      }`}
+                    >
+                      {gr}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Thanh Ghim Câu Hỏi Thử Thách Nhóm (Pinned Academic Challenge Banner) */}
               <div className="mb-4 p-3.5 rounded-2xl bg-amber-400/[0.08] border border-amber-400/30 shadow-sm flex flex-col gap-2.5">
                 <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -917,6 +968,24 @@ export const ChatView: React.FC<ChatViewProps> = ({
                     <Sparkles className="w-3.5 h-3.5 text-[#0b0d12]" />
                     <span>{isChallengeSolutionOpen ? 'Thu Gọn Lời Giải' : 'Mở Bước Giải Gợi Ý'}</span>
                   </button>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#81b29a]/20 text-emerald-300 border border-[#81b29a]/40">
+                    Toán học · Lớp 12
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center gap-1 shadow-sm">
+                    <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                    +50 Điểm Thưởng (Bounty)
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" />
+                    Thủ khoa kiểm chứng
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-2.5 h-2.5" />
+                    Đã có lời giải chuẩn
+                  </span>
                 </div>
 
                 <p className="text-xs sm:text-[13px] text-[#f4f1de] font-serif leading-relaxed">

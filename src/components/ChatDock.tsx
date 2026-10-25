@@ -138,6 +138,7 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
         {[
           { label: 'π', symbol: 'π', title: 'Chèn ký hiệu Pi' },
           { label: '√(x)', symbol: '√(x)', title: 'Chèn căn bậc hai' },
+          { label: 'a/b', symbol: '\\frac{a}{b}', title: 'Chèn phân số' },
           { label: 'Δ', symbol: 'Δ', title: 'Chèn biệt thức Delta' },
           { label: '∫', symbol: '∫', title: 'Chèn tích phân' },
           { label: '∑', symbol: '∑', title: 'Chèn tổng Sigma' },
@@ -160,6 +161,16 @@ const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertTex
         >
           <Lightbulb className="w-2.5 h-2.5 text-purple-300" />
           <span>Ẩn</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Bước giải chi tiết]**\n- Bước 1: Điều kiện & giả thiết...\n- Bước 2: Biến đổi tương đương...\n- Kết luận: Vậy đáp án là...')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Chèn mẫu cấu trúc các bước giải chi tiết"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Gửi Bước Giải Chi Tiết</span>
         </button>
       </div>
 
@@ -655,6 +666,24 @@ export const ChatDock: React.FC<ChatDockProps> = ({
                   <Sparkles className="w-3 h-3 text-[#0b0d12]" />
                   <span>{isChallengeSolutionOpen ? 'Thu Gọn' : 'Mở Bước Giải'}</span>
                 </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#81b29a]/20 text-emerald-300 border border-[#81b29a]/40">
+                  Toán 12
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center gap-0.5">
+                  <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                  +50 Bounty
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-0.5">
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  Thủ khoa kiểm chứng
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-0.5">
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  Đã có lời giải chuẩn
+                </span>
               </div>
 
               <p className="text-[11px] text-[#f4f1de] font-serif leading-relaxed">

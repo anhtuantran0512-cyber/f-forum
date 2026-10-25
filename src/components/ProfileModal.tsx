@@ -391,28 +391,6 @@ const ProfileModalInner: React.FC<{
   /* GUI nhỏ "Bảng rank · danh hiệu · yêu cầu" mở từ khối Danh hiệu */
   const [isRankSheetOpen, setIsRankSheetOpen] = useState(false);
 
-  const [cardTilt, setCardTilt] = useState<{ rx: number; ry: number; glareX: number; glareY: number }>({
-    rx: 0,
-    ry: 0,
-    glareX: 50,
-    glareY: 50,
-  });
-
-  const handleCardPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const px = (x / rect.width) * 100;
-    const py = (y / rect.height) * 100;
-    const rx = ((y - rect.height / 2) / (rect.height / 2)) * -6;
-    const ry = ((x - rect.width / 2) / (rect.width / 2)) * 6;
-    setCardTilt({ rx, ry, glareX: px, glareY: py });
-  };
-
-  const handleCardPointerLeave = () => {
-    setCardTilt({ rx: 0, ry: 0, glareX: 50, glareY: 50 });
-  };
-
   /* Tim hồ sơ — MỘT nguồn sự thật: likesMap. Nút tim chỉ hiển thị số cha tính
      ra, không tự cộng trừ, nên một lần bấm luôn đúng ±1 (không thể nhân đôi). */
   const [likesMap, setLikesMap] = useState<ProfileLikesMap>(() => readProfileLikes());
@@ -1100,9 +1078,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'overview' ? 0 : -1}
                 onClick={() => setActiveTab('overview')}
                 title="Hồ sơ"
+                aria-label="Hồ sơ"
                 className="profile-modal-tab"
               >
-                <UserIcon className="w-4 h-4" aria-hidden="true" /><span>Hồ sơ</span>
+                <UserIcon className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-stats"
@@ -1113,9 +1092,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'stats' ? 0 : -1}
                 onClick={() => setActiveTab('stats')}
                 title="Thành tích"
+                aria-label="Thành tích"
                 className="profile-modal-tab"
               >
-                <BarChart3 className="w-4 h-4" aria-hidden="true" /><span>Thành tích</span>
+                <BarChart3 className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-card"
@@ -1126,9 +1106,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'card' ? 0 : -1}
                 onClick={() => setActiveTab('card')}
                 title="Thẻ F-Pass"
+                aria-label="Thẻ F-Pass"
                 className="profile-modal-tab"
               >
-                <CreditCard className="w-4 h-4" aria-hidden="true" /><span>F-Pass</span>
+                <CreditCard className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-shop"
@@ -1139,9 +1120,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'shop' ? 0 : -1}
                 onClick={() => setActiveTab('shop')}
                 title="Cửa hàng"
+                aria-label="Cửa hàng"
                 className="profile-modal-tab"
               >
-                <ShoppingBag className="w-4 h-4" aria-hidden="true" /><span>Cửa hàng</span>
+                <ShoppingBag className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-activity"
@@ -1152,9 +1134,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'activity' ? 0 : -1}
                 onClick={() => setActiveTab('activity')}
                 title="Hoạt động"
+                aria-label="Hoạt động"
                 className="profile-modal-tab"
               >
-                <Activity className="w-4 h-4" aria-hidden="true" /><span>Hoạt động</span>
+                <Activity className="w-4 h-4" aria-hidden="true" />
               </button>
               {isOwnProfile && (
                 <button
@@ -1166,9 +1149,10 @@ const ProfileModalInner: React.FC<{
                   tabIndex={activeTab === 'edit' ? 0 : -1}
                   onClick={() => setActiveTab('edit')}
                   title="Sửa hồ sơ"
+                  aria-label="Sửa hồ sơ"
                   className="profile-modal-tab"
                 >
-                  <SlidersHorizontal className="w-4 h-4" aria-hidden="true" /><span>Sửa hồ sơ</span>
+                  <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -1233,30 +1217,13 @@ const ProfileModalInner: React.FC<{
                 ref={overviewCoverRef}
                 data-profile-active={profileProximity.dataProfileActive}
                 onPointerEnter={profileProximity.onPointerEnter}
-                onPointerMove={(e) => {
-                  handleCardPointerMove(e);
-                  profileProximity.onPointerEnter();
-                }}
-                onPointerLeave={() => {
-                  handleCardPointerLeave();
-                  profileProximity.onPointerLeave();
-                }}
+                onPointerMove={profileProximity.onPointerEnter}
+                onPointerLeave={profileProximity.onPointerLeave}
                 onFocusCapture={profileProximity.onFocusCapture}
                 onBlurCapture={profileProximity.onBlurCapture}
                 onTouchStart={profileProximity.onTouchStart}
-                style={{
-                  transform: `perspective(1000px) rotateX(${cardTilt.rx}deg) rotateY(${cardTilt.ry}deg)`,
-                  transition: cardTilt.rx === 0 ? 'transform 0.4s ease-out' : 'transform 0.08s ease-out',
-                }}
                 className="card-hard rounded-2xl relative overflow-hidden profile-overview-cover ff-profile-surface transition-shadow duration-300 shadow-xl border border-[#2B2331]/30 bg-gradient-to-b from-[#1b1722] to-[#0d1420]"
               >
-                <div
-                  className="pointer-events-none absolute inset-0 z-20 transition-opacity duration-300 opacity-25"
-                  style={{
-                    background: `radial-gradient(circle at ${cardTilt.glareX}% ${cardTilt.glareY}%, rgba(251, 242, 225, 0.45) 0%, rgba(43, 35, 49, 0) 60%)`,
-                  }}
-                  aria-hidden="true"
-                />
                 <div className="relative h-36 sm:h-44 overflow-hidden border-b border-white/10">
                   <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0" />
                   <img
@@ -1444,7 +1411,7 @@ const ProfileModalInner: React.FC<{
                     {/* Đang trang bị & Tủ đồ nhanh — Bố cục 3 cột rộng rãi, không chồng lấp */}
                     <div className="pt-2 space-y-3" aria-label="Khu vực trang bị đang đeo">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="text-xs font-bold text-white/90 flex items-center gap-2" title="🎨 Đang trang bị:">
+                        <div className="text-xs font-bold text-white/90 flex items-center gap-2" title="Đang trang bị:">
                           <span>Trang bị</span>
                           <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono text-neutral-300">
                             {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3
