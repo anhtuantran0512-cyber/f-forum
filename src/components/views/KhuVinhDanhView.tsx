@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   X,
   Settings,
@@ -20,19 +20,11 @@ import { ADMIN_AVATAR_URL, isLegacyAdminAvatar, normalizeAdminAvatar } from '../
 import { safeStorage } from '../../utils/storage';
 import { DUELISTS_STORAGE_KEY, type DuelistRecord } from '../exam/PeerBattleModal';
 import {
-  getSavedAboutData,
   fetchAboutDataFromServer,
   type AboutData,
 } from '../../store/adminStore';
 import { DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
 import { isMasterAdmin } from '../../config/admin';
-import { rafThrottle } from '../../utils/rafThrottle';
-import {
-  SphereCardBatchUpdater,
-  getRendererInfo,
-  recordRenderFrameMetrics,
-  registerDisposableResource,
-} from '../../utils/gpuRenderEngine';
 
 export interface VinhDanhRecord {
   id: string;
@@ -213,37 +205,6 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
 ];
 
 const N = 21;
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
-
-interface FibonacciPoint {
-  index: number;
-  x: number;
-  y: number;
-  z: number;
-  lat: number;
-  lon: number;
-}
-
-const FIBONACCI_POINTS: FibonacciPoint[] = Array.from({ length: N }, (_, i) => {
-  const y = 1 - (i / (N - 1)) * 2;
-  const rad = Math.sqrt(Math.max(0, 1 - y * y));
-  const theta = i * GOLDEN_ANGLE;
-  const x = Math.cos(theta) * rad;
-  const z = Math.sin(theta) * rad;
-  const lat = Math.asin(y) * (180 / Math.PI);
-  const lon = Math.atan2(x, z) * (180 / Math.PI);
-  return { index: i, x, y, z, lat, lon };
-});
-
-function computeRadiusAndCardWidth(width: number, height: number) {
-  const hr = width <= 380 ? 0.38 : width <= 640 ? 0.42 : 0.46;
-  const wr = width <= 380 ? 0.48 : width <= 640 ? 0.52 : 0.58;
-  const floor = width <= 380 ? 108 : width <= 640 ? 120 : 155;
-  const R = Math.max(floor, Math.min(480, height * hr, width * wr));
-  const scale = width <= 380 ? 0.44 : width <= 640 ? 0.46 : 0.47;
-  const cw = Math.round(Math.max(72, R * scale));
-  return { R, cw };
-}
 
 function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
   if (!Array.isArray(raw) || raw.length === 0) return INITIAL_VINHDANH_RECORDS;
@@ -282,8 +243,6 @@ function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
     };
   });
 }
-
-const DEFAULT_HEADLINE_WORDS = ['BroAmStuck', 'Studio', '•', 'Trần', 'Tuấn'];
 
 interface TopScholar {
   rank: 1 | 2 | 3;
@@ -374,7 +333,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 }) => {
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
 
-  const [activeTabMode, setActiveTabMode] = useState<'hall' | 'sphere' | 'archive'>('hall');
+  const [activeTabMode, setActiveTabMode] = useState<'hall' | 'archive'>('hall');
   const [subjectFilter, setSubjectFilter] = useState<'all' | 'natural' | 'social' | 'specialized'>('all');
   const [subjectSearchQuery, setSubjectSearchQuery] = useState('');
 
@@ -412,14 +371,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     return INITIAL_VINHDANH_RECORDS;
   });
 
-  const [headlineWords, setHeadlineWords] = useState<string[]>(() => {
-    const about = getSavedAboutData();
-    return Array.isArray(about.headlineWords) && about.headlineWords.length === 5
-      ? about.headlineWords
-      : DEFAULT_HEADLINE_WORDS;
-  });
-
-  const [isGridView, setIsGridView] = useState(false);
   const [activeLitRecord, setActiveLitRecord] = useState<VinhDanhRecord | null>(null);
 
   const [duelists, setDuelists] = useState<DuelistRecord[]>(() => {
@@ -477,52 +428,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     return () => window.removeEventListener('fforum_duelist_updated', handleUpdate);
   }, []);
 
-  const [sphereRadius, setSphereRadius] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return computeRadiusAndCardWidth(window.innerWidth, window.innerHeight).R;
-    }
-    return 360;
-  });
-
-  const setCardRef = (el: HTMLDivElement | null, idx: number) => {
-    cardsRef.current[idx] = el;
-  };
-
-  useEffect(() => {
-    const preloadedImages: HTMLImageElement[] = [];
-    let cancelled = false;
-    let cursor = 0;
-
-    const loadBatch = () => {
-      if (cancelled || cursor >= INITIAL_VINHDANH_RECORDS.length) return;
-      const slice = INITIAL_VINHDANH_RECORDS.slice(cursor, cursor + 6);
-      cursor += 6;
-      slice.forEach((rec) => {
-        const thumb = new Image();
-        thumb.decoding = 'async';
-        thumb.src = `${CDN_BASE}${rec.imgId}_min.webp`;
-        preloadedImages.push(thumb);
-      });
-      if (cursor < INITIAL_VINHDANH_RECORDS.length) {
-        window.setTimeout(loadBatch, 90);
-      }
-    };
-
-    const timer = window.setTimeout(loadBatch, 180);
-    const disposeTextures = registerDisposableResource('vinhdanh-sphere-thumbs', 'texture', () => {
-      preloadedImages.forEach((img) => {
-        img.src = '';
-      });
-      preloadedImages.length = 0;
-    });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      disposeTextures();
-    };
-  }, []);
-
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
   const [editBioForm, setEditBioForm] = useState(founderProfile);
 
@@ -542,9 +447,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       }
       if (Array.isArray(payload.milestones) && payload.milestones.length > 0) {
         setRecords(normalizeVinhDanhRecords(payload.milestones));
-      }
-      if (Array.isArray(payload.headlineWords) && payload.headlineWords.length === 5) {
-        setHeadlineWords(payload.headlineWords);
       }
     };
 
@@ -579,255 +481,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     };
   }, []);
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const worldRef = useRef<HTMLDivElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
-  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const dotRef = useRef<HTMLDivElement>(null);
 
-  const engineState = useRef({
-    tilt: 0,
-    spin: 0,
-    velX: 0,
-    velY: 0,
-    isDragging: false,
-    dragStartX: 0,
-    dragStartY: 0,
-    dragStartSpin: 0,
-    dragStartTilt: 0,
-    lastX: 0,
-    lastY: 0,
-    lastT: 0,
-    wheelCamZ: 0,
-    camZ: 0,
-    R: 360,
-    cw: 160,
-    hasFinePointer: false,
-    mousePos: { x: 0, y: 0 },
-    dotPos: { x: 0, y: 0 },
-  });
-
-  useEffect(() => {
-    let animId = 0;
-    let cachedScrollY = typeof window !== 'undefined' ? window.scrollY : 0;
-    let cachedInnerHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
-
-    const onPassiveScroll = () => {
-      cachedScrollY = window.scrollY;
-    };
-
-    const handleResize = () => {
-      cachedInnerHeight = window.innerHeight;
-      const { R, cw } = computeRadiusAndCardWidth(window.innerWidth, window.innerHeight);
-      engineState.current.R = R;
-      engineState.current.cw = cw;
-      setSphereRadius(R);
-      if (cardsRef.current) {
-        cardsRef.current.forEach((el) => {
-          if (el) {
-            el.style.width = `${cw}px`;
-            el.style.height = `${Math.round(cw * 0.67)}px`;
-            el.style.marginLeft = `${-cw / 2}px`;
-            el.style.marginTop = `${-Math.round(cw * 0.67) / 2}px`;
-          }
-        });
-      }
-    };
-
-    handleResize();
-    const handleResizeWithCache = () => {
-      cachedInnerHeight = window.innerHeight;
-      handleResize();
-    };
-    const handleResizeFrame = rafThrottle(handleResizeWithCache);
-    window.addEventListener('resize', handleResizeFrame, { passive: true });
-    window.addEventListener('scroll', onPassiveScroll, { passive: true });
-
-    const cardBatcher = new SphereCardBatchUpdater(FIBONACCI_POINTS.length);
-    const disposeSphereGeo = registerDisposableResource('vinhdanh-sphere-geo', 'geometry', () => {
-      cardBatcher.reset();
-    });
-    let lastFrameTs = performance.now();
-    const shouldRunAnimation = () =>
-      !document.hidden && !isGridView;
-    let scheduleTick = () => {};
-
-    const tick = (now: number) => {
-      animId = 0;
-      if (!shouldRunAnimation()) return;
-
-      const dtMs = Math.min(64, Math.max(4, now - lastFrameTs));
-      lastFrameTs = now;
-      const state = engineState.current;
-      const { R } = state;
-
-      if (!state.isDragging && !activeLitRecord) {
-        if (Math.abs(state.velX) > 0.002 || Math.abs(state.velY) > 0.002) {
-          state.spin += state.velX;
-          state.tilt = Math.max(-32, Math.min(32, state.tilt + state.velY));
-          state.velX *= 0.94;
-          state.velY *= 0.94;
-        } else {
-          state.spin += 0.06;
-        }
-      }
-
-      const p = Math.max(0, Math.min(1, cachedScrollY / (cachedInnerHeight * 0.16)));
-      const camZTarget = p * Math.min(64, R * 0.12);
-      state.camZ += (camZTarget + state.wheelCamZ - state.camZ) * 0.075;
-
-      const sx = state.tilt;
-      const sy = state.spin;
-      const camZ = state.camZ;
-
-      if (worldRef.current) {
-        worldRef.current.style.transform = `translateZ(${camZ.toFixed(1)}px) rotateY(${sy.toFixed(2)}deg) rotateX(${sx.toFixed(2)}deg)`;
-      }
-
-      if (headlineRef.current) {
-        headlineRef.current.style.transform = `rotateX(${-sx.toFixed(2)}deg) rotateY(${-sy.toFixed(2)}deg) translateZ(${(R * 0.62).toFixed(1)}px)`;
-        headlineRef.current.style.opacity = Math.max(0, 1 - p * 0.55).toFixed(2);
-      }
-
-      const sxRad = (sx * Math.PI) / 180;
-      const syRad = (sy * Math.PI) / 180;
-      const cosX = Math.cos(sxRad);
-      const sinX = Math.sin(sxRad);
-      const cosY = Math.cos(syRad);
-      const sinY = Math.sin(syRad);
-
-      const lowPolyStep = getRendererInfo().pipeline.qualityMode === 'low-poly' ? 2 : 1;
-      let visibleCount = 0;
-      let culledCount = 0;
-      let domCalls = 0;
-
-      FIBONACCI_POINTS.forEach((pt, i) => {
-        const cardEl = cardsRef.current[i];
-        if (!cardEl) return;
-
-        const z1 = -pt.y * sinX + pt.z * cosX;
-        const x1 = pt.x;
-        const zf = -x1 * sinY + z1 * cosY;
-
-        const base = 0.14 + 0.86 * Math.pow((zf + 1) / 2, 0.85);
-        const shade = 1 - Math.min(1, p * 1.6);
-        let dim = shade * (1 - base);
-
-        if (activeLitRecord) {
-          dim = Math.min(1, dim + 0.78);
-        }
-
-        const res = cardBatcher.updateCard(i, cardEl, zf, dim, -0.42, lowPolyStep);
-        if (res.visible) {
-          visibleCount++;
-        } else {
-          culledCount++;
-        }
-        if (res.mutated) {
-          domCalls++;
-        }
-      });
-
-      recordRenderFrameMetrics({
-        fps: 1000 / dtMs,
-        calls: domCalls,
-        visibleObjects: visibleCount,
-        culledObjects: culledCount,
-        frameTimeMs: dtMs,
-      });
-
-      if (dotRef.current && state.hasFinePointer) {
-        const { mousePos, dotPos } = state;
-        const dx = mousePos.x - dotPos.x;
-        const dy = mousePos.y - dotPos.y;
-        if (Math.abs(dx) > 0.2 || Math.abs(dy) > 0.2) {
-          dotPos.x += dx * 0.2;
-          dotPos.y += dy * 0.2;
-          dotRef.current.style.transform = `translate3d(${dotPos.x.toFixed(1)}px, ${dotPos.y.toFixed(1)}px, 0)`;
-        }
-      }
-
-      scheduleTick();
-    };
-
-    scheduleTick = () => {
-      if (animId || !shouldRunAnimation()) return;
-      animId = requestAnimationFrame(tick);
-    };
-
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        if (animId) cancelAnimationFrame(animId);
-        animId = 0;
-        return;
-      }
-      lastFrameTs = performance.now();
-      scheduleTick();
-    };
-
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    scheduleTick();
-
-    return () => {
-      if (animId) cancelAnimationFrame(animId);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      disposeSphereGeo();
-      window.removeEventListener('resize', handleResizeFrame);
-      window.removeEventListener('scroll', onPassiveScroll);
-    };
-  }, [isGridView, activeLitRecord]);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (activeLitRecord) return;
-    const state = engineState.current;
-    state.isDragging = true;
-    state.dragStartX = e.clientX;
-    state.dragStartY = e.clientY;
-    state.dragStartSpin = state.spin;
-    state.dragStartTilt = state.tilt;
-    state.lastX = e.clientX;
-    state.lastY = e.clientY;
-    state.lastT = performance.now();
-    state.velX = 0;
-    state.velY = 0;
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    const state = engineState.current;
-    state.mousePos.x = e.clientX;
-    state.mousePos.y = e.clientY;
-
-    if (!state.isDragging) return;
-    const now = performance.now();
-    const dt = Math.max(1, now - state.lastT);
-    const dx = e.clientX - state.lastX;
-    const dy = e.clientY - state.lastY;
-
-    state.velX = (dx / dt) * 0.45;
-    state.velY = (-dy / dt) * 0.45;
-
-    state.spin = state.dragStartSpin + (e.clientX - state.dragStartX) * 0.24;
-    state.tilt = Math.max(-32, Math.min(32, state.dragStartTilt - (e.clientY - state.dragStartY) * 0.2));
-
-    state.lastX = e.clientX;
-    state.lastY = e.clientY;
-    state.lastT = now;
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    const state = engineState.current;
-    state.isDragging = false;
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-    }
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (activeLitRecord || isGridView) return;
-    engineState.current.wheelCamZ = Math.max(-120, Math.min(100, engineState.current.wheelCamZ - e.deltaY * 0.15));
-  };
 
   const openLightbox = (record: VinhDanhRecord, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -920,7 +574,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           <div className="flex items-center gap-1.5">
             <Trophy className="w-4 h-4 text-amber-400" />
             <span className="text-xs font-bold font-mono uppercase tracking-wider text-amber-300 hidden md:inline">
-              Đại Sảnh Vinh Danh 2027
+              Phòng Truyền Thống
             </span>
           </div>
         </div>
@@ -928,45 +582,25 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/5 border border-white/10">
           <button
             type="button"
-            onClick={() => {
-              setActiveTabMode('hall');
-              setIsGridView(false);
-            }}
+            onClick={() => setActiveTabMode('hall')}
             className={`btn-feastables ff-tactile-pop px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTabMode === 'hall'
                 ? 'bg-amber-400 text-[#0b0d12] shadow-sm'
                 : 'text-white/70 hover:text-white hover:bg-white/5'
             }`}
           >
-            Triển Lãm Danh Giá
+            Bảng Vàng Sĩ Tử
           </button>
           <button
             type="button"
-            onClick={() => {
-              setActiveTabMode('sphere');
-              setIsGridView(false);
-            }}
-            className={`btn-feastables ff-tactile-pop px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-              activeTabMode === 'sphere'
-                ? 'bg-amber-400 text-[#0b0d12] shadow-sm'
-                : 'text-white/70 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            Quả Cầu 3D Ký Ức
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTabMode('archive');
-              setIsGridView(true);
-            }}
+            onClick={() => setActiveTabMode('archive')}
             className={`btn-feastables ff-tactile-pop px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
               activeTabMode === 'archive'
                 ? 'bg-amber-400 text-[#0b0d12] shadow-sm'
                 : 'text-white/70 hover:text-white hover:bg-white/5'
             }`}
           >
-            Kho Cột Mốc
+            Kho Kỷ Niệm Cột Mốc
           </button>
         </div>
 
@@ -1426,85 +1060,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
             </div>
           </section>
         </main>
-      )}
-
-      {activeTabMode === 'sphere' && (
-        <div className="relative w-full h-[90vh]">
-          <div
-            id="stage"
-            ref={stageRef}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            onWheel={handleWheel}
-            className="absolute inset-0 overflow-hidden cursor-grab active:cursor-grabbing select-none"
-            style={{ perspective: '1100px', touchAction: 'pan-y' }}
-          >
-            <div
-              id="world"
-              ref={worldRef}
-              className="absolute top-1/2 left-1/2 w-0 h-0 transform-style-3d will-change-transform"
-            >
-              <div id="orb" className="absolute top-0 left-0 w-0 h-0 transform-style-3d opacity-100">
-                {records.map((rec, i) => {
-                  const pt = FIBONACCI_POINTS[i];
-                  const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
-                  return (
-                    <div
-                      key={rec.id}
-                      ref={(el) => setCardRef(el, i)}
-                      data-idx={i}
-                      role="button"
-                      tabIndex={0}
-                      onClick={(e) => openLightbox(rec, e)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          openLightbox(rec, e as any);
-                        }
-                      }}
-                      aria-label={`Xem ảnh vinh danh: ${rec.title}`}
-                      className={`card absolute top-0 left-0 cursor-pointer transform-style-3d transition-transform duration-300 hover:scale-105 ${
-                        rec.isTall ? 'tall' : ''
-                      }`}
-                      style={{
-                        transform: `rotateY(${pt.lon}deg) rotateX(${-pt.lat}deg) translateZ(${sphereRadius}px)`,
-                      }}
-                    >
-                      <figure className="card-figure relative w-full h-full rounded-[3px] overflow-hidden bg-[#0a0a0a]">
-                        <img
-                          src={thumbUrl}
-                          alt={rec.title}
-                          onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                          className="w-full h-full object-cover transition-opacity duration-700"
-                          loading="eager"
-                          decoding="async"
-                          width={280}
-                          height={180}
-                        />
-                      </figure>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <h1
-                id="headline"
-                ref={headlineRef}
-                className="absolute top-0 left-0 w-[min(56vw,640px)] -ml-[calc(min(56vw,640px)/2)] text-center font-['Playfair_Display'] text-white select-none pointer-events-none font-playfair tracking-tight"
-              >
-                <span className="inner absolute top-0 left-0 w-full -translate-y-1/2">
-                  <span style={{ '--i': 0 } as React.CSSProperties}>{headlineWords[0] ?? 'BroAmStuck'}</span>{' '}
-                  <span style={{ '--i': 1 } as React.CSSProperties}>{headlineWords[1] ?? 'Studio'}</span>{' '}
-                  <span style={{ '--i': 2 } as React.CSSProperties}>{headlineWords[2] ?? '•'}</span>{' '}
-                  <span style={{ '--i': 3 } as React.CSSProperties}>{headlineWords[3] ?? 'Trần'}</span>{' '}
-                  <span style={{ '--i': 4 } as React.CSSProperties}>{headlineWords[4] ?? 'Tuấn'}</span>
-                </span>
-              </h1>
-            </div>
-          </div>
-        </div>
       )}
 
       {activeTabMode === 'archive' && (

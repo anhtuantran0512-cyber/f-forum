@@ -58,7 +58,7 @@ interface ClubsViewProps {
   isEmbedded?: boolean;
 }
 
-const SOLAR_SYSTEM_3D_URL = 'https://01a14731-4761-7a04-909a-fb3cd69dff26.arena.site/?embed=true';
+const SOLAR_SYSTEM_3D_URL = '/solar-system-3d.html';
 
 const DEFAULT_ASTRONOMY_CLUB: Club = {
   id: 'club-astronomy-physics',

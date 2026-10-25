@@ -1500,14 +1500,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 data-active={currentView === 'chronicles' ? 'true' : 'false'}
                 className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
-                aria-label="Khu Vinh Danh"
-                title="Khu Vinh Danh"
+                aria-label="Phòng Truyền Thống"
+                title="Phòng Truyền Thống"
               >
                 <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-300/25 to-orange-500/10 border border-amber-300/30 flex items-center justify-center">
                   <Trophy className="w-4 h-4 text-amber-300" />
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
-                  Vinh danh
+                  Truyền thống
                 </span>
               </button>
 
