@@ -623,7 +623,8 @@ const ProfileModalInner: React.FC<{
     });
 
     const max = Math.max(1, ...Object.values(counts));
-    const scale = (v: number) => Math.round((v / max) * 100);
+    const hasAny = Object.values(counts).some((v) => v > 0);
+    const scale = (v: number) => (hasAny ? Math.round((v / max) * 100) : 0);
 
     const order = ['KHTN', 'KHXH', 'Ngoại Ngữ', 'Nghệ Thuật', 'KHCN'];
     return order.map((name, i) => ({
@@ -644,17 +645,29 @@ const ProfileModalInner: React.FC<{
     }));
   }, [userQuestions, userSolutions, questions]);
 
+  const isNewStudent = userQuestions.length === 0 && userSolutions.length === 0 && statsMetrics.thanks === 0 && statsMetrics.helped === 0 && statsMetrics.bestSolutions === 0;
+
   const competencyRadarAxes = useMemo(() => {
+    if (isNewStudent) {
+      return [
+        { name: 'Tư duy Logic', full: 'Tư duy Logic & KHTN', score: 0 },
+        { name: 'Khả năng Ghi nhớ SRS', full: 'Khả năng Ghi nhớ SRS', score: 0 },
+        { name: 'Tốc độ Giải đề', full: 'Tốc độ Giải đề & Phản xạ', score: 0 },
+        { name: 'Tính Kiên trì', full: 'Tính Kiên trì & Chuỗi học', score: 0 },
+        { name: 'Tương tác Cộng đồng', full: 'Tương tác Cộng đồng & KHXH', score: 0 },
+        { name: 'Chiều sâu Học thuật', full: 'Chiều sâu Học thuật & Xác thực', score: 0 },
+      ];
+    }
     const khtnCount = (subjectCounts.toan || 0) + (subjectCounts.ly || 0) + (subjectCounts.hoa || 0) + (subjectCounts.sinh || 0);
     const khxhCount = (subjectCounts.van || 0) + (subjectCounts.su || 0) + (subjectCounts.dia || 0);
-    const streak = currentUser.streakCount || 7;
+    const streak = currentUser.streakCount || 0;
 
-    const logicScore = Math.min(100, Math.max(35, Math.round((currentUser.level * 2.5) + khtnCount * 8)));
-    const srsScore = Math.min(100, Math.max(40, Math.round(55 + (currentUser.level * 1.5))));
-    const speedScore = Math.min(100, Math.max(30, Math.round(50 + (userSolutions.length * 4))));
-    const diligenceScore = Math.min(100, Math.max(45, Math.round(streak * 10)));
-    const communityScore = Math.min(100, Math.max(35, Math.round(statsMetrics.thanks * 6 + khxhCount * 6 + statsMetrics.helped * 3)));
-    const depthScore = Math.min(100, Math.max(35, Math.round(statsMetrics.bestSolutions * 20 + statsMetrics.verified * 15 + 45)));
+    const logicScore = Math.min(100, Math.round((currentUser.level || 1) * 2 + khtnCount * 10));
+    const srsScore = Math.min(100, Math.round(statsMetrics.verified * 25 + statsMetrics.bestSolutions * 20));
+    const speedScore = Math.min(100, Math.round(userSolutions.length * 10));
+    const diligenceScore = Math.min(100, Math.round(streak * 10));
+    const communityScore = Math.min(100, Math.round(statsMetrics.thanks * 8 + khxhCount * 6 + statsMetrics.helped * 4));
+    const depthScore = Math.min(100, Math.round(statsMetrics.bestSolutions * 30 + statsMetrics.verified * 20));
 
     return [
       { name: 'Tư duy Logic', full: 'Tư duy Logic & KHTN', score: logicScore },
@@ -664,7 +677,7 @@ const ProfileModalInner: React.FC<{
       { name: 'Tương tác Cộng đồng', full: 'Tương tác Cộng đồng & KHXH', score: communityScore },
       { name: 'Chiều sâu Học thuật', full: 'Chiều sâu Học thuật & Xác thực', score: depthScore },
     ];
-  }, [currentUser, userSolutions, statsMetrics, subjectCounts]);
+  }, [currentUser, userSolutions, statsMetrics, subjectCounts, isNewStudent]);
 
 
 
@@ -1238,16 +1251,6 @@ const ProfileModalInner: React.FC<{
                 <div className="relative z-10 p-4 sm:p-6 space-y-5">
                   {/* A. Thanh Định Danh Ngang (Avatar Trái · Thông Tin Giữa · Thao Tác Phải — Không đè lấp) */}
                   <div className="space-y-4 pb-5 border-b border-white/10">
-                    <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#2B2331]/80 border border-[#FBF2E1]/20 text-[10.5px] font-mono tracking-wider uppercase text-[#FBF2E1] font-bold shadow-sm">
-                      <span className="flex items-center gap-1.5">
-                        <Award className="w-3.5 h-3.5 text-amber-300" />
-                        <span>Thẻ Căn Cước Sĩ Tử 2027 · Scholar Identity Card</span>
-                      </span>
-                      <span className="flex items-center gap-1 text-emerald-300 font-semibold text-[10px]">
-                        <CheckCircle2 className="w-3 h-3" /> Đã xác thực
-                      </span>
-                    </div>
-
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                       <div className="flex flex-col sm:flex-row sm:items-end gap-4 min-w-0">
                         <div className="flex flex-col items-start gap-2 shrink-0">
@@ -1311,9 +1314,13 @@ const ProfileModalInner: React.FC<{
                         <div className="min-w-0 space-y-2 pb-0.5">
                           <div className="flex items-center gap-2.5 flex-wrap">
                             <h3 className="text-lg sm:text-2xl font-extrabold text-white inline-flex items-center gap-2 min-w-0 tracking-tight">
-                              <span className={`truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
-                                {currentUser.name}
-                              </span>
+                              <DecoratedName
+                                user={currentUser}
+                                name={currentUser.name}
+                                width={240}
+                                maxWidth={320}
+                                className={isSuperAdmin ? 'discord-admin-name' : 'text-white'}
+                              />
                               {isSuperAdmin && <AdminVerifiedBadge size={18} />}
                             </h3>
                           </div>
@@ -1955,22 +1962,22 @@ const ProfileModalInner: React.FC<{
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                         <BarChart3 className="w-4 h-4 text-amber-400" />
-                        Biểu Đồ Radar Năng Lực 6 Trục (Academic Competency Hexagon)
+                        Radar Năng Lực
                       </span>
                       <span className="pc-12-pill px-2.5 py-0.5 text-[10px] text-amber-400 font-mono">
-                        {userSolutions.length} bài
+                        {isNewStudent ? 'Tài khoản mới' : `${userSolutions.length} bài`}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
                       <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[280px]">
                         <RadarSpiderChart
-                          data={competencyRadarAxes}
+                          data={radarAxes}
                           max={100}
                           stroke="#EAB308"
                           fill="rgba(14, 165, 233, 0.25)"
                           dotFill="#06b6d4"
-                          title="Năng lực học thuật 6 trục"
+                          title="Radar Năng Lực"
                         />
                       </div>
 

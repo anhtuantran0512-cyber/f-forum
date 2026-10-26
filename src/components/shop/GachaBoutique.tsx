@@ -713,14 +713,30 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                 className="flex flex-col items-center justify-center p-2 rounded-xl bg-white/[0.04] border border-white/15 cursor-pointer hover:scale-105 transition-transform shrink-0"
                 title="Xem trước"
               >
-                <div className="gb-hero__avatar">
-                  <AvatarWithDecoration
-                    avatarUrl={userAvatar || DEFAULT_AVATAR}
-                    decorationAsset={itemToAsset(currentHeroItem)}
-                    size={64}
-                    eager
-                  />
-                </div>
+                {currentHeroItem.category === 'Nameplate' ? (
+                  <div className="flex items-center justify-center p-1 w-36 h-14">
+                    <span className="npd-np" style={{ width: 136, height: 32 }}>
+                      <NameplateDisplay
+                        asset={itemToAsset(currentHeroItem)}
+                        size={136}
+                        animate
+                        eager
+                        fill
+                        className="npd-np__bg"
+                      />
+                      <span className="npd-np__text text-[11px] font-bold">{userName}</span>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="gb-hero__avatar">
+                    <AvatarWithDecoration
+                      avatarUrl={userAvatar || DEFAULT_AVATAR}
+                      decorationAsset={itemToAsset(currentHeroItem)}
+                      size={64}
+                      eager
+                    />
+                  </div>
+                )}
                 <span className="mt-1 text-[10.5px] font-mono font-bold text-amber-300 flex items-center gap-1">
                   <Coins size={11} /> {effectivePrice(currentHeroItem, now).toLocaleString('vi-VN')}
                 </span>
@@ -745,13 +761,15 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               <div className="w-full flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3.5 min-w-0">
                   <div className="relative flex items-center justify-center shrink-0 p-1">
-                    <AvatarWithDecoration
-                      avatarUrl={userAvatar || DEFAULT_AVATAR}
-                      decorationAsset={pAsset.type === 'nameplate' ? null : pAsset}
-                      size={64}
-                      eager
-                      className="gb-discord-preview__avatar"
-                    />
+                    {pAsset.type !== 'nameplate' && (
+                      <AvatarWithDecoration
+                        avatarUrl={userAvatar || DEFAULT_AVATAR}
+                        decorationAsset={pAsset}
+                        size={64}
+                        eager
+                        className="gb-discord-preview__avatar"
+                      />
+                    )}
                   </div>
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center gap-1.5 flex-wrap">
@@ -762,10 +780,10 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
                       {activePreviewItem.isAnimated && <span className="gb-tag gb-tag--anim">Động</span>}
                     </div>
                     {pAsset.type === 'nameplate' ? (
-                      <div className="py-0.5">
-                        <span className="npd-np" style={{ width: 196, height: 36 }}>
-                          <NameplateDisplay asset={pAsset} size={196} animate eager fill className="npd-np__bg" />
-                          <span className="npd-np__text">{userName}</span>
+                      <div className="py-1">
+                        <span className="npd-np" style={{ width: 210, height: 40 }}>
+                          <NameplateDisplay asset={pAsset} size={210} animate eager fill className="npd-np__bg" />
+                          <span className="npd-np__text text-sm font-extrabold">{userName}</span>
                         </span>
                       </div>
                     ) : (
@@ -1404,16 +1422,14 @@ export const GachaBoutique: FC<GachaBoutiqueProps> = ({
               <div className="gb-inspect__stage flex flex-col items-center justify-center p-4">
                 <span className="gb-inspect__halo" aria-hidden="true" />
                 {asset.type === 'nameplate' ? (
-                  <div className="relative flex flex-col items-center justify-center my-2 z-10 gap-3">
-                    <AvatarWithDecoration
-                      avatarUrl={userAvatar || DEFAULT_AVATAR}
-                      size={92}
-                      eager
-                    />
-                    <span className="npd-np gb-inspect__np" style={{ width: 268, height: 50 }}>
-                      <NameplateDisplay asset={asset} size={268} animate eager fill className="npd-np__bg" />
-                      <span className="npd-np__text">{userName}</span>
-                    </span>
+                  <div className="relative flex flex-col items-center justify-center my-6 z-10 gap-3 w-full max-w-sm px-4">
+                    <div className="w-full py-4 flex items-center justify-center">
+                      <span className="npd-np gb-inspect__np shadow-xl" style={{ width: 280, height: 52 }}>
+                        <NameplateDisplay asset={asset} size={280} animate eager fill className="npd-np__bg" />
+                        <span className="npd-np__text text-base font-extrabold tracking-wide">{userName}</span>
+                      </span>
+                    </div>
+                    <span className="text-[11px] font-mono text-white/50 tracking-wide uppercase">Bảng tên</span>
                   </div>
                 ) : (
                   <>

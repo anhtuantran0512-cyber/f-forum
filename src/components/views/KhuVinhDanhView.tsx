@@ -675,7 +675,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end pt-8 pb-4">
               <div className="order-2 md:order-1 flex flex-col items-center">
-                <div className="card-hard w-full p-6 bg-[#0f141e] border-slate-300/30 flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_0_24px_rgba(203,213,225,0.15)]">
+                <div className="card-hard w-full p-6 bg-gradient-to-b from-[#141824] to-[#0e121a] border-slate-400/25 rounded-t-2xl flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_8px_28px_rgba(203,213,225,0.1)]">
                   <div className="absolute -top-7">{renderMiniMascot('fox')}</div>
                   <div className="mt-8 relative mb-3">
                     <img
@@ -708,14 +708,14 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   </div>
                 </div>
 
-                <div className="w-full h-36 bg-gradient-to-t from-slate-800 to-slate-700/80 rounded-b-2xl border-x-2 border-b-2 border-slate-400/40 flex flex-col items-center justify-center text-slate-200 shadow-xl">
+                <div className="w-full h-36 bg-gradient-to-t from-[#0e131d] via-[#141b27] to-[#1a2333] rounded-b-2xl border-x border-b border-slate-400/30 flex flex-col items-center justify-center text-slate-200 shadow-xl">
                   <span className="text-4xl font-black font-mono tracking-wider opacity-60">II</span>
                   <span className="text-[11px] font-bold uppercase tracking-widest mt-1 text-slate-300">Á Khoa 1</span>
                 </div>
               </div>
 
               <div className="order-1 md:order-2 flex flex-col items-center">
-                <div className="card-hard w-full p-7 bg-[#141a27] border-amber-400/50 flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_0_36px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30">
+                <div className="card-hard w-full p-7 bg-gradient-to-b from-[#181d2a] to-[#121620] border-amber-400/40 rounded-t-2xl flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_12px_40px_rgba(245,158,11,0.18)] ring-1 ring-amber-400/30">
                   <div className="absolute -top-8">{renderMiniMascot('owl')}</div>
                   <div className="mt-8 relative mb-3">
                     <img
@@ -748,14 +748,14 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   </div>
                 </div>
 
-                <div className="w-full h-48 bg-gradient-to-t from-amber-900/90 via-amber-800/80 to-amber-700/80 rounded-b-2xl border-x-2 border-b-2 border-amber-400/60 flex flex-col items-center justify-center text-amber-100 shadow-2xl">
+                <div className="w-full h-48 bg-gradient-to-t from-[#151208] via-[#1c180b] to-[#2a220e] rounded-b-2xl border-x border-b border-amber-400/40 flex flex-col items-center justify-center text-amber-100 shadow-[0_16px_32px_rgba(245,158,11,0.15)]">
                   <span className="text-5xl font-black font-mono tracking-wider text-amber-300">I</span>
                   <span className="text-xs font-extrabold uppercase tracking-widest mt-1 text-amber-200">Thủ Khoa</span>
                 </div>
               </div>
 
               <div className="order-3 flex flex-col items-center">
-                <div className="card-hard w-full p-6 bg-[#0f141e] border-[#e07a5f]/40 flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_0_24px_rgba(224,122,95,0.15)]">
+                <div className="card-hard w-full p-6 bg-gradient-to-b from-[#16141a] to-[#0e1014] border-[#e07a5f]/25 rounded-t-2xl flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_8px_28px_rgba(224,122,95,0.1)]">
                   <div className="absolute -top-7">{renderMiniMascot('tortoise')}</div>
                   <div className="mt-8 relative mb-3">
                     <img
@@ -788,7 +788,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                   </div>
                 </div>
 
-                <div className="w-full h-28 bg-gradient-to-t from-orange-950 to-[#7a3928] rounded-b-2xl border-x-2 border-b-2 border-[#e07a5f]/50 flex flex-col items-center justify-center text-orange-200 shadow-xl">
+                <div className="w-full h-28 bg-gradient-to-t from-[#170e0a] via-[#1f130e] to-[#2b1a13] rounded-b-2xl border-x border-b border-[#e07a5f]/30 flex flex-col items-center justify-center text-orange-200 shadow-xl">
                   <span className="text-4xl font-black font-mono tracking-wider opacity-60">III</span>
                   <span className="text-[11px] font-bold uppercase tracking-widest mt-1 text-orange-200">Á Khoa 2</span>
                 </div>
@@ -887,7 +887,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('fforum_open_peer_battle'));
                 }}
-                className="btn-feastables px-4 py-2.5 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-black text-xs flex items-center gap-2 cursor-pointer border-2 border-white/20 shadow-[3px_3px_0px_#000]"
+                className="btn-feastables ff-tactile-pop px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold text-xs flex items-center gap-2 cursor-pointer border border-rose-400/40 shadow-md transition-all"
               >
                 <Swords className="w-4 h-4 text-amber-300" />
                 <span>Đấu Trường 1vs1</span>
