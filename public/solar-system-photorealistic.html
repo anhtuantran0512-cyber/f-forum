@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mô Phỏng Hệ Mặt Trời Siêu Thực Full-HD · Three.js NASA PBR Engine</title>
+  <title>Mô Phỏng Hệ Mặt Trời Siêu Thực NASA Full-HD · Three.js PBR Masterpiece</title>
   <style>
     * {
       box-sizing: border-box;
@@ -22,8 +22,7 @@
     }
     #webgl-canvas {
       position: absolute;
-      top: 0;
-      left: 0;
+      inset: 0;
       width: 100%;
       height: 100%;
       display: block;
@@ -41,14 +40,14 @@
     }
     .hud-header {
       pointer-events: auto;
-      background: rgba(8, 12, 22, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.14);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(8, 12, 22, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       padding: 14px 22px;
       border-radius: 18px;
       max-width: 480px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.75);
     }
     .hud-title {
       font-size: 15px;
@@ -80,9 +79,9 @@
       position: absolute;
       top: 20px;
       right: 20px;
-      width: 330px;
+      width: 340px;
       background: rgba(8, 12, 22, 0.88);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       backdrop-filter: blur(24px);
       -webkit-backdrop-filter: blur(24px);
       border-radius: 20px;
@@ -163,8 +162,8 @@
       color: #ffffff;
     }
     .nav-btn.active {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.28), rgba(217, 119, 6, 0.18));
-      border-color: rgba(245, 158, 11, 0.55);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(217, 119, 6, 0.2));
+      border-color: rgba(245, 158, 11, 0.6);
       color: #fef08a;
       box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
     }
@@ -178,8 +177,8 @@
       gap: 8px;
     }
     .ctrl-btn {
-      background: rgba(8, 12, 22, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(8, 12, 22, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       color: #94a3b8;
       font-size: 11.5px;
       font-weight: 600;
@@ -194,8 +193,8 @@
     }
     .ctrl-btn:hover, .ctrl-btn.active {
       color: #38bdf8;
-      border-color: rgba(56, 189, 248, 0.45);
-      background: rgba(56, 189, 248, 0.14);
+      border-color: rgba(56, 189, 248, 0.5);
+      background: rgba(56, 189, 248, 0.16);
     }
     @media (max-width: 768px) {
       .hud-header { max-width: 100%; font-size: 13px; }
@@ -234,10 +233,10 @@
     <header class="hud-header">
       <div class="hud-title">
         <span>NASA Photorealistic Solar Engine</span>
-        <span class="hud-badge">Full-HD PBR</span>
+        <span class="hud-badge">Masterpiece PBR</span>
       </div>
       <div class="hud-sub">
-        Động cơ mô phỏng siêu thực: 8 hành tinh PBR độ phân giải cao, Trái Đất ngày-đêm đèn đô thị, mây trôi độc lập, vành đai Sao Thổ Cassini, khí quyển Rayleigh và bão plasma Mặt Trời.
+        Mô phỏng siêu thực 100%: Trái Đất ngày-đêm đèn đô thị &amp; phản chiếu đại dương, mây trôi 3D, bão Vết Đỏ Lớn Sao Mộc, vành đai Cassini đổ bóng, bão plasma sôi sục Mặt Trời.
       </div>
     </header>
 
@@ -246,6 +245,7 @@
       <button type="button" id="btnSpeed" class="ctrl-btn">Tốc độ: 1x</button>
       <button type="button" id="btnOrbits" class="ctrl-btn active">Quỹ đạo: Bật</button>
       <button type="button" id="btnTour" class="ctrl-btn">Tự động du hành</button>
+      <button type="button" id="btnAudio" class="ctrl-btn">Âm thanh vũ trụ</button>
       <button type="button" id="btnReset" class="ctrl-btn">Toàn cảnh</button>
     </div>
 
@@ -271,6 +271,10 @@
         <span class="telemetry-val" id="cardPeriod">230 triệu năm</span>
       </div>
       <div class="telemetry-row">
+        <span class="telemetry-label">Nhiệt độ bề mặt</span>
+        <span class="telemetry-val" id="cardTemp">5.778 K (5.505 °C)</span>
+      </div>
+      <div class="telemetry-row">
         <span class="telemetry-label">Độ nghiêng trục quay</span>
         <span class="telemetry-val" id="cardTilt">7.25°</span>
       </div>
@@ -287,7 +291,7 @@
     (function() {
       var canvas = document.getElementById('webgl-canvas');
       var scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x000003, 0.00012);
+      scene.fog = new THREE.FogExp2(0x000003, 0.0001);
 
       var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
       camera.position.set(0, 160, 340);
@@ -301,7 +305,7 @@
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.18;
+      renderer.toneMappingExposure = 1.22;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -315,15 +319,15 @@
       var renderScene = new THREE.RenderPass(scene, camera);
       var bloomPass = new THREE.UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        1.45,
+        1.5,
         0.55,
-        0.72
+        0.7
       );
       var composer = new THREE.EffectComposer(renderer);
       composer.addPass(renderScene);
       composer.addPass(bloomPass);
 
-      var sunPointLight = new THREE.PointLight(0xffffff, 3.2, 3000, 0.35);
+      var sunPointLight = new THREE.PointLight(0xffffff, 3.4, 3000, 0.32);
       sunPointLight.position.set(0, 0, 0);
       sunPointLight.castShadow = true;
       sunPointLight.shadow.mapSize.width = 2048;
@@ -331,74 +335,190 @@
       sunPointLight.shadow.bias = -0.0001;
       scene.add(sunPointLight);
 
-      var ambientLight = new THREE.AmbientLight(0x090f1d, 0.038);
+      var ambientLight = new THREE.AmbientLight(0x0a1020, 0.04);
       scene.add(ambientLight);
 
       var textureLoader = new THREE.TextureLoader();
       textureLoader.setCrossOrigin('anonymous');
 
-      function generateProceduralTexture(type, colorBase, secondary) {
+      function generateUltraHDTexture(planetId) {
         var cv = document.createElement('canvas');
-        cv.width = 1024;
-        cv.height = 512;
+        cv.width = 2048;
+        cv.height = 1024;
         var ctx = cv.getContext('2d');
-        ctx.fillStyle = colorBase;
-        ctx.fillRect(0, 0, cv.width, cv.height);
+        var w = cv.width;
+        var h = cv.height;
 
-        var grad = ctx.createLinearGradient(0, 0, 0, cv.height);
-        grad.addColorStop(0, colorBase);
-        grad.addColorStop(0.5, secondary);
-        grad.addColorStop(1, colorBase);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, cv.width, cv.height);
-
-        for (var i = 0; i < 4500; i++) {
-          var x = Math.random() * cv.width;
-          var y = Math.random() * cv.height;
-          var r = Math.random() * (type === 'bands' ? 24 : 8) + 1;
-          ctx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.14) + ')';
-          ctx.beginPath();
-          if (type === 'bands') {
-            ctx.ellipse(x, y, r * 4.5, r * 0.45, 0, 0, Math.PI * 2);
-          } else {
-            ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (planetId === 'earth-day') {
+          ctx.fillStyle = '#0f2b5c';
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = '#2d5a27';
+          var continents = [
+            { x: 0.52 * w, y: 0.32 * h, rx: 0.2 * w, ry: 0.16 * h },
+            { x: 0.5 * w, y: 0.56 * h, rx: 0.09 * w, ry: 0.18 * h },
+            { x: 0.24 * w, y: 0.32 * h, rx: 0.12 * w, ry: 0.14 * h },
+            { x: 0.3 * w, y: 0.65 * h, rx: 0.08 * w, ry: 0.18 * h },
+            { x: 0.78 * w, y: 0.7 * h, rx: 0.07 * w, ry: 0.1 * h }
+          ];
+          continents.forEach(function(c) {
+            ctx.beginPath();
+            ctx.ellipse(c.x, c.y, c.rx, c.ry, 0, 0, Math.PI * 2);
+            ctx.fill();
+            for (var p = 0; p < 80; p++) {
+              var ox = c.x + (Math.random() - 0.5) * c.rx * 2;
+              var oy = c.y + (Math.random() - 0.5) * c.ry * 2;
+              ctx.fillStyle = Math.random() > 0.4 ? '#4a7c36' : '#9c824a';
+              ctx.beginPath();
+              ctx.arc(ox, oy, Math.random() * 25 + 5, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          });
+          ctx.fillStyle = '#e2e8f0';
+          ctx.fillRect(0, 0, w, 0.08 * h);
+          ctx.fillRect(0, 0.92 * h, w, 0.08 * h);
+        } else if (planetId === 'earth-night') {
+          ctx.fillStyle = '#000002';
+          ctx.fillRect(0, 0, w, h);
+          for (var i = 0; i < 2800; i++) {
+            var nx = Math.random() * w;
+            var ny = (0.2 + Math.random() * 0.6) * h;
+            var bright = Math.random();
+            ctx.fillStyle = 'rgba(255, 210, 130, ' + (bright * 0.85 + 0.15) + ')';
+            ctx.beginPath();
+            ctx.arc(nx, ny, Math.random() * 2.2 + 0.4, 0, Math.PI * 2);
+            ctx.fill();
           }
+        } else if (planetId === 'earth-clouds') {
+          ctx.fillStyle = '#000000';
+          ctx.fillRect(0, 0, w, h);
+          for (var c = 0; c < 2400; c++) {
+            var cx = Math.random() * w;
+            var cy = Math.random() * h;
+            var rad = Math.random() * 32 + 8;
+            ctx.fillStyle = 'rgba(255, 255, 255, ' + (Math.random() * 0.15 + 0.05) + ')';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, rad * 2.5, rad * 0.8, (Math.random() - 0.5) * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (planetId === 'jupiter') {
+          var bands = [
+            '#4a2e18', '#c98a58', '#e3b888', '#a86538', '#d6a06c', '#8a4e28', '#c98a58', '#4a2e18'
+          ];
+          for (var b = 0; b < bands.length; b++) {
+            ctx.fillStyle = bands[b];
+            ctx.fillRect(0, (b / bands.length) * h, w, (h / bands.length) + 2);
+          }
+          for (var j = 0; j < 3500; j++) {
+            var jx = Math.random() * w;
+            var jy = Math.random() * h;
+            var jr = Math.random() * 28 + 4;
+            ctx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.12) + ')';
+            ctx.beginPath();
+            ctx.ellipse(jx, jy, jr * 5, jr * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          var grsX = 0.62 * w;
+          var grsY = 0.65 * h;
+          ctx.fillStyle = '#b9381e';
+          ctx.beginPath();
+          ctx.ellipse(grsX, grsY, 54, 32, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#d9684a';
+          ctx.lineWidth = 6;
+          ctx.stroke();
+        } else if (planetId === 'mars') {
+          ctx.fillStyle = '#b44822';
+          ctx.fillRect(0, 0, w, h);
+          for (var m = 0; m < 3000; m++) {
+            var mx = Math.random() * w;
+            var my = Math.random() * h;
+            ctx.fillStyle = Math.random() > 0.5 ? '#7c2810' : '#cf6838';
+            ctx.beginPath();
+            ctx.arc(mx, my, Math.random() * 18 + 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.fillStyle = '#f8fafc';
+          ctx.beginPath();
+          ctx.ellipse(0.5 * w, 0.05 * h, 140, 28, 0, 0, Math.PI * 2);
+          ctx.ellipse(0.5 * w, 0.95 * h, 120, 24, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (planetId === 'mercury') {
+          ctx.fillStyle = '#6b7280';
+          ctx.fillRect(0, 0, w, h);
+          for (var mc = 0; mc < 4000; mc++) {
+            var cx = Math.random() * w;
+            var cy = Math.random() * h;
+            var cr = Math.random() * 12 + 1.5;
+            ctx.fillStyle = Math.random() > 0.5 ? '#374151' : '#9ca3af';
+            ctx.beginPath();
+            ctx.arc(cx, cy, cr, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (planetId === 'venus') {
+          var vGrad = ctx.createLinearGradient(0, 0, 0, h);
+          vGrad.addColorStop(0, '#d97706');
+          vGrad.addColorStop(0.5, '#fef3c7');
+          vGrad.addColorStop(1, '#b45309');
+          ctx.fillStyle = vGrad;
+          ctx.fillRect(0, 0, w, h);
+          for (var v = 0; v < 3000; v++) {
+            ctx.fillStyle = 'rgba(245, 158, 11, ' + (Math.random() * 0.14) + ')';
+            ctx.beginPath();
+            ctx.ellipse(Math.random() * w, Math.random() * h, 80, 8, 0.1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else if (planetId === 'saturn') {
+          var sGrad = ctx.createLinearGradient(0, 0, 0, h);
+          sGrad.addColorStop(0, '#a16207');
+          sGrad.addColorStop(0.3, '#fef08a');
+          sGrad.addColorStop(0.7, '#ca8a04');
+          sGrad.addColorStop(1, '#713f12');
+          ctx.fillStyle = sGrad;
+          ctx.fillRect(0, 0, w, h);
+        } else if (planetId === 'uranus') {
+          ctx.fillStyle = '#38bdf8';
+          ctx.fillRect(0, 0, w, h);
+        } else if (planetId === 'neptune') {
+          ctx.fillStyle = '#1d4ed8';
+          ctx.fillRect(0, 0, w, h);
+          ctx.fillStyle = '#1e3a8a';
+          ctx.beginPath();
+          ctx.ellipse(0.6 * w, 0.4 * h, 48, 24, -0.2, 0, Math.PI * 2);
           ctx.fill();
         }
+
         var tex = new THREE.CanvasTexture(cv);
         tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.ClampToEdgeWrapping;
-        return tex;
-      }
-
-      function loadPBRTexture(url, fallbackType, color1, color2) {
-        var tex = textureLoader.load(url, undefined, undefined, function() {
-          var fb = generateProceduralTexture(fallbackType, color1, color2);
-          tex.image = fb.image;
-          tex.needsUpdate = true;
-        });
         tex.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
         return tex;
       }
 
+      function loadPBRTextureWithFallback(url, planetId) {
+        var proceduralTex = generateUltraHDTexture(planetId);
+        var tex = textureLoader.load(url, function(loaded) {
+          proceduralTex.image = loaded.image;
+          proceduralTex.needsUpdate = true;
+        }, undefined, function() {});
+        return proceduralTex;
+      }
+
       var starGeo = new THREE.SphereGeometry(1800, 64, 64);
       var starMat = new THREE.MeshBasicMaterial({
-        map: loadPBRTexture(
+        map: loadPBRTextureWithFallback(
           'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/galaxy_starfield.png',
-          'stars',
-          '#000003',
-          '#02040b'
+          'stars'
         ),
         side: THREE.BackSide
       });
       scene.add(new THREE.Mesh(starGeo, starMat));
 
-      var starCount = 4200;
+      var starCount = 4500;
       var starPositions = new Float32Array(starCount * 3);
       var starColors = new Float32Array(starCount * 3);
       var pColor = new THREE.Color();
       for (var s = 0; s < starCount; s++) {
-        var r = 900 + Math.random() * 800;
+        var r = 900 + Math.random() * 850;
         var theta = Math.random() * Math.PI * 2;
         var phi = Math.acos((Math.random() * 2) - 1);
         starPositions[s * 3] = r * Math.sin(phi) * Math.cos(theta);
@@ -406,10 +526,10 @@
         starPositions[s * 3 + 2] = r * Math.cos(phi);
 
         var starType = Math.random();
-        if (starType > 0.85) pColor.setHSL(0.6, 0.55, 0.85);
-        else if (starType > 0.65) pColor.setHSL(0.12, 0.6, 0.8);
-        else if (starType > 0.5) pColor.setHSL(0.04, 0.7, 0.75);
-        else pColor.setHSL(0.0, 0.0, 0.95);
+        if (starType > 0.85) pColor.setHSL(0.6, 0.55, 0.9);
+        else if (starType > 0.65) pColor.setHSL(0.12, 0.65, 0.82);
+        else if (starType > 0.5) pColor.setHSL(0.04, 0.75, 0.78);
+        else pColor.setHSL(0.0, 0.0, 0.98);
 
         starColors[s * 3] = pColor.r;
         starColors[s * 3 + 1] = pColor.g;
@@ -422,7 +542,7 @@
         size: 1.85,
         vertexColors: true,
         transparent: true,
-        opacity: 0.9
+        opacity: 0.92
       })));
 
       var sunVertexShader = [
@@ -449,7 +569,7 @@
         'float snoise(vec3 v) {',
         '  const vec2 C = vec2(1.0/6.0, 1.0/3.0);',
         '  const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);',
-        '  vec3 i  = floor(v + dot(v, C.yyy));',
+        '  vec3 i = floor(v + dot(v, C.yyy));',
         '  vec3 x0 = v - i + dot(i, C.xxx);',
         '  vec3 g = step(x0.yzx, x0.xyz);',
         '  vec3 l = 1.0 - g;',
@@ -489,16 +609,16 @@
         'void main() {',
         '  float t = uTime * 0.16;',
         '  float n1 = snoise(vPosition * 0.13 + vec3(0.0, t, 0.0));',
-        '  float n2 = snoise(vPosition * 0.3 - vec3(t * 0.8, 0.0, t * 0.5));',
+        '  float n2 = snoise(vPosition * 0.32 - vec3(t * 0.8, 0.0, t * 0.5));',
         '  float plasma = clamp((n1 * 0.65 + n2 * 0.35 + 0.5), 0.0, 1.0);',
-        '  vec3 colDeep = vec3(0.92, 0.18, 0.01);',
-        '  vec3 colMid = vec3(1.0, 0.65, 0.06);',
+        '  vec3 colDeep = vec3(0.94, 0.18, 0.01);',
+        '  vec3 colMid = vec3(1.0, 0.66, 0.06);',
         '  vec3 colHot = vec3(1.0, 0.98, 0.88);',
         '  vec3 col = mix(colDeep, colMid, smoothstep(0.12, 0.62, plasma));',
         '  col = mix(col, colHot, smoothstep(0.62, 0.96, plasma));',
-        '  float fresnel = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 2.1);',
-        '  col += vec3(1.0, 0.48, 0.12) * fresnel * 2.0;',
-        '  gl_FragColor = vec4(col * 1.65, 1.0);',
+        '  float fresnel = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 2.2);',
+        '  col += vec3(1.0, 0.5, 0.12) * fresnel * 2.2;',
+        '  gl_FragColor = vec4(col * 1.7, 1.0);',
         '}'
       ].join('\n');
 
@@ -511,9 +631,9 @@
       var sunMesh = new THREE.Mesh(sunGeo, sunMat);
       scene.add(sunMesh);
 
-      var coronaMesh = new THREE.Mesh(new THREE.SphereGeometry(22.2, 32, 32), new THREE.ShaderMaterial({
+      var coronaMesh = new THREE.Mesh(new THREE.SphereGeometry(22.5, 32, 32), new THREE.ShaderMaterial({
         vertexShader: 'varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-        fragmentShader: 'varying vec3 vNormal; void main() { float intensity = pow(0.72 - dot(vNormal, vec3(0, 0, 1.0)), 2.6); gl_FragColor = vec4(1.0, 0.58, 0.16, 1.0) * intensity * 2.4; }',
+        fragmentShader: 'varying vec3 vNormal; void main() { float intensity = pow(0.74 - dot(vNormal, vec3(0, 0, 1.0)), 2.6); gl_FragColor = vec4(1.0, 0.6, 0.18, 1.0) * intensity * 2.5; }',
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
         transparent: true
@@ -531,29 +651,17 @@
         }));
       }
 
-      var earthDayTex = loadPBRTexture(
+      var earthDayTex = loadPBRTextureWithFallback(
         'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-        'earth',
-        '#1d4ed8',
-        '#047857'
+        'earth-day'
       );
-      var earthNightTex = loadPBRTexture(
+      var earthNightTex = loadPBRTextureWithFallback(
         'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_lights_2048.png',
-        'night',
-        '#000000',
-        '#f59e0b'
+        'earth-night'
       );
-      var earthNormalTex = loadPBRTexture(
-        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg',
-        'normal',
-        '#8080ff',
-        '#8080ff'
-      );
-      var earthSpecularTex = loadPBRTexture(
-        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg',
-        'specular',
-        '#ffffff',
-        '#222222'
+      var earthCloudsTex = loadPBRTextureWithFallback(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png',
+        'earth-clouds'
       );
 
       var earthCustomMat = new THREE.ShaderMaterial({
@@ -583,12 +691,20 @@
           'varying vec3 vWorldPosition;',
           'void main() {',
           '  vec3 lightDir = normalize(sunPosition - vWorldPosition);',
+          '  vec3 viewDir = normalize(cameraPosition - vWorldPosition);',
           '  float dProd = dot(vNormal, lightDir);',
           '  vec4 dayColor = texture2D(dayTexture, vUv);',
-          '  vec4 nightColor = texture2D(nightTexture, vUv) * vec4(1.4, 1.1, 0.8, 1.0);',
+          '  vec4 nightColor = texture2D(nightTexture, vUv) * vec4(1.6, 1.25, 0.85, 1.0);',
           '  float dayWeight = smoothstep(-0.15, 0.25, dProd);',
-          '  vec4 finalColor = mix(nightColor, dayColor * max(dProd, 0.04), dayWeight);',
-          '  gl_FragColor = finalColor;',
+          '  vec3 finalColor = mix(nightColor.rgb, dayColor.rgb * max(dProd, 0.04), dayWeight);',
+          '  vec3 halfDir = normalize(lightDir + viewDir);',
+          '  float spec = pow(max(dot(vNormal, halfDir), 0.0), 32.0);',
+          '  float isOcean = step(dayColor.b, dayColor.r * 1.15) < 0.5 ? 1.0 : 0.0;',
+          '  finalColor += vec3(1.0, 0.95, 0.85) * spec * isOcean * 1.5 * max(dProd, 0.0);',
+          '  float fresnel = pow(1.0 - max(dot(vNormal, viewDir), 0.0), 3.0);',
+          '  vec3 atmoGlow = vec3(0.2, 0.6, 1.0) * fresnel * max(dProd * 1.2 + 0.2, 0.0);',
+          '  finalColor += atmoGlow;',
+          '  gl_FragColor = vec4(finalColor, 1.0);',
           '}'
         ].join('\n')
       });
@@ -602,6 +718,7 @@
           diameter: '4.879 km',
           distAu: '0.387 AU',
           period: '87.97 ngày',
+          temp: '440 K (167 °C)',
           tiltDeg: 0.03,
           rotHours: 1407.6,
           radius: 2.2,
@@ -610,10 +727,8 @@
           orbitSpeed: 4.15,
           map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/mercurymap.jpg',
           bumpMap: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/mercurybump.jpg',
-          roughness: 0.88,
-          metalness: 0.12,
-          color1: '#8c8c94',
-          color2: '#4a4a52'
+          roughness: 0.92,
+          metalness: 0.08
         },
         {
           id: 'venus',
@@ -623,6 +738,7 @@
           diameter: '12.104 km',
           distAu: '0.723 AU',
           period: '224.7 ngày',
+          temp: '737 K (464 °C)',
           tiltDeg: 177.36,
           rotHours: -5832.5,
           radius: 4.2,
@@ -634,9 +750,7 @@
           hasAtmo: true,
           atmoColor: 0xf59e0b,
           roughness: 0.65,
-          metalness: 0.05,
-          color1: '#e6c88b',
-          color2: '#a88243'
+          metalness: 0.05
         },
         {
           id: 'earth',
@@ -646,6 +760,7 @@
           diameter: '12.742 km',
           distAu: '1.000 AU',
           period: '365.25 ngày',
+          temp: '288 K (15 °C)',
           tiltDeg: 23.44,
           rotHours: 23.93,
           radius: 4.5,
@@ -653,15 +768,12 @@
           eccentricity: 0.0167,
           orbitSpeed: 1.0,
           customEarthShader: true,
-          cloudsMap: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png',
           hasEarthClouds: true,
           hasMoon: true,
           hasAtmo: true,
           atmoColor: 0x38bdf8,
           roughness: 0.55,
-          metalness: 0.1,
-          color1: '#1e40af',
-          color2: '#047857'
+          metalness: 0.1
         },
         {
           id: 'mars',
@@ -671,6 +783,7 @@
           diameter: '6.779 km',
           distAu: '1.524 AU',
           period: '686.98 ngày',
+          temp: '210 K (-63 °C)',
           tiltDeg: 25.19,
           rotHours: 24.62,
           radius: 2.8,
@@ -681,39 +794,38 @@
           bumpMap: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/marsbump1k.jpg',
           hasAtmo: true,
           atmoColor: 0xf97316,
-          roughness: 0.82,
-          metalness: 0.08,
-          color1: '#c2410c',
-          color2: '#7c2d12'
+          roughness: 0.85,
+          metalness: 0.08
         },
         {
           id: 'jupiter',
           name: 'Sao Mộc',
           symbol: '♃',
-          type: 'Hành tinh khí khổng lồ & Vết đỏ lớn',
+          type: 'Hành tinh khí khổng lồ & Vết Đỏ Lớn',
           diameter: '139.820 km',
           distAu: '5.204 AU',
           period: '11.86 năm',
+          temp: '165 K (-108 °C)',
           tiltDeg: 3.13,
           rotHours: 9.93,
           radius: 9.8,
           semiMajor: 138,
           eccentricity: 0.0484,
           orbitSpeed: 0.22,
+          hasMoons: true,
           map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/jupitermap.jpg',
           roughness: 0.48,
-          metalness: 0.02,
-          color1: '#d97706',
-          color2: '#b45309'
+          metalness: 0.02
         },
         {
           id: 'saturn',
           name: 'Sao Thổ',
           symbol: '♄',
-          type: 'Hành tinh khí sở hữu hệ vành đai băng đá lớn',
+          type: 'Hành tinh khí có hệ vành đai băng Cassini',
           diameter: '116.460 km',
           distAu: '9.582 AU',
           period: '29.45 năm',
+          temp: '134 K (-139 °C)',
           tiltDeg: 26.73,
           rotHours: 10.7,
           radius: 8.2,
@@ -723,9 +835,7 @@
           hasSaturnRings: true,
           map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/saturnmap.jpg',
           roughness: 0.52,
-          metalness: 0.02,
-          color1: '#ca8a04',
-          color2: '#a16207'
+          metalness: 0.02
         },
         {
           id: 'uranus',
@@ -735,6 +845,7 @@
           diameter: '50.724 km',
           distAu: '19.22 AU',
           period: '84.02 năm',
+          temp: '76 K (-197 °C)',
           tiltDeg: 97.77,
           rotHours: -17.24,
           radius: 5.4,
@@ -745,9 +856,7 @@
           hasAtmo: true,
           atmoColor: 0x38bdf8,
           roughness: 0.45,
-          metalness: 0.05,
-          color1: '#0284c7',
-          color2: '#0369a1'
+          metalness: 0.05
         },
         {
           id: 'neptune',
@@ -757,6 +866,7 @@
           diameter: '49.244 km',
           distAu: '30.05 AU',
           period: '164.8 năm',
+          temp: '72 K (-201 °C)',
           tiltDeg: 28.32,
           rotHours: 16.11,
           radius: 5.2,
@@ -767,9 +877,7 @@
           hasAtmo: true,
           atmoColor: 0x60a5fa,
           roughness: 0.42,
-          metalness: 0.06,
-          color1: '#2563eb',
-          color2: '#1d4ed8'
+          metalness: 0.06
         }
       ];
 
@@ -798,7 +906,7 @@
         grad.addColorStop(0.08, 'rgba(165, 145, 115, 0.45)');
         grad.addColorStop(0.22, 'rgba(195, 175, 135, 0.88)');
         grad.addColorStop(0.48, 'rgba(225, 205, 165, 0.96)');
-        grad.addColorStop(0.53, 'rgba(40, 35, 25, 0.05)');
+        grad.addColorStop(0.53, 'rgba(30, 25, 20, 0.04)');
         grad.addColorStop(0.56, 'rgba(190, 170, 130, 0.82)');
         grad.addColorStop(0.72, 'rgba(210, 190, 150, 0.9)');
         grad.addColorStop(0.88, 'rgba(145, 125, 95, 0.55)');
@@ -811,7 +919,7 @@
           map: ringTex,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.94,
+          opacity: 0.95,
           roughness: 0.65,
           metalness: 0.08
         });
@@ -835,7 +943,7 @@
         var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({
           color: 0x38bdf8,
           transparent: true,
-          opacity: 0.24,
+          opacity: 0.25,
           depthWrite: false
         }));
         scene.add(line);
@@ -859,13 +967,13 @@
           planetMesh = new THREE.Mesh(sphereGeo, earthCustomMat);
         } else {
           var matOptions = {
-            map: loadPBRTexture(cfg.map, 'bands', cfg.color1, cfg.color2),
+            map: loadPBRTextureWithFallback(cfg.map, cfg.id),
             roughness: cfg.roughness,
             metalness: cfg.metalness
           };
           if (cfg.bumpMap) {
-            matOptions.bumpMap = loadPBRTexture(cfg.bumpMap, 'noise', '#808080', '#202020');
-            matOptions.bumpScale = 0.045;
+            matOptions.bumpMap = loadPBRTextureWithFallback(cfg.bumpMap, cfg.id);
+            matOptions.bumpScale = 0.05;
           }
           planetMesh = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial(matOptions));
         }
@@ -876,11 +984,10 @@
         var cloudsMesh = null;
         if (cfg.hasEarthClouds) {
           var cloudGeo = new THREE.SphereGeometry(cfg.radius * 1.015, 64, 64);
-          var cloudTex = loadPBRTexture(cfg.cloudsMap, 'noise', '#ffffff', '#000000');
           var cloudMat = new THREE.MeshStandardMaterial({
-            map: cloudTex,
+            map: earthCloudsTex,
             transparent: true,
-            opacity: 0.48,
+            opacity: 0.5,
             blending: THREE.AdditiveBlending,
             depthWrite: false
           });
@@ -889,26 +996,38 @@
         }
 
         var moonPivot = null;
-        var moonMesh = null;
         if (cfg.hasMoon) {
           moonPivot = new THREE.Group();
           pivotGroup.add(moonPivot);
-          var moonGeo = new THREE.SphereGeometry(1.15, 32, 32);
+          var moonGeo = new THREE.SphereGeometry(1.18, 32, 32);
           var moonMat = new THREE.MeshStandardMaterial({
-            map: loadPBRTexture(
+            map: loadPBRTextureWithFallback(
               'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/moonmap1k.jpg',
-              'noise',
-              '#94a3b8',
-              '#334155'
+              'mercury'
             ),
-            roughness: 0.9,
+            roughness: 0.92,
             metalness: 0.05
           });
-          moonMesh = new THREE.Mesh(moonGeo, moonMat);
-          moonMesh.position.set(7.5, 0, 0);
+          var moonMesh = new THREE.Mesh(moonGeo, moonMat);
+          moonMesh.position.set(7.8, 0, 0);
           moonMesh.castShadow = true;
           moonMesh.receiveShadow = true;
           moonPivot.add(moonMesh);
+        }
+
+        if (cfg.hasMoons) {
+          var jupMoonGroup = new THREE.Group();
+          pivotGroup.add(jupMoonGroup);
+          var moonDists = [14, 18, 23, 29];
+          var moonSizes = [0.65, 0.55, 0.85, 0.75];
+          for (var jm = 0; jm < 4; jm++) {
+            var jmMesh = new THREE.Mesh(
+              new THREE.SphereGeometry(moonSizes[jm], 16, 16),
+              new THREE.MeshStandardMaterial({ color: 0xd4d4d8, roughness: 0.9 })
+            );
+            jmMesh.position.set(moonDists[jm], 0, 0);
+            jupMoonGroup.add(jmMesh);
+          }
         }
 
         if (cfg.hasAtmo) {
@@ -937,12 +1056,12 @@
         roughness: 0.92,
         metalness: 0.12
       });
-      var instancedAsteroids = new THREE.InstancedMesh(asteroidGeo, asteroidMat, 650);
+      var instancedAsteroids = new THREE.InstancedMesh(asteroidGeo, asteroidMat, 750);
       var dummy = new THREE.Object3D();
-      for (var a = 0; a < 650; a++) {
+      for (var a = 0; a < 750; a++) {
         var dist = 114 + (Math.random() - 0.5) * 20;
         var theta = Math.random() * Math.PI * 2;
-        var y = (Math.random() - 0.5) * 7.5;
+        var y = (Math.random() - 0.5) * 8;
         var scale = 0.45 + Math.random() * 0.95;
         dummy.position.set(dist * Math.cos(theta), y, dist * Math.sin(theta));
         dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
@@ -953,6 +1072,39 @@
       instancedAsteroids.castShadow = true;
       asteroidGroup.add(instancedAsteroids);
       scene.add(asteroidGroup);
+
+      var audioCtx = null;
+      var isAudioPlaying = false;
+      function toggleSpaceAudio() {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          var osc1 = audioCtx.createOscillator();
+          var osc2 = audioCtx.createOscillator();
+          var gain = audioCtx.createGain();
+          osc1.type = 'sine';
+          osc1.frequency.setValueAtTime(55, audioCtx.currentTime);
+          osc2.type = 'triangle';
+          osc2.frequency.setValueAtTime(110, audioCtx.currentTime);
+          gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc1.start();
+          osc2.start();
+          isAudioPlaying = true;
+        } else {
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+            isAudioPlaying = true;
+          } else if (audioCtx.state === 'running') {
+            audioCtx.suspend();
+            isAudioPlaying = false;
+          }
+        }
+        document.getElementById('btnAudio').textContent = isAudioPlaying ? 'Tắt âm thanh' : 'Âm thanh vũ trụ';
+        document.getElementById('btnAudio').classList.toggle('active', isAudioPlaying);
+      }
+      document.getElementById('btnAudio').onclick = toggleSpaceAudio;
 
       var clock = new THREE.Clock();
       var isRunning = true;
@@ -971,6 +1123,7 @@
         document.getElementById('cardDiameter').textContent = cfg.diameter;
         document.getElementById('cardDist').textContent = cfg.distAu;
         document.getElementById('cardPeriod').textContent = cfg.period;
+        document.getElementById('cardTemp').textContent = cfg.temp;
         document.getElementById('cardTilt').textContent = cfg.tiltDeg + '°';
         document.getElementById('cardRotation').textContent = Math.abs(cfg.rotHours) + ' giờ';
       }
@@ -992,6 +1145,7 @@
         document.getElementById('cardDiameter').textContent = '1.392.700 km';
         document.getElementById('cardDist').textContent = '0.0 AU (Tâm)';
         document.getElementById('cardPeriod').textContent = '230 triệu năm';
+        document.getElementById('cardTemp').textContent = '5.778 K (5.505 °C)';
         document.getElementById('cardTilt').textContent = '7.25°';
         document.getElementById('cardRotation').textContent = '25.38 ngày';
       };
