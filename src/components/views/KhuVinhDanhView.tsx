@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   X,
   Settings,
@@ -14,6 +14,8 @@ import {
   GraduationCap,
   Flame,
   Swords,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import type { User, DimensionView } from '../../types';
 import { ADMIN_AVATAR_URL, isLegacyAdminAvatar, normalizeAdminAvatar } from '../../config/admin';
@@ -205,6 +207,30 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
 ];
 
 const N = 21;
+
+const POLAROID_ANGLES = [
+  'rotate-[-3deg]',
+  'rotate-[2.5deg]',
+  'rotate-[-2deg]',
+  'rotate-[3deg]',
+  'rotate-[-3.5deg]',
+  'rotate-[1.5deg]',
+  'rotate-[-1.5deg]',
+  'rotate-[4deg]',
+  'rotate-[-2.5deg]',
+  'rotate-[2deg]',
+  'rotate-[-4deg]',
+  'rotate-[3.5deg]',
+  'rotate-[-1deg]',
+  'rotate-[2.5deg]',
+  'rotate-[-3deg]',
+  'rotate-[1.5deg]',
+  'rotate-[-2deg]',
+  'rotate-[3deg]',
+  'rotate-[-2.5deg]',
+  'rotate-[2deg]',
+  'rotate-[-1.5deg]',
+];
 
 function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
   if (!Array.isArray(raw) || raw.length === 0) return INITIAL_VINHDANH_RECORDS;
@@ -501,6 +527,61 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   }, []);
 
 
+
+  const [archiveSearchQuery, setArchiveSearchQuery] = useState('');
+
+  const filteredArchiveRecords = useMemo(() => {
+    const q = archiveSearchQuery.trim().toLowerCase();
+    if (!q) return records;
+    return records.filter(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.place.toLowerCase().includes(q) ||
+        r.note.toLowerCase().includes(q)
+    );
+  }, [records, archiveSearchQuery]);
+
+  const activeLitIndex = useMemo(() => {
+    if (!activeLitRecord) return -1;
+    return records.findIndex((r) => r.id === activeLitRecord.id);
+  }, [activeLitRecord, records]);
+
+  const goToPrevLit = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (records.length === 0) return;
+      const curIdx = activeLitIndex >= 0 ? activeLitIndex : 0;
+      const nextIdx = (curIdx - 1 + records.length) % records.length;
+      setActiveLitRecord(records[nextIdx]);
+    },
+    [activeLitIndex, records]
+  );
+
+  const goToNextLit = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (records.length === 0) return;
+      const curIdx = activeLitIndex >= 0 ? activeLitIndex : 0;
+      const nextIdx = (curIdx + 1) % records.length;
+      setActiveLitRecord(records[nextIdx]);
+    },
+    [activeLitIndex, records]
+  );
+
+  useEffect(() => {
+    if (!activeLitRecord) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveLitRecord(null);
+      } else if (e.key === 'ArrowLeft') {
+        goToPrevLit();
+      } else if (e.key === 'ArrowRight') {
+        goToNextLit();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeLitRecord, goToPrevLit, goToNextLit]);
 
   const openLightbox = (record: VinhDanhRecord, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -1082,33 +1163,101 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       )}
 
       {activeTabMode === 'archive' && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {records.map((rec) => {
-              const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
-              return (
-                <div
-                  key={rec.id}
-                  onClick={(e) => openLightbox(rec, e)}
-                  className="card-hard group relative aspect-[3/2] rounded-xl overflow-hidden bg-[#0b0b0b] border border-white/10 cursor-pointer"
-                >
-                  <img
-                    src={thumbUrl}
-                    alt={rec.title}
-                    loading="lazy"
-                    decoding="async"
-                    onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent p-4 flex flex-col justify-end">
-                    <span className="text-[10px] text-amber-300 font-mono font-bold uppercase">{rec.place}</span>
-                    <h4 className="text-sm font-bold text-white">{rec.title}</h4>
-                  </div>
+        <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-12">
+          <section className="text-center space-y-4 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/25 text-amber-300 text-xs font-bold font-mono uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Biên Niên Sử & Cột Mốc Thời Gian</span>
+            </div>
+
+            <h2 className="text-3xl sm:text-5xl font-normal tracking-tight text-white font-['Fraunces','Playfair_Display',Georgia,serif]">
+              Kho Kỷ Niệm Cột Mốc
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl mx-auto">
+              21 lát cắt ký ức được lưu giữ dưới định dạng ảnh Polaroid cổ điển. Di chuột hoặc chạm để chiêm ngưỡng góc xoay tự nhiên và câu chuyện phía sau mỗi bức hình.
+            </p>
+
+            <div className="flex items-center justify-between gap-3 max-w-md mx-auto pt-2">
+              <div className="relative flex-1">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  maxLength={60}
+                  value={archiveSearchQuery}
+                  onChange={(e) => setArchiveSearchQuery(e.target.value)}
+                  placeholder="Tìm cột mốc hoặc địa danh..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition"
+                />
+              </div>
+              <span className="text-xs font-mono text-amber-300/80 shrink-0 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                {filteredArchiveRecords.length} / {records.length} ảnh
+              </span>
+            </div>
+          </section>
+
+          <section
+            className="w-full px-4 sm:px-8 py-10 bg-[radial-gradient(rgba(245,158,11,0.06)_1px,transparent_1px)] [background-size:16px_16px] rounded-3xl border border-white/10"
+            aria-label="Bộ sưu tập ảnh kỷ niệm Polaroid"
+          >
+            <div className="flex flex-wrap items-center justify-center gap-7 sm:gap-9 max-w-6xl mx-auto py-4">
+              {filteredArchiveRecords.map((rec, index) => {
+                const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
+                const angleClass = POLAROID_ANGLES[index % POLAROID_ANGLES.length];
+                return (
+                  <figure
+                    key={rec.id}
+                    tabIndex={0}
+                    onClick={(e) => openLightbox(rec, e)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        openLightbox(rec);
+                      }
+                    }}
+                    aria-label={`${rec.title} - ${rec.place}. Nhấn để mở ảnh phóng to`}
+                    className={`relative group cursor-pointer m-0 w-[205px] sm:w-[230px] p-3 sm:p-3.5 pb-10 sm:pb-12 rounded-sm bg-[#fffdfa] border border-[#e2d8c9]/60 ${angleClass} shadow-[0_12px_28px_-10px_rgba(0,0,0,0.65)] transition-all duration-[350ms] ease-[cubic-bezier(0.2,0.7,0.2,1)] hover:rotate-0 hover:scale-[1.07] hover:z-20 hover:shadow-[0_28px_50px_-16px_rgba(0,0,0,0.85)] focus-visible:rotate-0 focus-visible:scale-[1.07] focus-visible:z-20 focus-visible:outline-2 focus-visible:outline-amber-400 focus-visible:outline-offset-4 motion-reduce:transition-none`}
+                  >
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-14 h-3.5 bg-amber-200/50 backdrop-blur-xs border border-amber-900/10 rotate-[-1deg] shadow-xs pointer-events-none z-10" />
+
+                    <div className="relative w-full aspect-[4/3] overflow-hidden bg-[#e7e0d4] rounded-[2px]">
+                      <img
+                        src={thumbUrl}
+                        alt={rec.title}
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                        className="block w-full h-full object-cover sepia-[0.12] contrast-[1.02] group-hover:sepia-0 group-hover:scale-105 transition-all duration-500"
+                      />
+                    </div>
+
+                    <figcaption className="mt-3 text-center space-y-0.5">
+                      <span className="block font-['Fraunces',Georgia,serif] text-sm sm:text-[15px] font-bold text-[#3d2e1e] leading-snug line-clamp-1">
+                        {rec.title}
+                      </span>
+                      <span className="block font-mono text-[9.5px] uppercase tracking-wider text-[#8a725b] truncate">
+                        {rec.place}
+                      </span>
+                    </figcaption>
+                  </figure>
+                );
+              })}
+
+              {filteredArchiveRecords.length === 0 && (
+                <div className="py-16 text-center space-y-3 col-span-full">
+                  <p className="text-sm text-slate-400">Không tìm thấy cột mốc phù hợp.</p>
+                  <button
+                    type="button"
+                    onClick={() => setArchiveSearchQuery('')}
+                    className="btn-feastables ff-tactile-pop px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-amber-300 cursor-pointer"
+                  >
+                    <span>Xem tất cả</span>
+                  </button>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              )}
+            </div>
+          </section>
+        </main>
       )}
 
       {activeLitRecord && (
@@ -1117,37 +1266,74 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           aria-modal="true"
           aria-label={activeLitRecord.title}
           onClick={closeLightbox}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/90 backdrop-blur-md animate-fade-in"
         >
           <div
-            className="card-hard max-w-xl w-full bg-[#111722] border-white/20 p-5 rounded-2xl space-y-4"
+            className="relative card-hard max-w-3xl w-full bg-[#111722] border border-white/20 rounded-2xl overflow-hidden shadow-[0_40px_80px_-30px_rgba(0,0,0,0.95)]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-mono font-bold text-amber-300 uppercase">{activeLitRecord.place}</span>
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-[#0d121c]/80">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
+                  {activeLitRecord.place}
+                </span>
+                {activeLitIndex >= 0 && (
+                  <span className="text-[10.5px] font-mono text-white/50 px-2 py-0.5 rounded bg-white/5 border border-white/10">
+                    {activeLitIndex + 1} / {records.length}
+                  </span>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={closeLightbox}
-                className="p-1 rounded-lg text-white/60 hover:text-white hover:bg-white/10"
+                className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                aria-label="Đóng ảnh"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="aspect-[16/10] rounded-xl overflow-hidden bg-black/50 border border-white/10">
+            <div className="relative aspect-[16/10] max-h-[60vh] bg-black flex items-center justify-center overflow-hidden">
               <img
                 src={activeLitRecord.customImgUrl || `${CDN_BASE}${activeLitRecord.imgId}.png`}
                 alt={activeLitRecord.title}
                 loading="lazy"
                 decoding="async"
                 onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
+
+              {records.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goToPrevLit}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-amber-400 hover:text-[#0b0d12] text-white flex items-center justify-center backdrop-blur-sm border border-white/20 transition-all cursor-pointer shadow-lg z-10"
+                    aria-label="Ảnh trước"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={goToNextLit}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/60 hover:bg-amber-400 hover:text-[#0b0d12] text-white flex items-center justify-center backdrop-blur-sm border border-white/20 transition-all cursor-pointer shadow-lg z-10"
+                    aria-label="Ảnh kế tiếp"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </>
+              )}
             </div>
 
-            <div>
-              <h3 className="text-lg font-bold text-white mb-1">{activeLitRecord.title}</h3>
-              <p className="text-xs text-slate-300 leading-relaxed">{activeLitRecord.note}</p>
+            <div className="p-5 bg-[#0d121c]/90 border-t border-white/10 space-y-1.5">
+              <h3 className="text-lg sm:text-xl font-bold text-white font-['Fraunces',Georgia,serif]">
+                {activeLitRecord.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {activeLitRecord.note}
+              </p>
             </div>
           </div>
         </div>
