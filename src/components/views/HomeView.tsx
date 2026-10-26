@@ -116,6 +116,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <img
                   src="/textures/planets/galaxy_starfield.png"
                   alt="Không gian học thuật"
+                  loading="lazy"
                   className="w-full h-48 sm:h-64 object-cover"
                 />
                 <div className="absolute top-4 right-4 brutalist-stamp bg-[#E6AA28] text-[#2C2623]">
