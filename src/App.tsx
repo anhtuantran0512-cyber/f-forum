@@ -1156,11 +1156,15 @@ export const App: React.FC = () => {
       <div
         className={`relative isolate w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
-        } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)] text-white' : 'bg-[#FAF7F2] text-[#2C2623]'} font-sans`}
+        } ff-app-shell ff-view-${currentView} ${
+          currentView === 'landing' || currentView === 'home' ? 'bg-[var(--ff-bg)] text-white' : 'bg-[#FAF7F2] text-[#2C2623]'
+        } font-sans`}
       >
         {/* Phase 1.2: Z-index Layering — Anti Gradient Bleeding */}
         <div className="layer-base-color" aria-hidden="true" />
-        <div className="paper-grain-overlay" aria-hidden="true" />
+        {currentView !== 'landing' && currentView !== 'home' && (
+          <div className="paper-grain-overlay" aria-hidden="true" />
+        )}
         <div className="layer-gradient-aura" aria-hidden="true">
           <div className="aura-blob aura-blob-1" />
           {fabulousMode && !potatorMode && !reducedMotion ? (
@@ -1398,7 +1402,7 @@ export const App: React.FC = () => {
             />
           )}
 
-          {currentView !== 'landing' && currentView !== 'exam-viewer' && currentView !== 'chat' && (
+          {currentView !== 'landing' && currentView !== 'home' && currentView !== 'exam-viewer' && currentView !== 'chat' && (
             <TheColophon onNavigate={handleNavigate} onOpenAbout={() => handleOpenProfile('overview')} />
           )}
           </div>

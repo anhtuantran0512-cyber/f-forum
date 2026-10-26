@@ -227,7 +227,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>
-                  {isSubmitting ? 'Đang gửi' : 'Gửi góp ý'}
+                  {isSubmitting ? 'Đang gửi...' : 'Gửi ý kiến đóng góp'}
                 </span>
               </button>
             </div>

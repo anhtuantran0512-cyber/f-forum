@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowRight, ArrowUpRight, Compass, HelpCircle, BookOpen, PenLine, Flame, TrendingUp } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Search, BookOpen, Sparkles, PenLine } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { BoomerangVideoBg } from '../BoomerangVideoBg';
 import './HomeHeroTitle.css';
@@ -22,9 +22,6 @@ interface HomeViewProps {
 export const HomeView: React.FC<HomeViewProps> = ({
   onNavigate,
   onOpenLanding,
-  totalQuestions = 1420,
-  solvedQuestionsCount = 1180,
-  onlineUsersCount = 248,
 }) => {
   const [headlinePhase, setHeadlinePhase] = useState<0 | 1>(0);
 
@@ -37,282 +34,211 @@ export const HomeView: React.FC<HomeViewProps> = ({
   }, [headlinePhase]);
 
   return (
-    <section className="relative w-full min-h-screen overflow-y-auto overflow-x-hidden flex flex-col items-center justify-start py-8 sm:py-12 bg-[#FAF7F2] text-[#2C2623]">
+    <section className="relative w-full min-h-screen overflow-y-auto overflow-x-hidden flex flex-col items-center justify-center py-16 sm:py-12">
       <BoomerangVideoBg />
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col items-center pt-2 sm:pt-4">
-        <header className="w-full border-b-[3px] border-double border-[#2C2623] pb-4 mb-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-mono uppercase text-[#8C827A] border-b border-[#2C2623]/20 pb-2">
-            <span>SỐ PHÁT HÀNH ĐẶC BIỆT // MÙA THI 2026</span>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#2E5A44] animate-pulse" />
-              <span>HỆ THỐNG TRỰC TUYẾN 24/7 // GDPT 2018</span>
-            </div>
-            <span>ẤN BẢN HỌC THUẬT QUỐC GIA</span>
+      <div className="relative z-10 w-full max-w-5xl mx-auto px-4 sm:px-6 flex flex-col items-center text-center pt-8 sm:pt-6">
+        <div className="animate-fade-up delay-1 mb-4 flex items-center justify-center gap-2.5 flex-wrap">
+          <div className="ff-organic-badge !px-3.5 !py-1.5 !rounded-lg backdrop-blur-md">
+            <svg className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 2 C13.5 7.5, 16.5 10.5, 22 12 C16.5 13.5, 13.5 16.5, 12 22 C10.5 16.5, 7.5 13.5, 2 12 C7.5 10.5, 10.5 7.5, 12 2 Z" />
+            </svg>
+            <span className="font-mono text-xs tracking-wide text-[#f4f1de]">
+              Góc học tập &amp; kết nối học sinh
+            </span>
           </div>
 
-          <div className="pt-4 flex flex-col items-center text-center">
-            <div className="relative min-h-[90px] sm:min-h-[110px] flex items-center justify-center w-full">
-              <h1
-                className={`text-3xl sm:text-5xl md:text-6xl font-serif text-[#2C2623] font-bold tracking-tight text-center leading-tight max-w-4xl flex flex-col items-center justify-center gap-y-1 ${
-                  headlinePhase === 0
-                    ? 'opacity-100 pointer-events-auto'
-                    : 'opacity-0 pointer-events-none absolute inset-0'
-                }`}
-                style={{ transition: 'opacity 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)' }}
-              >
-                <span className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
-                  <span>Diễn Đàn Học Sinh</span>{' '}
-                  <span className="editorial-swash">
-                    <span className="ff-swash-cap">F</span>-Forum
-                  </span>
+          <button
+            type="button"
+            onClick={() => setHeadlinePhase((prev) => (prev === 0 ? 1 : 0))}
+            className="ff-atelier-ribbon backdrop-blur-md hover:border-[#f2cc8f] transition-colors cursor-pointer"
+            title="Chạm để đổi câu nhắc"
+            aria-label={`Đổi câu nhắc: ${headlinePhase === 0 ? 'Học thầy không tày học bạn' : 'Có công mài sắt, có ngày nên kim'}`}
+          >
+            {headlinePhase === 0 ? 'Học thầy không tày học bạn' : 'Có công mài sắt, có ngày nên kim'}
+          </button>
+        </div>
+
+        <div className="relative min-h-[155px] sm:min-h-[205px] flex items-center justify-center w-full">
+          <h1
+            className={`ff-typo-hero text-4xl sm:text-6xl text-[#f8f7f4] font-normal tracking-tight text-center leading-tight max-w-4xl flex flex-col items-center justify-center gap-y-2 ${
+              headlinePhase === 0
+                ? 'opacity-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none absolute inset-0'
+            }`}
+            style={{
+              transition: 'opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+          >
+            <span className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
+              <span>Diễn Đàn Học Sinh</span>{" "}
+              <span className="home-hero-calligraphy text-[114%] bg-gradient-to-r from-[#fff8e7] via-[#f2cc8f] to-[#e07a5f] bg-clip-text text-transparent whitespace-nowrap">
+                F-Forum
+                <svg className="home-hero-calligraphy__curl" viewBox="0 0 220 18" preserveAspectRatio="none" aria-hidden="true">
+                  <path d="M2 12 C42 2, 86 17, 134 8 S188 2, 218 11" />
+                </svg>
+              </span>
+            </span>
+            <span className="text-sm sm:text-lg font-['Cormorant_Garamond',Georgia,serif] italic font-semibold tracking-wider text-[#f2cc8f]/95">
+              Nơi mỗi câu hỏi có lập luận và mỗi trang vở đều đáng đọc
+            </span>
+          </h1>
+
+          <h1
+            className={`home-hero-title ${
+              headlinePhase === 1
+                ? 'opacity-100 pointer-events-auto'
+                : 'opacity-0 pointer-events-none absolute inset-0'
+            }`}
+            style={{
+              transition: 'opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1)',
+            }}
+          >
+            <span className="home-hero-title__top">
+              <svg className="home-hero-title__swash" viewBox="0 0 48 18" aria-hidden="true">
+                <path d="M2 14 C14 2, 28 2, 46 11" />
+              </svg>
+              <span>Nơi Khai Phóng</span>
+              <svg className="home-hero-title__swash home-hero-title__swash--right" viewBox="0 0 48 18" aria-hidden="true">
+                <path d="M2 14 C14 2, 28 2, 46 11" />
+              </svg>
+            </span>
+            <span className="home-hero-title__focus">
+              <span className="home-hero-title__word">Tiềm</span>{' '}
+              <span className="home-hero-title__word">Năng</span>
+              <svg className="home-hero-title__wave" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                <path d="M1 10 C28 -1 52 -1 80 10 S132 21 160 10 S212 -1 240 10 S292 21 319 10" />
+              </svg>
+            </span>
+            <span className="home-hero-title__bottom"><i aria-hidden="true" />Tuổi Trẻ Việt Nam<i aria-hidden="true" /></span>
+          </h1>
+        </div>
+
+        <p className="animate-fade-up delay-3 mt-3 sm:mt-4 max-w-xl text-[#d8d5ce] text-sm sm:text-base leading-relaxed px-2 font-['Inter']">
+          Không gian trao đổi bài học, giao lưu câu lạc bộ và kết nối bạn bè.
+        </p>
+
+        <div className="animate-fade-up delay-35 mt-4 w-full max-w-md mx-auto">
+          <div
+            onClick={() => onNavigate('exam-vault')}
+            className="group relative cursor-pointer select-none rounded-2xl p-1 bg-white/[0.05] hover:bg-white/[0.09] border border-white/20 hover:border-amber-400/50 shadow-[0_8px_30px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all duration-300"
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onNavigate('exam-vault');
+              }
+            }}
+            aria-label="Tìm kiếm đề thi và đề cương — Mở trang kho đề riêng"
+          >
+            <div className="flex items-center justify-between gap-2.5 px-3.5 py-2">
+              <div className="flex items-center gap-2.5 text-white/70 group-hover:text-white transition-colors flex-1 min-w-0">
+                <Search className="w-4 h-4 text-amber-300 shrink-0 group-hover:scale-110 transition-transform" />
+                <span className="text-xs sm:text-sm text-neutral-300 group-hover:text-white truncate">
+                  Tìm kiếm đề thi, đề cương ôn tập toàn quốc... ↗
                 </span>
-                <span className="text-xs sm:text-base font-serif italic font-normal tracking-normal text-[#5C534E]">
-                  Khởi nguồn lập luận bản chất và không gian đồng học toàn quốc
-                </span>
-              </h1>
-
-              <h1
-                className={`home-hero-title ${
-                  headlinePhase === 1
-                    ? 'opacity-100 pointer-events-auto'
-                    : 'opacity-0 pointer-events-none absolute inset-0'
-                }`}
-                style={{
-                  transition: 'opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1)',
-                }}
-              >
-                <span className="home-hero-title__top">
-                  <svg className="home-hero-title__swash" viewBox="0 0 48 18" aria-hidden="true">
-                    <path d="M2 14 C14 2, 28 2, 46 11" />
-                  </svg>
-                  <span>Nơi Khai Phóng</span>
-                  <svg className="home-hero-title__swash home-hero-title__swash--right" viewBox="0 0 48 18" aria-hidden="true">
-                    <path d="M2 14 C14 2, 28 2, 46 11" />
-                  </svg>
-                </span>
-                <span className="home-hero-title__focus">
-                  <span className="home-hero-title__word">Tiềm</span>{' '}
-                  <span className="home-hero-title__word">Năng</span>
-                  <svg className="home-hero-title__wave" viewBox="0 0 320 18" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                    <path d="M1 10 C28 -1 52 -1 80 10 S132 21 160 10 S212 -1 240 10 S292 21 319 10" />
-                  </svg>
-                </span>
-                <span className="home-hero-title__bottom"><i aria-hidden="true" />Tuổi Trẻ Việt Nam<i aria-hidden="true" /></span>
-              </h1>
-            </div>
-          </div>
-        </header>
-
-        <div className="w-full grid grid-cols-1 lg:grid-cols-12 border-[1.5px] border-[#2C2623] bg-[#FAF7F2] shadow-[4px_4px_0px_#2C2623]">
-          <div className="lg:col-span-7 p-6 sm:p-8 lg:border-r-[1.5px] lg:border-[#2C2623] flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <span className="brutalist-stamp">BÀI VIẾT TIÊU BIỂU</span>
-                <span className="font-mono text-xs text-[#8C827A] uppercase">CHUYÊN ĐỀ SỐ 12 // TOÁN 12 GDPT</span>
               </div>
-
-              <div className="editorial-frame relative my-3">
-                <img
-                  src="/textures/planets/galaxy_starfield.png"
-                  alt="Không gian học thuật"
-                  loading="lazy"
-                  className="w-full h-48 sm:h-64 object-cover"
-                />
-                <div className="absolute top-4 right-4 brutalist-stamp bg-[#E6AA28] text-[#2C2623]">
-                  CHỌN LỌC
-                </div>
-              </div>
-
-              <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#2C2623] leading-snug">
-                Phương pháp giải bài toán thực tế cực trị hàm số bằng{' '}
-                <span className="editorial-swash">Mô Hình Toán</span>
-              </h2>
-
-              <p className="editorial-dropcap-para text-xs sm:text-sm text-[#5C534E] leading-relaxed">
-                Trong chương trình GDPT 2018, các bài toán tối ưu hóa chi phí sản xuất, thể tích bể chứa và quỹ đạo chuyển động đòi hỏi người học thấu suốt bản chất đạo hàm thay vì ghi nhớ công thức máy móc.
-              </p>
-            </div>
-
-            <div className="pt-6 border-t border-[#2C2623]/20 mt-6 flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full border border-[#2C2623] bg-[#E6AA28] flex items-center justify-center font-serif font-bold text-xs">
-                  T
-                </div>
-                <div className="text-[11px] font-mono">
-                  <span className="font-bold block text-[#2C2623]">Thầy Minh Tuấn</span>
-                  <span className="text-[#8C827A]">Tổ Toán F-Forum</span>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onNavigate('qa')}
-                className="tactile-brutal-btn px-4 py-2 bg-[#D95D39] text-[#FAF7F2] font-mono text-xs font-bold rounded-[4px] flex items-center gap-2 cursor-pointer"
-              >
-                <span>Hỏi Bài Tập</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          <div className="lg:col-span-5 flex flex-col justify-between bg-[#F2ECE1]">
-            <div className="p-5 sm:p-6 border-b-[1.5px] border-[#2C2623]">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Flame className="w-4 h-4 text-[#D95D39]" />
-                  <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#2C2623]">CHỦ ĐỀ NÓNG</span>
-                </div>
-                <span className="font-mono text-[10px] text-[#8C827A]">THỜI GIAN THỰC</span>
-              </div>
-
-              <div className="space-y-4">
-                <div
-                  onClick={() => onNavigate('threads')}
-                  className="group cursor-pointer flex items-start gap-3 p-2 rounded hover:bg-[#EBE3D5] transition-colors"
-                >
-                  <span className="swiss-numeral shrink-0">01</span>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-serif font-bold text-[#2C2623] group-hover:text-[#D95D39] transition-colors line-clamp-1">
-                      Kinh nghiệm làm bài trắc nghiệm đúng/sai môn Toán 12
-                    </h3>
-                    <p className="text-[11px] text-[#5C534E] line-clamp-1 mt-0.5">
-                      Phân tích 5 bẫy tâm lý thường gặp trong đề thi thử tốt nghiệp...
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => onNavigate('qa')}
-                  className="group cursor-pointer flex items-start gap-3 p-2 rounded hover:bg-[#EBE3D5] transition-colors"
-                >
-                  <span className="swiss-numeral shrink-0">02</span>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-serif font-bold text-[#2C2623] group-hover:text-[#D95D39] transition-colors line-clamp-1">
-                      Giải bài tập cảm ứng điện từ bằng định luật Faraday
-                    </h3>
-                    <p className="text-[11px] text-[#5C534E] line-clamp-1 mt-0.5">
-                      3 bước xác định chiều dòng điện cảm ứng không thể nhầm lẫn...
-                    </p>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => onNavigate('exam-vault')}
-                  className="group cursor-pointer flex items-start gap-3 p-2 rounded hover:bg-[#EBE3D5] transition-colors"
-                >
-                  <span className="swiss-numeral shrink-0">03</span>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-serif font-bold text-[#2C2623] group-hover:text-[#D95D39] transition-colors line-clamp-1">
-                      Bộ đề kiểm tra giữa kỳ 1 Hóa học 11 có đáp án chi tiết
-                    </h3>
-                    <p className="text-[11px] text-[#5C534E] line-clamp-1 mt-0.5">
-                      Tuyển tập 15 đề các trường THPT chuyên trên toàn quốc...
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 sm:p-6 border-b-[1.5px] border-[#2C2623] bg-[#FAF7F2]">
-              <div className="flex items-center gap-2 mb-3">
-                <TrendingUp className="w-4 h-4 text-[#2E5A44]" />
-                <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#2C2623]">NHỊP ĐẬP DIỄN ĐÀN</span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 text-center font-mono">
-                <div className="p-2 border border-[#2C2623] bg-[#F2ECE1]">
-                  <span className="block text-lg font-bold text-[#2C2623]">{totalQuestions}</span>
-                  <span className="text-[10px] text-[#8C827A] uppercase">BÀI TOÁN</span>
-                </div>
-                <div className="p-2 border border-[#2C2623] bg-[#F2ECE1]">
-                  <span className="block text-lg font-bold text-[#2E5A44]">{solvedQuestionsCount}</span>
-                  <span className="text-[10px] text-[#8C827A] uppercase">ĐÃ GIẢI</span>
-                </div>
-                <div className="p-2 border border-[#2C2623] bg-[#F2ECE1]">
-                  <span className="block text-lg font-bold text-[#D95D39]">{onlineUsersCount}</span>
-                  <span className="text-[10px] text-[#8C827A] uppercase">ĐỒNG HỌC</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="p-5 sm:p-6 flex flex-col gap-2.5">
-              <button
-                type="button"
-                onClick={() => onNavigate('clubs')}
-                className="tactile-brutal-btn w-full py-2.5 px-4 bg-[#FAF7F2] border-[1.5px] border-[#2C2623] font-mono text-xs font-bold text-[#2C2623] rounded-[4px] flex items-center justify-between cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <Compass className="w-4 h-4 text-[#D95D39]" />
-                  <span>Câu Lạc Bộ</span>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-
-              <button
-                type="button"
-                onClick={() => onNavigate('exam-vault')}
-                className="tactile-brutal-btn w-full py-2.5 px-4 bg-[#E6AA28] border-[1.5px] border-[#2C2623] font-mono text-xs font-bold text-[#2C2623] rounded-[4px] flex items-center justify-between cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-[#2C2623]" />
-                  <span>Kho Đề Thi</span>
-                </div>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-400/15 border border-amber-400/30 text-[10px] font-mono font-bold text-amber-300 tracking-wider uppercase shrink-0">
+                <Sparkles className="w-3 h-3 text-amber-300" />
+                Kho Đề Thi
+              </span>
             </div>
           </div>
         </div>
 
-        <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Ba nhịp Học, Hỏi, Chia sẻ">
-          <div
-            onClick={() => onNavigate('exam-vault')}
-            className="ticket-card ff-atelier-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
+        <div className="animate-fade-up delay-4 mt-5 flex flex-col sm:flex-row items-center justify-center gap-3 w-full sm:w-auto">
+          <button
+            onClick={() => onNavigate('clubs')}
+            className="ff-tactile-btn group w-full sm:w-auto rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-extrabold text-[#0b0d12] border-2 border-[#0b0d12] inline-flex items-center justify-center gap-2 cursor-pointer"
           >
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="font-mono text-xs font-bold text-[#D95D39] uppercase">[VÉ THI // 2026]</span>
-              <BookOpen className="w-4 h-4 text-[#2C2623]" />
-            </div>
-            <h4 className="text-sm font-serif font-bold text-[#2C2623]">Phòng Thi Thử CBT</h4>
-            <p className="text-xs text-[#5C534E] mt-1">Luyện đề chuẩn ma trận tốt nghiệp GDPT 2018 với đồng hồ cơ học.</p>
-          </div>
+            <Compass className="w-4 h-4 text-[#e07a5f]" />
+            <span>Câu Lạc Bộ</span>
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+          </button>
 
-          <div
+          <button
             onClick={() => onNavigate('qa')}
-            className="ticket-card ff-atelier-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
+            className="ff-tactile-btn w-full sm:w-auto ff-glass-depth-1 rounded-xl px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-bold text-[#f4f1de] inline-flex items-center justify-center gap-2 hover:border-[#81b29a]/60 cursor-pointer"
           >
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="font-mono text-xs font-bold text-[#2E5A44] uppercase">[HỎI ĐÁP // BẢN CHẤT]</span>
-              <HelpCircle className="w-4 h-4 text-[#2C2623]" />
-            </div>
-            <h4 className="text-sm font-serif font-bold text-[#2C2623]">Giải Bài Đa Ngành</h4>
-            <p className="text-xs text-[#5C534E] mt-1">Soạn công thức toán lý hóa trực quan, đối chiếu từng bước lập luận.</p>
-          </div>
+            <HelpCircle className="w-4 h-4 text-[#81b29a]" />
+            <span>Hỏi Bài Tập</span>
+          </button>
 
-          <div
-            onClick={() => onNavigate('threads')}
-            className="ticket-card ff-atelier-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
+          <button
+            onClick={() => onNavigate('exam-vault')}
+            className="ff-tactile-btn w-full sm:w-auto rounded-xl bg-gradient-to-r from-amber-500/20 via-amber-400/25 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/40 px-5 py-2.5 sm:px-6 sm:py-3 text-sm font-bold text-amber-200 inline-flex items-center justify-center gap-2 cursor-pointer shadow-[0_4px_18px_rgba(245,158,11,0.18)]"
           >
-            <div className="flex items-center justify-between gap-2 mb-2">
-              <span className="font-mono text-xs font-bold text-[#2B4C7E] uppercase">[SỔ CHUNG // BẠN HỌC]</span>
-              <PenLine className="w-4 h-4 text-[#2C2623]" />
+            <BookOpen className="w-4 h-4 text-amber-300" />
+            <span>Kho Đề Thi</span>
+          </button>
+        </div>
+
+        <div
+          className="animate-fade-up delay-5 mt-6 grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3.5 w-full max-w-4xl"
+          aria-label="Ba nhịp Học, Hỏi, Chia sẻ"
+        >
+          <button
+            type="button"
+            onClick={() => onNavigate('exam-vault')}
+            className="ff-atelier-card group p-3.5 sm:p-4 cursor-pointer"
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-sm sm:text-base font-bold text-[#f4f1de] inline-flex items-baseline gap-0.5">
+                <span className="ff-swash-cap">H</span>
+                <span>ọc từ đề thật</span>
+              </span>
+              <BookOpen className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0 transition-transform group-hover:translate-x-0.5" />
             </div>
-            <h4 className="text-sm font-serif font-bold text-[#2C2623]">Góc Chia Sẻ Ý Tưởng</h4>
-            <p className="text-xs text-[#5C534E] mt-1">Kinh nghiệm tự học, tài liệu chọn lọc và chuyên đề nghiên cứu.</p>
-          </div>
+            <p className="text-xs text-[#c7c3b8] leading-relaxed">
+              Tra cứu đề kiểm tra, đề học kỳ và đề cương phân loại rõ theo khối lớp, môn học.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('qa')}
+            className="ff-atelier-card group p-3.5 sm:p-4 cursor-pointer"
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-sm sm:text-base font-bold text-[#f4f1de] inline-flex items-baseline gap-0.5">
+                <span className="ff-swash-cap">H</span>
+                <span>ỏi rõ bản chất</span>
+              </span>
+              <HelpCircle className="w-3.5 h-3.5 text-[#81b29a] shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </div>
+            <p className="text-xs text-[#c7c3b8] leading-relaxed">
+              Soạn công thức toán lý hoá trực quan, đối chiếu các bước lập luận và tháo gỡ chỗ vướng.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('threads')}
+            className="ff-atelier-card group p-3.5 sm:p-4 cursor-pointer"
+          >
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-sm sm:text-base font-bold text-[#f4f1de] inline-flex items-baseline gap-0.5">
+                <span className="ff-swash-cap">C</span>
+                <span>hia sẻ góc nhìn</span>
+              </span>
+              <PenLine className="w-3.5 h-3.5 text-[#e07a5f] shrink-0 transition-transform group-hover:translate-x-0.5" />
+            </div>
+            <p className="text-xs text-[#c7c3b8] leading-relaxed">
+              Ghi lại kinh nghiệm tự học trên Sổ chung và đồng hành cùng các câu lạc bộ chuyên đề.
+            </p>
+          </button>
         </div>
 
         {onOpenLanding && (
-          <div className="mt-8 text-center">
-            <button
-              type="button"
-              onClick={onOpenLanding}
-              className="tactile-brutal-btn px-4 py-2 bg-[#FAF7F2] border-[1.5px] border-[#2C2623] rounded-[4px] font-mono text-xs font-bold text-[#2C2623] inline-flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Về dự án</span>
-              <ArrowUpRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onOpenLanding}
+            className="animate-fade-up delay-5 group mt-4 inline-flex items-center gap-1.5 text-xs font-mono text-[#d8d5ce] hover:text-[#f2cc8f] transition-colors cursor-pointer"
+          >
+            <span className="ff-kinetic-underline">Giới thiệu dự án</span>
+            <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </button>
         )}
       </div>
     </section>

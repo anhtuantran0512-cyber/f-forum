@@ -27,22 +27,22 @@ body {
   font-family: var(--font-sans);
 }
 
-.ff-app-shell:not(.ff-view-landing) {
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) {
   background-color: var(--bg-paper) !important;
   color: var(--ink-primary) !important;
   font-family: var(--font-sans) !important;
 }
 
-.ff-app-shell:not(.ff-view-landing) .content-layer {
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .content-layer {
   color: var(--ink-primary) !important;
 }
 
-.ff-app-shell:not(.ff-view-landing) .layer-base-color,
-.ff-app-shell:not(.ff-view-landing) .layer-gradient-aura,
-.ff-app-shell:not(.ff-view-landing) .aura-blob,
-.ff-app-shell:not(.ff-view-landing) .ff-godray-layer,
-.ff-app-shell:not(.ff-view-landing) .ff-fabulous-stage,
-.ff-app-shell:not(.ff-view-landing) .ff-clubs-bg > div {
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .layer-base-color,
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .layer-gradient-aura,
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .aura-blob,
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-godray-layer,
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-fabulous-stage,
+.ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-clubs-bg > div {
   display: none !important;
 }
 
