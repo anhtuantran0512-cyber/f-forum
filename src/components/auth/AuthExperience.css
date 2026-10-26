@@ -367,30 +367,30 @@ html.reduce-motion .ffl__viewport-beam, html.reduce-motion .ffl__torch-rays, htm
 @media (prefers-reduced-motion: reduce) { .auth-night-sky { transition: none; } }
 html.reduce-motion .auth-night-sky { transition: none; }
 /* Auth v1.1: bề mặt mực đêm + đồng xước, bỏ kính nhựa/steampunk. */
-.auth-overlay { background:rgba(6,12,19,.8); backdrop-filter:blur(9px); }
-.auth-card { border-radius:20px; grid-template-columns:290px minmax(0,1fr); background:#101a25; border:1px solid rgba(228,224,208,.16); box-shadow:0 35px 95px rgba(0,0,0,.64); }
+.auth-overlay { background:rgba(44,38,35,0.7); backdrop-filter:none; }
+.auth-card { border-radius:6px; grid-template-columns:290px minmax(0,1fr); background:#FAF7F2; border:2px solid #2C2623; box-shadow:6px 6px 0px #2C2623; color:#2C2623; }
 .auth-panel { padding:28px 30px 25px; }
-.auth-head h2 { font:500 26px/1.16 Georgia,serif; letter-spacing:-.025em; color:#f1eae0; }
-.auth-head p { color:#aeb9c4; }
-.auth-label { font-weight:600; color:#bdc6cb; }
-.auth-input { border-radius:10px; background:#0d1621; border:1px solid rgba(224,224,215,.18); }
-.auth-tabs { border-radius:10px; background:#0d1621; }
-.auth-tabs__indicator { border-radius:7px; background:#d7b679; box-shadow:none; }
-.auth-tabs button { border-radius:7px; font-weight:600; }
-.auth-tabs button[aria-selected='true'] { color:#16212d; }
-.auth-submit { border-radius:10px; background:#cba76b; color:#16202b; box-shadow:0 9px 22px -15px #000,inset 0 1px rgba(255,255,255,.4); font-weight:700; letter-spacing:0; }
+.auth-head h2 { font:700 26px/1.16 Georgia,serif; letter-spacing:-.025em; color:#2C2623; }
+.auth-head p { color:#5C534E; }
+.auth-label { font-weight:700; color:#2C2623; font-family:var(--font-mono); font-size:11px; text-transform:uppercase; }
+.auth-input { border-radius:4px; background:#FAF7F2; border:1.5px solid #2C2623; color:#2C2623; box-shadow:2px 2px 0px #2C2623; }
+.auth-tabs { border-radius:4px; background:#F2ECE1; border:1.5px solid #2C2623; }
+.auth-tabs__indicator { border-radius:3px; background:#E6AA28; border:1px solid #2C2623; box-shadow:none; }
+.auth-tabs button { border-radius:3px; font-weight:700; font-family:var(--font-mono); color:#2C2623; }
+.auth-tabs button[aria-selected='true'] { color:#2C2623; }
+.auth-submit { border-radius:4px; background:#D95D39; color:#FAF7F2; border:1.5px solid #2C2623; box-shadow:2px 2px 0px #2C2623; font-weight:800; font-family:var(--font-mono); letter-spacing:0.04em; }
 .auth-submit::before,.auth-submit::after { display:none; }
 .auth-submit > span { background:none; -webkit-text-fill-color:currentColor; filter:none; }
-.auth-submit > svg { color:#222c35; filter:none; }
-.auth-submit:hover:not(:disabled) { transform:translateY(-2px); background:#e1c189; box-shadow:0 12px 22px -14px #000; }
-.auth-submit:active:not(:disabled) { transform:translateY(1px); box-shadow:inset 0 2px 7px rgba(0,0,0,.17); }
-.auth-close,.auth-social button,.auth-ghost { border-radius:9px; background:#1b2835; box-shadow:none; }
-.auth-bubble { border-radius:10px; color:#243146; background:#f0e6d3; font-weight:600; box-shadow:0 10px 24px -14px #000; }
-html.light .auth-card { background:#fbf7ef; border-color:#d2cec4; backdrop-filter:none; box-shadow:0 25px 75px rgba(19,29,40,.3); }
-html.light .auth-tabs { background:#e9e4dc; }
-html.light .auth-tabs__indicator { background:#d7b679; }
-html.light .auth-input { background:#fffdfa; border-color:#c5c6c4; }
-html.light .auth-submit { background:#cba76b; color:#16202b; }
+.auth-submit > svg { color:#FAF7F2; filter:none; }
+.auth-submit:hover:not(:disabled) { transform:translate(-2px, -2px); background:#D95D39; box-shadow:4px 4px 0px #2C2623; }
+.auth-submit:active:not(:disabled) { transform:translate(2px, 2px); box-shadow:0px 0px 0px #2C2623; }
+.auth-close,.auth-social button,.auth-ghost { border-radius:4px; background:#F2ECE1; border:1.5px solid #2C2623; color:#2C2623; box-shadow:2px 2px 0px #2C2623; }
+.auth-bubble { border-radius:4px; color:#2C2623; background:#E6AA28; border:1.5px solid #2C2623; font-weight:700; box-shadow:2px 2px 0px #2C2623; }
+html.light .auth-card { background:#FAF7F2; border-color:#2C2623; backdrop-filter:none; box-shadow:6px 6px 0px #2C2623; }
+html.light .auth-tabs { background:#F2ECE1; border:1.5px solid #2C2623; }
+html.light .auth-tabs__indicator { background:#E6AA28; }
+html.light .auth-input { background:#FAF7F2; border-color:#2C2623; }
+html.light .auth-submit { background:#D95D39; color:#FAF7F2; }
 @media(max-width:760px) { .auth-card { grid-template-columns:minmax(0,1fr); } .auth-panel { padding:18px; } }
 /* Registration uses one torch (confirmation); the first password is a regular masked input. */
 .ffl--no-torch .ffl__input.auth-input { padding-right:16px; }

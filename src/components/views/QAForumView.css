@@ -52,12 +52,12 @@
 .ff-qa-search input[type='search'] {
   min-height: 42px;
   padding-left: 38px;
-  border: 1px solid rgba(244, 241, 222, 0.17) !important;
-  border-radius: 12px !important;
-  background: rgba(8, 12, 9, 0.78) !important;
-  color: #f4f1de !important;
+  border: 1.5px solid #2C2623 !important;
+  border-radius: 4px !important;
+  background: #FAF7F2 !important;
+  color: #2C2623 !important;
   font-size: 13px !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  box-shadow: 2px 2px 0px #2C2623 !important;
 }
 
 .ff-qa-search input[type='search']::-webkit-search-cancel-button {
@@ -65,8 +65,8 @@
 }
 
 .ff-qa-search input[type='search']:focus-visible {
-  outline: 2px solid rgba(233, 196, 106, 0.78);
-  outline-offset: 2px;
+  outline: 2px solid #D95D39;
+  outline-offset: 1px;
 }
 
 .ff-qa-room .ff-qa-status-filters,

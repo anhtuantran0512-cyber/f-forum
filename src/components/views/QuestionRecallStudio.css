@@ -1,15 +1,15 @@
 /* A small, isolated study surface: theme tokens stay independent from the app shell. */
 .ff-recall-backdrop {
-  --recall-ink: #f4f1de;
-  --recall-copy: #e5dfd1;
-  --recall-muted: #aaa496;
-  --recall-line: rgba(244, 241, 222, 0.14);
-  --recall-paper: #111710;
-  --recall-raised: #1b241c;
-  --recall-inset: #0d120e;
-  --recall-brass: #e9c46a;
-  --recall-sage: #81b29a;
-  --recall-clay: #e07a5f;
+  --recall-ink: #2C2623;
+  --recall-copy: #2C2623;
+  --recall-muted: #5C534E;
+  --recall-line: #2C2623;
+  --recall-paper: #FAF7F2;
+  --recall-raised: #F2ECE1;
+  --recall-inset: #EBE3D5;
+  --recall-brass: #E6AA28;
+  --recall-sage: #2E5A44;
+  --recall-clay: #D95D39;
   position: fixed;
   z-index: 145;
   inset: 0;
@@ -18,11 +18,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
-  background: rgba(3, 6, 4, 0.79);
+  background: rgba(44, 38, 35, 0.65);
   color: var(--recall-ink);
   isolation: isolate;
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
 }
 
 .ff-recall-studio {
@@ -33,12 +31,10 @@
   max-height: min(900px, calc(100dvh - max(28px, env(safe-area-inset-top) + env(safe-area-inset-bottom))));
   min-height: min(540px, calc(100dvh - 28px));
   overflow: hidden;
-  border: 1px solid rgba(233, 196, 106, 0.3);
-  border-radius: 22px 9px 22px 9px;
-  background:
-    radial-gradient(ellipse at 94% 0%, rgba(129, 178, 154, 0.12), transparent 39%),
-    linear-gradient(155deg, var(--recall-raised), var(--recall-paper) 68%);
-  box-shadow: 0 28px 95px rgba(0, 0, 0, 0.58), inset 0 1px 0 rgba(255, 250, 234, 0.08);
+  border: 2px solid #2C2623;
+  border-radius: 6px;
+  background: var(--recall-paper);
+  box-shadow: 6px 6px 0px #2C2623;
   color: var(--recall-ink);
 }
 

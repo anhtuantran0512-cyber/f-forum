@@ -1,12 +1,12 @@
-/* Signature v1.1: midnight ink / parchment / one brass accent. Shared radius & depth. */
-.signature-profile { --signature-ink:#101925; --signature-paper:#e8e5de; --signature-muted:#a4afbc; --signature-gold:#d7b679; background: linear-gradient(155deg,#172330,#0c131d 80%) !important; border:1px solid rgba(220,221,218,.16) !important; border-radius: 22px !important; box-shadow: 0 28px 90px rgba(0,0,0,.56), inset 0 1px rgba(255,255,255,.09) !important; }
-.signature-profile .pc-12-card, .signature-profile .pc-12-well { border-radius: 15px !important; border: 1px solid rgba(211,218,223,.16) !important; background: linear-gradient(145deg,rgba(22,31,44,.42),rgba(10,16,26,.54)) !important; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 12px 30px -18px rgba(0,0,0,.55), inset 0 1px rgba(255,255,255,.08) !important; }
-.signature-profile .pc-12-card--lift:hover { box-shadow: 0 17px 34px -18px rgba(0,0,0,.8) !important; }
-.signature-profile .pc-12-pill { border-radius: 7px !important; background: rgba(214,179,115,.1) !important; color: #e8d2aa !important; border: 1px solid rgba(214,179,115,.2) !important; }
-.signature-profile .ff-gradient-ring-sq { background: linear-gradient(135deg,#f0dfc0,#8a785c) !important; }
-.signature-profile .text-cyan-300,.signature-profile .text-cyan-400,.signature-profile .text-emerald-400,.signature-profile .text-sky-400,.signature-profile .text-rose-400 { color: #d7b679 !important; }
-.signature-profile .bg-amber-500, .signature-profile .bg-\[\#0284C7\] { background: #d7b679 !important; color: #17202b !important; box-shadow: none !important; }
-.signature-profile .pc-12-btn { border-radius: 9px !important; box-shadow: none !important; }
+/* Signature v1.1: warm editorial dossier. Shared radius & depth. */
+.signature-profile { --signature-ink:#2C2623; --signature-paper:#FAF7F2; --signature-muted:#5C534E; --signature-gold:#E6AA28; background: #FAF7F2 !important; border:2px solid #2C2623 !important; border-radius: 6px !important; box-shadow: 6px 6px 0px #2C2623 !important; color: #2C2623 !important; }
+.signature-profile .pc-12-card, .signature-profile .pc-12-well { border-radius: 4px !important; border: 1.5px solid #2C2623 !important; background: #F2ECE1 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; box-shadow: 2px 2px 0px #2C2623 !important; color: #2C2623 !important; }
+.signature-profile .pc-12-card--lift:hover { box-shadow: 4px 4px 0px #2C2623 !important; }
+.signature-profile .pc-12-pill { border-radius: 4px !important; background: #E6AA28 !important; color: #2C2623 !important; border: 1.5px solid #2C2623 !important; font-family: var(--font-mono); }
+.signature-profile .ff-gradient-ring-sq { background: #D95D39 !important; border: 1.5px solid #2C2623 !important; }
+.signature-profile .text-cyan-300,.signature-profile .text-cyan-400,.signature-profile .text-emerald-400,.signature-profile .text-sky-400,.signature-profile .text-rose-400 { color: #D95D39 !important; }
+.signature-profile .bg-amber-500, .signature-profile .bg-\[\#0284C7\] { background: #E6AA28 !important; color: #2C2623 !important; box-shadow: none !important; }
+.signature-profile .pc-12-btn { border-radius: 4px !important; box-shadow: 2px 2px 0px #2C2623 !important; border: 1.5px solid #2C2623 !important; background: #FAF7F2 !important; color: #2C2623 !important; }
 .signature-stats-wrap { padding: 4px 0 14px; border-bottom: 1px solid rgba(228,225,213,.1); }
 .signature-stats-heading { display:flex; justify-content:space-between; gap:8px; margin-bottom:10px; font:700 10.5px/1.4 system-ui,sans-serif; letter-spacing:.08em; text-transform:uppercase; color:#d7b679; }
 .signature-stats-heading span+span { color:#a4afbc; font-weight:400; letter-spacing:0; }

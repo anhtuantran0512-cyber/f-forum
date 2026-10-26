@@ -14,13 +14,11 @@
 .ff-media-card {
   container: ff-media / inline-size;
   position: relative;
-  border-radius: 16px 6px 16px 6px;
-  background: linear-gradient(165deg, rgba(22, 27, 39, 0.96), rgba(14, 18, 27, 0.99));
-  border: 1.5px solid rgba(244, 241, 222, 0.16);
-  box-shadow:
-    4px 4px 0px rgba(4, 6, 11, 0.92),
-    inset 0 1px 0 rgba(244, 241, 222, 0.09);
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 6px;
+  background: #FAF7F2;
+  border: 1.5px solid #2C2623;
+  box-shadow: 4px 4px 0px #2C2623;
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
 }
 .ff-media-card::after {
@@ -31,17 +29,14 @@
   width: 28px;
   height: 4px;
   border-radius: 0 0 4px 4px;
-  background: linear-gradient(90deg, #e07a5f, #f2cc8f);
-  opacity: 0.75;
+  background: #D95D39;
+  opacity: 0.95;
   pointer-events: none;
 }
 .ff-media-card:hover {
-  transform: translate3d(0, -1px, 0);
-  border-color: rgba(233, 196, 106, 0.42);
-  box-shadow:
-    0 8px 24px -8px rgba(0, 0, 0, 0.45),
-    3px 3px 0px rgba(4, 6, 11, 0.85),
-    inset 0 1px 0 rgba(248, 247, 244, 0.12);
+  transform: translate(-2px, -2px);
+  border-color: #2C2623;
+  box-shadow: 6px 6px 0px #2C2623;
 }
 .ff-media-card__layout {
   display: flex;

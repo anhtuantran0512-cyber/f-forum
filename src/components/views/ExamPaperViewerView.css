@@ -1,42 +1,36 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 .ff-paper-viewer {
-  --paper-bg: #0b0d12;
-  --paper-surface: rgba(22, 27, 39, 0.96);
-  --paper-surface-soft: rgba(16, 21, 30, 0.98);
-  --paper-border: rgba(244, 241, 222, 0.13);
-  --paper-border-strong: rgba(242, 204, 143, 0.32);
-  --paper-text: #f4f1de;
-  --paper-muted: #aaa69e;
-  --paper-accent: #f2cc8f;
-  --paper-terracotta: #e07a5f;
-  --paper-sage: #81b29a;
-  --paper-shadow: 0 18px 42px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(244, 241, 222, 0.045);
+  --paper-bg: #FAF7F2;
+  --paper-surface: #FAF7F2;
+  --paper-surface-soft: #F2ECE1;
+  --paper-border: #2C2623;
+  --paper-border-strong: #2C2623;
+  --paper-text: #2C2623;
+  --paper-muted: #5C534E;
+  --paper-accent: #E6AA28;
+  --paper-terracotta: #D95D39;
+  --paper-sage: #2E5A44;
+  --paper-shadow: 4px 4px 0px #2C2623;
   min-height: 100vh;
   color: var(--paper-text);
-  background:
-    radial-gradient(ellipse at 11% 0%, rgba(224, 122, 95, 0.11), transparent 34rem),
-    radial-gradient(ellipse at 90% 10%, rgba(129, 178, 154, 0.1), transparent 38rem),
-    linear-gradient(180deg, #10131a 0%, var(--paper-bg) 34rem);
+  background: var(--paper-bg);
   padding-bottom: max(2rem, env(safe-area-inset-bottom, 0px));
 }
 
 html.light .ff-paper-viewer {
-  --paper-bg: #f6f3eb;
-  --paper-surface: rgba(255, 253, 248, 0.96);
-  --paper-surface-soft: rgba(250, 248, 241, 0.98);
-  --paper-border: rgba(41, 37, 32, 0.12);
-  --paper-border-strong: rgba(180, 83, 53, 0.3);
-  --paper-text: #211f1b;
-  --paper-muted: #68635b;
-  --paper-accent: #966724;
-  --paper-terracotta: #b45335;
-  --paper-sage: #387a5d;
-  --paper-shadow: 0 14px 32px rgba(58, 44, 26, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.92);
-  background:
-    radial-gradient(ellipse at 11% 0%, rgba(224, 122, 95, 0.1), transparent 34rem),
-    radial-gradient(ellipse at 90% 10%, rgba(129, 178, 154, 0.11), transparent 38rem),
-    linear-gradient(180deg, #fbfaf6 0%, var(--paper-bg) 42rem);
+  --paper-bg: #FAF7F2;
+  --paper-surface: #FAF7F2;
+  --paper-surface-soft: #F2ECE1;
+  --paper-border: #2C2623;
+  --paper-border-strong: #2C2623;
+  --paper-text: #2C2623;
+  --paper-muted: #5C534E;
+  --paper-accent: #E6AA28;
+  --paper-terracotta: #D95D39;
+  --paper-sage: #2E5A44;
+  --paper-shadow: 4px 4px 0px #2C2623;
+  background: var(--paper-bg);
 }
 
 .ff-paper-viewer :is(button, input, select, textarea) {
