@@ -84,7 +84,7 @@ p.editorial-dropcap-para::first-letter {
   position: relative;
 }
 .swiss-crosshair::before {
-  content: '✦';
+  content: '+';
   position: absolute;
   font-size: 10px;
   color: var(--ink-primary);
@@ -273,4 +273,156 @@ p.editorial-dropcap-para::first-letter {
 .broadsheet-colophon {
   border-top: 3px double #2C2623;
   background: var(--bg-parchment);
+}
+
+.ff-app-shell,
+.ff-app-shell.ff-view-qa,
+.ff-app-shell.ff-view-threads,
+.ff-app-shell.ff-view-clubs,
+.ff-app-shell.ff-view-chat,
+.ff-app-shell.ff-view-chronicles,
+.ff-app-shell.ff-view-exam-vault,
+.ff-app-shell.ff-view-coming-soon,
+.ff-app-shell.ff-view-home {
+  background-color: var(--bg-paper) !important;
+  color: var(--ink-primary) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.layer-base-color,
+.layer-gradient-aura,
+.aura-blob,
+.ff-fabulous-stage,
+.ff-godray-layer {
+  display: none !important;
+}
+
+.liquid-glass,
+.obsidian-glass,
+.glass-panel,
+.backdrop-blur-md,
+.backdrop-blur-xl,
+.backdrop-blur-lg,
+.backdrop-blur-sm,
+.backdrop-blur-2xl,
+.backdrop-blur-3xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.ff-qa-card,
+.thread-card,
+.ff-exam-card,
+.ff-media-card,
+.gb-card,
+.bento-card,
+.card-hard,
+.ff-ui-card,
+.ff-virtual-card {
+  background-color: var(--bg-paper) !important;
+  border: 1.5px solid var(--ink-primary) !important;
+  box-shadow: var(--shadow-brutal) !important;
+  border-radius: var(--radius-soft) !important;
+  color: var(--ink-primary) !important;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.ff-qa-card:hover,
+.thread-card:hover,
+.ff-exam-card:hover,
+.ff-media-card:hover,
+.gb-card:hover,
+.bento-card:hover,
+.card-hard:hover {
+  transform: translate(-2px, -2px) !important;
+  box-shadow: var(--shadow-brutal-hover) !important;
+}
+
+.ff-qa-card:active,
+.thread-card:active,
+.ff-exam-card:active,
+.ff-media-card:active,
+.gb-card:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 0px 0px 0px var(--ink-primary) !important;
+}
+
+.modal-container,
+div[role="dialog"] .card-hard,
+div[role="dialog"] .modal-container,
+.ff-dialog-panel,
+.popover-card {
+  background-color: var(--bg-paper) !important;
+  border: 2px solid var(--ink-primary) !important;
+  box-shadow: 6px 6px 0px var(--ink-primary) !important;
+  border-radius: var(--radius-soft) !important;
+  color: var(--ink-primary) !important;
+}
+
+input[type="text"],
+input[type="search"],
+input[type="password"],
+input[type="email"],
+textarea,
+select {
+  background-color: var(--bg-paper) !important;
+  color: var(--ink-primary) !important;
+  border: 1.5px solid var(--ink-primary) !important;
+  border-radius: 4px !important;
+  box-shadow: 2px 2px 0px var(--ink-primary) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none !important;
+  border-color: var(--accent-terracotta) !important;
+  box-shadow: 3px 3px 0px var(--ink-primary) !important;
+}
+
+.ff-nav-capsule.liquid-glass {
+  background: var(--bg-paper) !important;
+  border: 1.5px solid var(--ink-primary) !important;
+  box-shadow: 4px 4px 0px var(--ink-primary) !important;
+  border-radius: var(--radius-soft) !important;
+  color: var(--ink-primary) !important;
+}
+
+.ff-nav-capsule .nav-tab-btn {
+  color: var(--ink-primary) !important;
+  font-family: var(--font-mono) !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+  transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.ff-nav-capsule .nav-tab-btn:hover {
+  background: var(--bg-parchment) !important;
+  border-color: var(--ink-primary) !important;
+}
+
+.ff-nav-capsule .nav-tab-btn--active {
+  background: var(--accent-mustard) !important;
+  color: var(--ink-primary) !important;
+  border: 1.5px solid var(--ink-primary) !important;
+  box-shadow: 2px 2px 0px var(--ink-primary) !important;
+  font-weight: 800 !important;
+}
+
+.ff-nav-capsule .ff-nav-brand {
+  font-family: var(--font-display) !important;
+  color: var(--ink-primary) !important;
+}
+
+.ff-nav-capsule .ff-nav-logo {
+  background: var(--accent-terracotta) !important;
+  border: 1.5px solid var(--ink-primary) !important;
+  box-shadow: 2px 2px 0px var(--ink-primary) !important;
+  border-radius: 4px !important;
+}
+
+.ff-nav-capsule .ff-nav-logo__core {
+  color: var(--bg-paper) !important;
+  font-family: var(--font-display) !important;
+  font-weight: 800 !important;
 }

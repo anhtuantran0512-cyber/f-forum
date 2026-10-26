@@ -64,7 +64,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
                 <span className="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1">
                   <span>Diễn Đàn Học Sinh</span>{' '}
                   <span className="editorial-swash">
-                    F-Forum
+                    <span className="ff-swash-cap">F</span>-Forum
                   </span>
                 </span>
                 <span className="text-xs sm:text-base font-serif italic font-normal tracking-normal text-[#5C534E]">
@@ -263,10 +263,10 @@ export const HomeView: React.FC<HomeViewProps> = ({
           </div>
         </div>
 
-        <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="w-full mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4" aria-label="Ba nhịp Học, Hỏi, Chia sẻ">
           <div
             onClick={() => onNavigate('exam-vault')}
-            className="ticket-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
+            className="ticket-card ff-atelier-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
           >
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="font-mono text-xs font-bold text-[#D95D39] uppercase">[VÉ THI // 2026]</span>
@@ -278,7 +278,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
           <div
             onClick={() => onNavigate('qa')}
-            className="ticket-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
+            className="ticket-card ff-atelier-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
           >
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="font-mono text-xs font-bold text-[#2E5A44] uppercase">[HỎI ĐÁP // BẢN CHẤT]</span>
@@ -290,7 +290,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
 
           <div
             onClick={() => onNavigate('threads')}
-            className="ticket-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
+            className="ticket-card ff-atelier-card cursor-pointer hover:bg-[#F2ECE1] transition-colors"
           >
             <div className="flex items-center justify-between gap-2 mb-2">
               <span className="font-mono text-xs font-bold text-[#2B4C7E] uppercase">[SỔ CHUNG // BẠN HỌC]</span>
