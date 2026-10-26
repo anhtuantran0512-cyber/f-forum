@@ -545,6 +545,17 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     <span>Vào CLB</span>
                   </button>
 
+                  <a
+                    href="/solar-system-photorealistic.html"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-400/40 bg-amber-400/15 text-amber-300 hover:bg-amber-400 hover:text-black transition-all flex items-center gap-1.5 cursor-pointer no-underline"
+                    title="Mở toàn màn hình mô phỏng Hệ Mặt Trời 3D Siêu Thực 2K"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Bản 2K Siêu Thực</span>
+                  </a>
+
                   <button
                     type="button"
                     onClick={() => setIsSolarStationExpanded(!isSolarStationExpanded)}
