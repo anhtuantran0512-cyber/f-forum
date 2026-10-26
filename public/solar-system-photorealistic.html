@@ -40,7 +40,7 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      padding: 20px;
+      padding: 16px 20px;
       transition: opacity 0.3s ease;
     }
     .hud-layer.cinema-mode {
@@ -49,87 +49,151 @@
     }
     .hud-header {
       pointer-events: auto;
-      background: rgba(3, 7, 18, 0.72);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(3, 7, 18, 0.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 16px;
-      padding: 12px 20px;
-      max-width: 460px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+      padding: 12px 18px;
+      max-width: 480px;
+      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.65);
     }
     .hud-title {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 800;
       letter-spacing: 0.5px;
       color: #f8fafc;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .hud-badge {
-      font-size: 10px;
+      font-size: 9.5px;
       text-transform: uppercase;
-      padding: 2px 8px;
+      padding: 2px 7px;
       border-radius: 9999px;
       background: rgba(245, 158, 11, 0.2);
       border: 1px solid rgba(245, 158, 11, 0.45);
       color: #fbbf24;
       font-weight: 700;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.6px;
+    }
+    .hud-badge-cyan {
+      font-size: 9.5px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 9999px;
+      background: rgba(56, 189, 248, 0.2);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #38bdf8;
+      font-weight: 700;
+      letter-spacing: 0.6px;
     }
     .hud-sub {
       font-size: 11px;
       color: #94a3b8;
       margin-top: 4px;
-      line-height: 1.45;
+      line-height: 1.4;
+    }
+    .hud-telemetry-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 10.5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color: #cbd5e1;
+    }
+    .hud-telemetry-status strong {
+      color: #38bdf8;
     }
     .hud-card {
       pointer-events: auto;
       position: absolute;
       right: 20px;
-      top: 20px;
-      width: 300px;
-      background: rgba(3, 7, 18, 0.78);
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      top: 16px;
+      width: 320px;
+      background: rgba(3, 7, 18, 0.82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+      padding: 14px 16px;
+      box-shadow: 0 16px 44px rgba(0, 0, 0, 0.7);
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      transition: all 0.3s ease;
+      gap: 6px;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      max-height: calc(100vh - 160px);
+      overflow-y: auto;
+    }
+    .hud-card::-webkit-scrollbar {
+      width: 4px;
+    }
+    .hud-card::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
     }
     .hud-card-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      padding-bottom: 8px;
+      padding-bottom: 6px;
     }
     .hud-card-title {
-      font-size: 18px;
+      font-size: 17px;
       font-weight: 800;
       color: #f8fafc;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .hud-card-type {
+    .hud-card-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .card-toggle-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
       font-size: 11px;
+      font-weight: 700;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .card-toggle-btn:hover {
+      background: rgba(56, 189, 248, 0.2);
+      color: #38bdf8;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+    .hud-card-type {
+      font-size: 10.5px;
       color: #38bdf8;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      margin-bottom: 2px;
+    }
+    .hud-card.collapsed .telemetry-body {
+      display: none;
     }
     .telemetry-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 11px;
-      padding: 2px 0;
+      padding: 2.5px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
     }
     .telemetry-label {
       color: #94a3b8;
@@ -138,37 +202,56 @@
       color: #f1f5f9;
       font-weight: 700;
       font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+    .pedagogy-card {
+      margin-top: 6px;
+      padding: 8px 10px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      font-size: 10.5px;
+      color: #e2e8f0;
+      line-height: 1.45;
+    }
+    .pedagogy-card strong {
+      color: #38bdf8;
+      display: block;
+      margin-bottom: 2px;
+      text-transform: uppercase;
+      font-size: 9.5px;
+      letter-spacing: 0.5px;
     }
     .controls-panel {
       pointer-events: auto;
       position: absolute;
       left: 20px;
-      bottom: 110px;
+      bottom: 86px;
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      max-width: 480px;
-      background: rgba(3, 7, 18, 0.72);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
+      gap: 5px;
+      max-width: 520px;
+      background: rgba(3, 7, 18, 0.78);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
-      padding: 10px;
+      padding: 8px 10px;
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
     }
     .ctrl-btn {
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid rgba(255, 255, 255, 0.14);
       color: #f1f5f9;
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
-      padding: 6px 12px;
-      border-radius: 10px;
+      padding: 5px 10px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: all 0.18s ease;
       display: flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
     }
     .ctrl-btn:hover {
       background: rgba(255, 255, 255, 0.18);
@@ -183,14 +266,14 @@
     .nav-bar {
       pointer-events: auto;
       margin: 0 auto;
-      background: rgba(3, 7, 18, 0.82);
+      background: rgba(3, 7, 18, 0.85);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.14);
       border-radius: 20px;
-      padding: 8px 14px;
+      padding: 6px 12px;
       display: flex;
-      gap: 6px;
+      gap: 5px;
       overflow-x: auto;
       max-width: 95vw;
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
@@ -204,12 +287,12 @@
       color: #94a3b8;
       font-size: 11px;
       font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 12px;
+      padding: 5px 10px;
+      border-radius: 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 5px;
       white-space: nowrap;
       transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
@@ -228,7 +311,7 @@
       position: absolute;
       pointer-events: none;
       z-index: 25;
-      background: rgba(3, 7, 18, 0.88);
+      background: rgba(3, 7, 18, 0.9);
       backdrop-filter: blur(12px);
       border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: 10px;
@@ -244,8 +327,8 @@
     }
     .google-nav-cluster {
       position: absolute;
-      right: 24px;
-      bottom: 110px;
+      right: 20px;
+      bottom: 86px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -254,10 +337,10 @@
       pointer-events: auto;
     }
     .compass-dial {
-      width: 44px;
-      height: 44px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
-      background: rgba(3, 7, 18, 0.78);
+      background: rgba(3, 7, 18, 0.8);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.18);
@@ -274,7 +357,7 @@
     }
     .compass-needle {
       width: 4px;
-      height: 26px;
+      height: 24px;
       position: relative;
       transform-origin: center center;
       transition: transform 0.08s linear;
@@ -300,15 +383,15 @@
       border-radius: 0 0 2px 2px;
     }
     .g-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background: rgba(3, 7, 18, 0.78);
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(3, 7, 18, 0.8);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.15);
       color: #f8fafc;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 700;
       display: flex;
       align-items: center;
@@ -326,7 +409,7 @@
       position: absolute;
       pointer-events: auto;
       transform: translate(-50%, -50%);
-      background: rgba(3, 7, 18, 0.85);
+      background: rgba(3, 7, 18, 0.88);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       border: 1px solid rgba(56, 189, 248, 0.55);
@@ -381,6 +464,95 @@
       border-color: #38bdf8;
       transform: scale(1.05);
     }
+    #helpModal {
+      position: absolute;
+      inset: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      pointer-events: auto;
+    }
+    .help-dialog {
+      background: rgba(11, 15, 25, 0.94);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 20px;
+      max-width: 540px;
+      width: 100%;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .help-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 8px;
+    }
+    .help-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .help-close-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #94a3b8;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .help-close-btn:hover {
+      color: #fff;
+      background: rgba(239, 68, 68, 0.3);
+    }
+    .help-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      font-size: 11px;
+    }
+    .help-section {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .help-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #fbbf24;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .help-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      color: #cbd5e1;
+    }
+    .help-key {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 1px 5px;
+      border-radius: 4px;
+      color: #38bdf8;
+      font-weight: 700;
+    }
     #loadingSplash {
       position: absolute;
       inset: 0;
@@ -410,7 +582,7 @@
       font-weight: 600;
       letter-spacing: 0.5px;
     }
-    @media (max-width: 768px) {
+    @media (max-width: 900px) {
       .hud-header {
         max-width: 100%;
         padding: 10px 14px;
@@ -418,24 +590,28 @@
       .hud-card {
         top: auto;
         bottom: 170px;
-        right: 10px;
-        left: 10px;
+        right: 12px;
+        left: 12px;
         width: auto;
-        padding: 12px;
+        max-height: 260px;
+        padding: 10px;
       }
       .controls-panel {
         left: 10px;
-        bottom: 80px;
-        max-width: calc(100% - 70px);
+        bottom: 74px;
+        max-width: calc(100% - 65px);
         padding: 6px;
       }
       .google-nav-cluster {
-        right: 12px;
-        bottom: 80px;
+        right: 10px;
+        bottom: 74px;
       }
       .nav-bar {
         bottom: 10px;
         padding: 4px;
+      }
+      .help-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -472,11 +648,16 @@
   <div class="hud-layer" id="hudLayer">
     <header class="hud-header">
       <div class="hud-title">
-        <span>NASA Photorealistic Solar Engine</span>
-        <span class="hud-badge">Google Earth 3D</span>
+        <span>Hệ Mặt Trời 3D Siêu Thực</span>
+        <span class="hud-badge">NASA 2K</span>
+        <span class="hud-badge-cyan">Google Earth 3D</span>
       </div>
       <div class="hud-sub">
-        Kiến trúc đa tầng quang học: Đèn đêm thành phố, biển phản quang ánh nắng, địa hình bump 3D, bão plasma Mặt Trời và mây trôi độc lập. Click đúp vào bề mặt để zoom sát điểm hạ cánh.
+        Đồ họa đa tầng quang học dành cho học tập & giảng dạy: địa hình bump 3D, bão plasma, đèn đêm thành phố, đại dương lấp lánh và mây trôi độc lập. Click đúp vào bề mặt để đáp xuống địa cầu.
+      </div>
+      <div class="hud-telemetry-status">
+        <span>Tiêu điểm: <strong id="liveFocusName">Trái Đất</strong></span>
+        <span>Khoảng cách: <strong id="liveAlt">1.250 km (LEO)</strong></span>
       </div>
     </header>
 
@@ -484,50 +665,109 @@
       <button type="button" id="btnPause" class="ctrl-btn">Tạm dừng</button>
       <button type="button" id="btnSpeed" class="ctrl-btn">Tốc độ: 1x</button>
       <button type="button" id="btnOrbits" class="ctrl-btn active">Quỹ đạo: Bật</button>
+      <button type="button" id="btnEcliptic" class="ctrl-btn">Hoàng đạo: Tắt</button>
       <button type="button" id="btnLandmarks" class="ctrl-btn active">Điểm mốc: Bật</button>
-      <button type="button" id="btnTour" class="ctrl-btn">Tự động du hành</button>
+      <button type="button" id="btnTour" class="ctrl-btn">Du hành: Tắt</button>
       <button type="button" id="btnVenusMode" class="ctrl-btn">Sao Kim: Khí quyển</button>
-      <button type="button" id="btnAudio" class="ctrl-btn">Âm thanh vũ trụ</button>
-      <button type="button" id="btnZen" class="ctrl-btn">Ẩn giao diện</button>
-      <button type="button" id="btnReset" class="ctrl-btn">Toàn cảnh</button>
+      <button type="button" id="btnAudio" class="ctrl-btn">Âm thanh</button>
+      <button type="button" id="btnHelp" class="ctrl-btn">Trợ giúp (?)</button>
+      <button type="button" id="btnZen" class="ctrl-btn">Ẩn HUD (Z)</button>
+      <button type="button" id="btnReset" class="ctrl-btn">Toàn cảnh (ESC)</button>
     </div>
 
     <aside id="planetCard" class="hud-card">
       <div class="hud-card-header">
         <div class="hud-card-title">
-          <span id="cardName">Mặt Trời</span>
-          <span id="cardSymbol" style="font-size:18px;">☀️</span>
+          <span id="cardName">Trái Đất</span>
+          <span id="cardSymbol" style="font-size:18px;">⊕</span>
         </div>
-        <span class="hud-badge" id="cardBadge">STAR</span>
+        <div class="hud-card-actions">
+          <span class="hud-badge" id="cardBadge">HABITABLE</span>
+          <button type="button" id="btnToggleCard" class="card-toggle-btn" title="Thu gọn / Mở rộng">_</button>
+        </div>
       </div>
-      <div class="hud-card-type" id="cardType">Sao mẹ phân loại G2V (Yellow Dwarf)</div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">Đường kính xích đạo</span>
-        <span class="telemetry-val" id="cardDiameter">1.392.700 km</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">Khoảng cách tới Mặt Trời</span>
-        <span class="telemetry-val" id="cardDist">0.0 AU (0 km)</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">Chu kỳ quỹ đạo</span>
-        <span class="telemetry-val" id="cardPeriod">230 triệu năm</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">Nhiệt độ bề mặt</span>
-        <span class="telemetry-val" id="cardTemp">5.778 K (5.505 °C)</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">Độ nghiêng trục quay</span>
-        <span class="telemetry-val" id="cardTilt">7.25°</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">Vận tốc tự quay</span>
-        <span class="telemetry-val" id="cardRotation">25.38 ngày</span>
+      <div class="hud-card-type" id="cardType">Hành tinh sự sống duy nhất đã biết</div>
+      <div class="telemetry-body" id="telemetryBody">
+        <div class="telemetry-row">
+          <span class="telemetry-label">Đường kính xích đạo</span>
+          <span class="telemetry-val" id="cardDiameter">12.742 km</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Khoảng cách tới Mặt Trời</span>
+          <span class="telemetry-val" id="cardDist">1.00 AU (149,6 triệu km)</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Chu kỳ quỹ đạo</span>
+          <span class="telemetry-val" id="cardPeriod">365,25 ngày</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Nhiệt độ bề mặt</span>
+          <span class="telemetry-val" id="cardTemp">288 K (15 °C)</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Gia tốc trọng trường (g)</span>
+          <span class="telemetry-val" id="cardGravity">9,81 m/s² (1,00 g)</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Vận tốc thoát ly (v₂)</span>
+          <span class="telemetry-val" id="cardEscape">11,19 km/s</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Khối lượng tương đối</span>
+          <span class="telemetry-val" id="cardMass">1,00 M⊕ (5,97×10²⁴ kg)</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Độ nghiêng trục quay</span>
+          <span class="telemetry-val" id="cardTilt">23,44°</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Chu kỳ tự quay</span>
+          <span class="telemetry-val" id="cardRotation">23,93 giờ</span>
+        </div>
+        <div class="telemetry-row">
+          <span class="telemetry-label">Thành phần chủ đạo</span>
+          <span class="telemetry-val" id="cardComp">78% N₂, 21% O₂</span>
+        </div>
+        <div class="pedagogy-card">
+          <strong>Ghi chú sư phạm & Điểm độc đáo</strong>
+          <span id="cardFact">Nước lỏng bao phủ 71% bề mặt; từ quyển mạnh bảo vệ sinh quyển khỏi bức xạ gió Mặt Trời.</span>
+        </div>
       </div>
     </aside>
 
     <nav class="nav-bar" id="navBar"></nav>
+  </div>
+
+  <div id="helpModal">
+    <div class="help-dialog">
+      <div class="help-header">
+        <div class="help-title">
+          <span>Hướng Dẫn Thao Tác & Phím Tắt Sư Phạm</span>
+        </div>
+        <button type="button" id="btnCloseHelp" class="help-close-btn">&times;</button>
+      </div>
+      <div class="help-grid">
+        <div class="help-section">
+          <div class="help-section-title">Thao Tác Chuột & Cảm Ứng</div>
+          <div class="help-item"><span>Xoay 360° tự do</span><span class="help-key">Chuột trái / 1 ngón</span></div>
+          <div class="help-item"><span>Di chuyển camera</span><span class="help-key">Chuột phải / 2 ngón</span></div>
+          <div class="help-item"><span>Thu phóng vi mô</span><span class="help-key">Lăn chuột / Kẹp 2 ngón</span></div>
+          <div class="help-item"><span>Đáp xuống mặt đất</span><span class="help-key">Click đúp bề mặt</span></div>
+          <div class="help-item"><span>Cân chỉnh hướng Bắc</span><span class="help-key">Bấm vào La bàn</span></div>
+        </div>
+        <div class="help-section">
+          <div class="help-section-title">Phím Tắt Bàn Phím</div>
+          <div class="help-item"><span>Toàn cảnh Hệ Mặt Trời</span><span class="help-key">ESC</span></div>
+          <div class="help-item"><span>Tạm dừng / Tiếp tục</span><span class="help-key">Space</span></div>
+          <div class="help-item"><span>Chế độ Zen trình chiếu</span><span class="help-key">Z</span></div>
+          <div class="help-item"><span>Mở / Đóng trợ giúp</span><span class="help-key">H hoặc ?</span></div>
+          <div class="help-item"><span>Chọn nhanh thiên thể</span><span class="help-key">1 - 9</span></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#94a3b8;line-height:1.45;background:rgba(255,255,255,0.03);padding:8px 12px;border-radius:10px;">
+        Hệ thống được thiết kế theo tỷ lệ và định luật Kepler, phục vụ tối ưu cho học sinh ôn thi chuyên và thầy cô trình chiếu giảng dạy môn Vật Lý, Địa Lý & Thiên Văn Học.
+      </div>
+    </div>
   </div>
 
   <script>
@@ -669,6 +909,12 @@
 
       var ambientLight = new THREE.AmbientLight(0x080c18, 0.04);
       scene.add(ambientLight);
+
+      var eclipticGrid = new THREE.GridHelper(900, 45, 0x38bdf8, 0x1e293b);
+      eclipticGrid.material.transparent = true;
+      eclipticGrid.material.opacity = 0.15;
+      eclipticGrid.visible = false;
+      scene.add(eclipticGrid);
 
       var starGeo = new THREE.BufferGeometry();
       var starCount = 20000;
@@ -1291,8 +1537,13 @@
           dist: '0.0 AU (0 km)',
           period: '230 triệu năm',
           temp: '5.778 K (5.505 °C)',
-          tilt: '7.25°',
-          rotation: '25.38 ngày',
+          gravity: '274,0 m/s² (27,9 g)',
+          escape: '617,5 km/s',
+          mass: '333.000 M⊕ (1,989×10³⁰ kg)',
+          tilt: '7,25°',
+          rotation: '25,38 ngày',
+          comp: '73,5% Hydro, 24,8% Heli',
+          fact: 'Chiếm 99,86% tổng khối lượng toàn bộ Hệ Mặt Trời, duy trì lực hấp dẫn liên kết các hành tinh.',
           r: 22,
           orbitR: 0,
           orbitSpeed: 0,
@@ -1309,8 +1560,13 @@
           dist: '0.39 AU (57,9 triệu km)',
           period: '88 ngày Trái Đất',
           temp: '100 K - 700 K (-173 °C đến 427 °C)',
-          tilt: '0.03°',
-          rotation: '58.6 ngày',
+          gravity: '3,70 m/s² (0,38 g)',
+          escape: '4,25 km/s',
+          mass: '0,055 M⊕ (3,30×10²³ kg)',
+          tilt: '0,03°',
+          rotation: '58,6 ngày (Cộng hưởng 3:2)',
+          comp: '70% Lõi sắt niken, 30% Silicat',
+          fact: 'Chênh lệch nhiệt độ ngày và đêm lên tới 600 °C do không có bầu khí quyển giữ nhiệt.',
           r: 3.8,
           orbitR: 44,
           orbitSpeed: 0.016,
@@ -1327,8 +1583,13 @@
           dist: '0.72 AU (108,2 triệu km)',
           period: '224,7 ngày',
           temp: '737 K (464 °C)',
-          tilt: '177.36° (Nghịch hành)',
-          rotation: '-243 ngày',
+          gravity: '8,87 m/s² (0,90 g)',
+          escape: '10,36 km/s',
+          mass: '0,815 M⊕ (4,87×10²⁴ kg)',
+          tilt: '177,36° (Tự quay nghịch hành)',
+          rotation: '-243 ngày Trái Đất',
+          comp: '96,5% CO₂, 3,5% N₂, mây H₂SO₄',
+          fact: 'Hành tinh nóng nhất Hệ Mặt Trời; 1 ngày dài hơn 1 năm; Mặt Trời mọc hướng Tây lặn hướng Đông.',
           r: 6.1,
           orbitR: 68,
           orbitSpeed: 0.012,
@@ -1345,8 +1606,13 @@
           dist: '1.00 AU (149,6 triệu km)',
           period: '365,25 ngày',
           temp: '288 K (15 °C)',
-          tilt: '23.44°',
+          gravity: '9,81 m/s² (1,00 g)',
+          escape: '11,19 km/s',
+          mass: '1,00 M⊕ (5,972×10²⁴ kg)',
+          tilt: '23,44° (Tạo ra 4 mùa)',
           rotation: '23,93 giờ',
+          comp: '78% N₂, 21% O₂, 1% Ar/CO₂',
+          fact: 'Nước lỏng bao phủ 71% bề mặt; từ quyển bảo vệ sinh quyển khỏi bức xạ gió Mặt Trời.',
           r: 6.4,
           orbitR: 98,
           orbitSpeed: 0.009,
@@ -1363,8 +1629,13 @@
           dist: '384.400 km từ Trái Đất',
           period: '27,3 ngày',
           temp: '120 K - 390 K (-153 °C đến 117 °C)',
-          tilt: '1.54°',
+          gravity: '1,62 m/s² (0,166 g)',
+          escape: '2,38 km/s',
+          mass: '0,0123 M⊕ (7,34×10²² kg)',
+          tilt: '1,54°',
           rotation: '27,3 ngày (Khóa thủy triều)',
+          comp: 'Đá anorthosite, bazan núi lửa',
+          fact: 'Bị khóa thủy triều vĩnh cửu nên luôn chỉ hướng một mặt bán cầu duy nhất về phía Trái Đất.',
           r: 1.74,
           orbitR: 98,
           orbitSpeed: 0.009,
@@ -1382,8 +1653,13 @@
           dist: '1.52 AU (227,9 triệu km)',
           period: '687 ngày Trái Đất',
           temp: '210 K (-63 °C)',
-          tilt: '25.19°',
-          rotation: '24,62 giờ',
+          gravity: '3,72 m/s² (0,38 g)',
+          escape: '5,03 km/s',
+          mass: '0,107 M⊕ (6,42×10²³ kg)',
+          tilt: '25,19°',
+          rotation: '24,62 giờ (1 Sol)',
+          comp: '95,3% CO₂, 2,6% N₂, 1,9% Ar',
+          fact: 'Núi lửa Olympus Mons cao 22 km (gấp gần 3 lần Everest) và hẻm vực Valles Marineris dài 4.000 km.',
           r: 4.3,
           orbitR: 128,
           orbitSpeed: 0.0075,
@@ -1400,8 +1676,13 @@
           dist: '5.20 AU (778,5 triệu km)',
           period: '11,86 năm',
           temp: '165 K (-108 °C)',
-          tilt: '3.13°',
-          rotation: '9,93 giờ',
+          gravity: '24,79 m/s² (2,53 g)',
+          escape: '59,5 km/s',
+          mass: '317,8 M⊕ (1,898×10²⁷ kg)',
+          tilt: '3,13°',
+          rotation: '9,93 giờ (Quay nhanh nhất)',
+          comp: '90% Hydro, 10% Heli',
+          fact: 'Khối lượng gấp 2,5 lần tổng tất cả các hành tinh khác cộng lại; Vết Đỏ Lớn tồn tại trên 350 năm.',
           r: 12.5,
           orbitR: 215,
           orbitSpeed: 0.004,
@@ -1418,8 +1699,13 @@
           dist: '9.58 AU (1,43 tỷ km)',
           period: '29,45 năm',
           temp: '134 K (-139 °C)',
-          tilt: '26.73°',
+          gravity: '10,44 m/s² (1,06 g)',
+          escape: '35,5 km/s',
+          mass: '95,2 M⊕ (5,68×10²⁶ kg)',
+          tilt: '26,73°',
           rotation: '10,7 giờ',
+          comp: '96% Hydro, 3% Heli',
+          fact: 'Hành tinh duy nhất có khối lượng riêng nhẹ hơn nước (0,687 g/cm³), có thể nổi trên đại dương.',
           r: 10.2,
           orbitR: 275,
           orbitSpeed: 0.0028,
@@ -1436,8 +1722,13 @@
           dist: '19.22 AU (2,87 tỷ km)',
           period: '84,01 năm',
           temp: '76 K (-197 °C)',
-          tilt: '97.77° (Lăn ngang)',
+          gravity: '8,69 m/s² (0,89 g)',
+          escape: '21,3 km/s',
+          mass: '14,5 M⊕ (8,68×10²⁵ kg)',
+          tilt: '97,77° (Lăn ngang quỹ đạo)',
           rotation: '-17,24 giờ',
+          comp: '83% Hydro, 15% Heli, 2,3% CH₄',
+          fact: 'Trục nghiêng 97,77° khiến các cực lần lượt hướng về Mặt Trời trong 42 năm liên tục.',
           r: 7.5,
           orbitR: 335,
           orbitSpeed: 0.0018,
@@ -1454,8 +1745,13 @@
           dist: '30.05 AU (4,50 tỷ km)',
           period: '164,8 năm',
           temp: '72 K (-201 °C)',
-          tilt: '28.32°',
+          gravity: '11,15 m/s² (1,14 g)',
+          escape: '23,5 km/s',
+          mass: '17,1 M⊕ (1,02×10²⁶ kg)',
+          tilt: '28,32°',
           rotation: '16,11 giờ',
+          comp: '80% Hydro, 19% Heli, 1,5% CH₄',
+          fact: 'Nơi có gió giật mạnh nhất Hệ Mặt Trời (lên tới 2.100 km/h, vượt vận tốc âm thanh).',
           r: 7.2,
           orbitR: 390,
           orbitSpeed: 0.0012,
@@ -1681,6 +1977,30 @@
         document.getElementById('compassNeedle').style.transform = 'rotate(' + (-deg) + 'deg)';
       }
 
+      function updateLiveAltitude() {
+        var focusEl = document.getElementById('liveFocusName');
+        var altEl = document.getElementById('liveAlt');
+        if (!currentTarget) {
+          focusEl.textContent = 'Toàn Cảnh Hệ Mặt Trời';
+          altEl.textContent = '35,0 AU';
+          return;
+        }
+        focusEl.textContent = currentTarget.name;
+        var distUnits = camera.position.distanceTo(currentTarget.mesh.position);
+        var surfUnits = Math.max(0.1, distUnits - currentTarget.r);
+        var rawDiam = parseFloat(currentTarget.diameter.replace(/\./g, ''));
+        var kmScale = rawDiam / (currentTarget.r * 2);
+        var altKm = Math.round(surfUnits * kmScale);
+        if (altKm < 2000) {
+          altEl.textContent = altKm.toLocaleString('vi-VN') + ' km (LEO)';
+        } else if (altKm < 60000) {
+          altEl.textContent = altKm.toLocaleString('vi-VN') + ' km (GEO)';
+        } else {
+          var auVal = (altKm / 149597870.7).toFixed(2);
+          altEl.textContent = auVal + ' AU';
+        }
+      }
+
       function selectPlanet(b, animate) {
         currentTarget = b;
         document.querySelectorAll('.planet-btn').forEach(function(btn) {
@@ -1694,8 +2014,13 @@
         document.getElementById('cardDist').textContent = b.dist;
         document.getElementById('cardPeriod').textContent = b.period;
         document.getElementById('cardTemp').textContent = b.temp;
+        document.getElementById('cardGravity').textContent = b.gravity || 'N/A';
+        document.getElementById('cardEscape').textContent = b.escape || 'N/A';
+        document.getElementById('cardMass').textContent = b.mass || 'N/A';
         document.getElementById('cardTilt').textContent = b.tilt;
         document.getElementById('cardRotation').textContent = b.rotation;
+        document.getElementById('cardComp').textContent = b.comp || 'N/A';
+        document.getElementById('cardFact').textContent = b.fact || '';
 
         var targetCenter = b.mesh.position.clone();
         var zoomDist = b.id === 'sun' ? 65 : b.r * 3.4;
@@ -1720,7 +2045,7 @@
       }
 
       var navBar = document.getElementById('navBar');
-      celestialBodies.forEach(function(b) {
+      celestialBodies.forEach(function(b, idx) {
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'planet-btn' + (b.id === 'earth' ? ' active' : '');
@@ -1728,6 +2053,7 @@
         btn.innerHTML = '<span>' + b.symbol + '</span><span>' + b.name + '</span>';
         btn.addEventListener('click', function() {
           isTouring = false;
+          document.getElementById('btnTour').textContent = 'Du hành: Tắt';
           document.getElementById('btnTour').classList.remove('active');
           selectPlanet(b, true);
         });
@@ -1768,6 +2094,7 @@
       canvas.addEventListener('click', function() {
         if (hoveredBody) {
           isTouring = false;
+          document.getElementById('btnTour').textContent = 'Du hành: Tắt';
           document.getElementById('btnTour').classList.remove('active');
           selectPlanet(hoveredBody, true);
         }
@@ -1818,6 +2145,12 @@
         this.classList.toggle('active', orbitLineGroup.visible);
       });
 
+      document.getElementById('btnEcliptic').addEventListener('click', function() {
+        eclipticGrid.visible = !eclipticGrid.visible;
+        this.textContent = eclipticGrid.visible ? 'Hoàng đạo: Bật' : 'Hoàng đạo: Tắt';
+        this.classList.toggle('active', eclipticGrid.visible);
+      });
+
       document.getElementById('btnLandmarks').addEventListener('click', function() {
         landmarksEnabled = !landmarksEnabled;
         this.textContent = landmarksEnabled ? 'Điểm mốc: Bật' : 'Điểm mốc: Tắt';
@@ -1827,6 +2160,7 @@
       document.getElementById('btnTour').addEventListener('click', function() {
         isTouring = !isTouring;
         this.classList.toggle('active', isTouring);
+        this.textContent = isTouring ? 'Du hành: Bật' : 'Du hành: Tắt';
         if (isTouring) {
           tourIndex = 0;
           tourTimer = 0;
@@ -1864,6 +2198,23 @@
         flightEndTarget.set(0, 0, 0);
         flightStartTime = performance.now();
         isFlying = true;
+      });
+
+      document.getElementById('btnToggleCard').addEventListener('click', function() {
+        var card = document.getElementById('planetCard');
+        card.classList.toggle('collapsed');
+        this.textContent = card.classList.contains('collapsed') ? '+' : '_';
+      });
+
+      var helpModal = document.getElementById('helpModal');
+      document.getElementById('btnHelp').addEventListener('click', function() {
+        helpModal.style.display = 'flex';
+      });
+      document.getElementById('btnCloseHelp').addEventListener('click', function() {
+        helpModal.style.display = 'none';
+      });
+      helpModal.addEventListener('click', function(e) {
+        if (e.target === helpModal) helpModal.style.display = 'none';
       });
 
       document.getElementById('compassDial').addEventListener('click', function() {
@@ -1936,12 +2287,23 @@
 
       window.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-          document.getElementById('btnReset').click();
+          if (helpModal.style.display === 'flex') {
+            helpModal.style.display = 'none';
+          } else {
+            document.getElementById('btnReset').click();
+          }
         } else if (e.key === ' ') {
           document.getElementById('btnPause').click();
         } else if (e.key === 'z' || e.key === 'Z') {
           if (isZenMode) document.getElementById('btnExitZen').click();
           else document.getElementById('btnZen').click();
+        } else if (e.key === 'h' || e.key === 'H' || e.key === '?') {
+          helpModal.style.display = (helpModal.style.display === 'flex' ? 'none' : 'flex');
+        } else if (e.key >= '1' && e.key <= '9') {
+          var num = parseInt(e.key, 10);
+          if (num <= celestialBodies.length) {
+            selectPlanet(celestialBodies[num - 1], true);
+          }
         }
       });
 
@@ -1989,6 +2351,7 @@
         controls.update();
         updateCompass();
         updateLandmarkTags();
+        updateLiveAltitude();
 
         composer.render();
       }
