@@ -553,7 +553,7 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                     title="Mở toàn màn hình mô phỏng Hệ Mặt Trời 3D Siêu Thực 2K"
                   >
                     <Sparkles className="w-3.5 h-3.5" />
-                    <span>Bản 2K Siêu Thực</span>
+                    <span>Bản Siêu Thực</span>
                   </a>
 
                   <button
@@ -1077,9 +1077,21 @@ export const ClubsView: React.FC<ClubsViewProps> = ({
                         <Globe className="w-4 h-4 text-indigo-400" />
                         <span className="font-bold text-[#f4f1de] text-xs sm:text-sm">Trạm Tương Tác Hệ Mặt Trời 3D</span>
                       </div>
-                      <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-400/30">
-                        Khám phá trực quan
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href="/solar-system-photorealistic.html"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] font-bold text-amber-300 bg-amber-500/20 hover:bg-amber-400 hover:text-black px-2 py-0.5 rounded border border-amber-400/30 transition-all flex items-center gap-1 no-underline"
+                          title="Mở toàn màn hình mô phỏng Hệ Mặt Trời 3D Siêu Thực 2K"
+                        >
+                          <Sparkles className="w-3 h-3" />
+                          <span>Bản Siêu Thực</span>
+                        </a>
+                        <span className="text-[10px] font-mono text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded border border-indigo-400/30">
+                          Khám phá trực quan
+                        </span>
+                      </div>
                     </div>
                     <div className="relative w-full h-64 sm:h-80 rounded-xl overflow-hidden bg-black border border-white/10">
                       <iframe
