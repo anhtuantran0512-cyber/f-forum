@@ -55,7 +55,7 @@
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 16px;
       padding: 12px 20px;
-      max-width: 440px;
+      max-width: 460px;
       box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
     }
     .hud-title {
@@ -89,7 +89,7 @@
       position: absolute;
       right: 20px;
       top: 20px;
-      width: 290px;
+      width: 300px;
       background: rgba(3, 7, 18, 0.78);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
@@ -147,7 +147,7 @@
       display: flex;
       flex-wrap: wrap;
       gap: 6px;
-      max-width: 440px;
+      max-width: 480px;
       background: rgba(3, 7, 18, 0.72);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -476,7 +476,7 @@
         <span class="hud-badge">Google Earth 3D</span>
       </div>
       <div class="hud-sub">
-        Mô phỏng đa tầng quang học: Đèn đêm thành phố, biển phản quang ánh nắng, địa hình bump 3D, bão plasma Mặt Trời và mây trôi độc lập. Click đúp vào bề mặt để zoom sát điểm hạ cánh.
+        Kiến trúc đa tầng quang học: Đèn đêm thành phố, biển phản quang ánh nắng, địa hình bump 3D, bão plasma Mặt Trời và mây trôi độc lập. Click đúp vào bề mặt để zoom sát điểm hạ cánh.
       </div>
     </header>
 
@@ -671,7 +671,7 @@
       scene.add(ambientLight);
 
       var starGeo = new THREE.BufferGeometry();
-      var starCount = 18000;
+      var starCount = 20000;
       var starPositions = new Float32Array(starCount * 3);
       var starColors = new Float32Array(starCount * 3);
       var starColorPalette = [
@@ -704,7 +704,7 @@
       });
       scene.add(new THREE.Points(starGeo, starMat));
 
-      var asteroidCount = 1400;
+      var asteroidCount = 1500;
       var asteroidGeo = new THREE.DodecahedronGeometry(0.55, 1);
       var asteroidMat = new THREE.MeshStandardMaterial({
         color: 0x887766,
@@ -976,26 +976,29 @@
       var earthCloudMesh = new THREE.Mesh(new THREE.SphereGeometry(6.4 * 1.012, 64, 64), cloudMat);
       earthMesh.add(earthCloudMesh);
 
-      var earthAtmosphereMat = new THREE.ShaderMaterial({
-        vertexShader: [
-          'varying vec3 vNormal;',
-          'void main() {',
-          '  vNormal = normalize(normalMatrix * normal);',
-          '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
-          '}'
-        ].join('\n'),
-        fragmentShader: [
-          'varying vec3 vNormal;',
-          'void main() {',
-          '  float intensity = pow(0.72 - dot(vNormal, vec3(0, 0, 1.0)), 2.6);',
-          '  gl_FragColor = vec4(0.25, 0.65, 1.0, 1.0) * intensity * 1.5;',
-          '}'
-        ].join('\n'),
-        side: THREE.BackSide,
-        blending: THREE.AdditiveBlending,
-        transparent: true
-      });
-      var earthAtmoMesh = new THREE.Mesh(new THREE.SphereGeometry(6.4 * 1.15, 48, 48), earthAtmosphereMat);
+      function createAtmosphereShader(colorVec, rimPow, glowMult) {
+        return new THREE.ShaderMaterial({
+          vertexShader: [
+            'varying vec3 vNormal;',
+            'void main() {',
+            '  vNormal = normalize(normalMatrix * normal);',
+            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+            '}'
+          ].join('\n'),
+          fragmentShader: [
+            'varying vec3 vNormal;',
+            'void main() {',
+            '  float intensity = pow(0.72 - dot(vNormal, vec3(0, 0, 1.0)), ' + rimPow.toFixed(1) + ');',
+            '  gl_FragColor = vec4(' + colorVec + ', 1.0) * intensity * ' + glowMult.toFixed(2) + ';',
+            '}'
+          ].join('\n'),
+          side: THREE.BackSide,
+          blending: THREE.AdditiveBlending,
+          transparent: true
+        });
+      }
+
+      var earthAtmoMesh = new THREE.Mesh(new THREE.SphereGeometry(6.4 * 1.15, 48, 48), createAtmosphereShader('0.25, 0.65, 1.0', 2.6, 1.5));
       earthMesh.add(earthAtmoMesh);
 
       var moonTex = generateSphereTexture(512, 256, function(sx, sy, sz, x, y, w, h, rgb) {
@@ -1066,6 +1069,8 @@
         metalness: 0.05
       });
       var venusMesh = new THREE.Mesh(new THREE.SphereGeometry(6.1, 48, 48), venusMat);
+      var venusAtmoRim = new THREE.Mesh(new THREE.SphereGeometry(6.1 * 1.12, 48, 48), createAtmosphereShader('0.9, 0.75, 0.35', 2.8, 1.2));
+      venusMesh.add(venusAtmoRim);
 
       var marsTex = generateSphereTexture(512, 256, function(sx, sy, sz, x, y, w, h, rgb) {
         var base = fbm3(sx * 3.0, sy * 3.0, sz * 3.0, 5);
@@ -1100,6 +1105,19 @@
           metalness: 0.08
         })
       );
+      var marsAtmoRim = new THREE.Mesh(new THREE.SphereGeometry(4.3 * 1.08, 48, 48), createAtmosphereShader('0.85, 0.45, 0.25', 3.0, 0.8));
+      marsMesh.add(marsAtmoRim);
+
+      var marsMoons = [
+        { name: 'Phobos', r: 0.45, dist: 7.2, speed: 0.045, color: 0x9ca3af, angle: 0 },
+        { name: 'Deimos', r: 0.35, dist: 11.5, speed: 0.028, color: 0x6b7280, angle: 2.1 }
+      ];
+      marsMoons.forEach(function(mm) {
+        var mMat = new THREE.MeshStandardMaterial({ color: mm.color, roughness: 0.95 });
+        var mMesh = new THREE.Mesh(new THREE.DodecahedronGeometry(mm.r, 1), mMat);
+        scene.add(mMesh);
+        mm.mesh = mMesh;
+      });
 
       var jupiterTex = generateSphereTexture(1024, 512, function(sx, sy, sz, x, y, w, h, rgb) {
         var warp = fbm3(sx * 4.0, sy * 4.0, sz * 4.0, 4) * 0.15;
@@ -1128,6 +1146,8 @@
           metalness: 0.05
         })
       );
+      var jupiterAtmoRim = new THREE.Mesh(new THREE.SphereGeometry(12.5 * 1.08, 48, 48), createAtmosphereShader('0.85, 0.65, 0.4', 2.8, 0.95));
+      jupiterMesh.add(jupiterAtmoRim);
 
       var galileanMoons = [
         { name: 'Io', r: 1.1, dist: 18, speed: 0.035, color: 0xeab308, angle: 0 },
@@ -1160,6 +1180,8 @@
           metalness: 0.05
         })
       );
+      var saturnAtmoRim = new THREE.Mesh(new THREE.SphereGeometry(10.2 * 1.08, 48, 48), createAtmosphereShader('0.9, 0.78, 0.5', 2.8, 0.9));
+      saturnMesh.add(saturnAtmoRim);
 
       var ringCanvas = createOffscreenCanvas(256, 1);
       var ringCtx = ringCanvas.getContext('2d');
@@ -1219,6 +1241,19 @@
         })
       );
       uranusMesh.rotation.z = Math.PI * 0.54;
+      var uranusAtmoRim = new THREE.Mesh(new THREE.SphereGeometry(7.5 * 1.1, 48, 48), createAtmosphereShader('0.4, 0.85, 0.9', 2.8, 1.1));
+      uranusMesh.add(uranusAtmoRim);
+
+      var uranusMoons = [
+        { name: 'Titania', r: 0.8, dist: 15, speed: 0.02, color: 0xcfd8dc, angle: 0.8 },
+        { name: 'Oberon', r: 0.75, dist: 20, speed: 0.014, color: 0xb0bec5, angle: 3.5 }
+      ];
+      uranusMoons.forEach(function(um) {
+        var uMat = new THREE.MeshStandardMaterial({ color: um.color, roughness: 0.9 });
+        var uMesh = new THREE.Mesh(new THREE.SphereGeometry(um.r, 20, 20), uMat);
+        scene.add(uMesh);
+        um.mesh = uMesh;
+      });
 
       var neptuneTex = generateSphereTexture(512, 256, function(sx, sy, sz, x, y, w, h, rgb) {
         var band = Math.sin(sy * 20.0 + fbm3(sx * 4.0, sy * 4.0, sz * 4.0, 3) * 1.5) * 14;
@@ -1238,6 +1273,12 @@
           metalness: 0.05
         })
       );
+      var neptuneAtmoRim = new THREE.Mesh(new THREE.SphereGeometry(7.2 * 1.1, 48, 48), createAtmosphereShader('0.2, 0.5, 1.0', 2.8, 1.25));
+      neptuneMesh.add(neptuneAtmoRim);
+
+      var tritonMat = new THREE.MeshStandardMaterial({ color: 0x90caf9, roughness: 0.88 });
+      var tritonMesh = new THREE.Mesh(new THREE.SphereGeometry(1.2, 24, 24), tritonMat);
+      scene.add(tritonMesh);
 
       var celestialBodies = [
         {
@@ -1520,7 +1561,7 @@
           }
         });
 
-        earthCloudMesh.rotation.y += 0.0003;
+        earthCloudMesh.rotation.y += 0.00035;
 
         var earthPos = earthMesh.position;
         if (!isPaused) {
@@ -1530,6 +1571,16 @@
         var mz = earthPos.z + Math.sin(orbitAngles['moon']) * 14;
         moonMesh.position.set(mx, 1.2 * Math.sin(orbitAngles['moon']), mz);
         moonMesh.rotation.y += 0.005;
+
+        var marsPos = marsMesh.position;
+        marsMoons.forEach(function(mm) {
+          if (!isPaused) {
+            mm.angle += mm.speed * delta * speedMultiplier;
+          }
+          var phx = marsPos.x + Math.cos(mm.angle) * mm.dist;
+          var phz = marsPos.z + Math.sin(mm.angle) * mm.dist;
+          mm.mesh.position.set(phx, 0.4 * Math.sin(mm.angle), phz);
+        });
 
         galileanMoons.forEach(function(gm) {
           if (!isPaused) {
@@ -1546,6 +1597,24 @@
         var sx = saturnMesh.position.x + Math.cos(orbitAngles['titan'] || 0) * 32;
         var sz = saturnMesh.position.z + Math.sin(orbitAngles['titan'] || 0) * 32;
         titanMesh.position.set(sx, 1.5 * Math.sin(orbitAngles['titan'] || 0), sz);
+
+        var uranusPos = uranusMesh.position;
+        uranusMoons.forEach(function(um) {
+          if (!isPaused) {
+            um.angle += um.speed * delta * speedMultiplier;
+          }
+          var ux = uranusPos.x + Math.cos(um.angle) * um.dist;
+          var uz = uranusPos.z + Math.sin(um.angle) * um.dist;
+          um.mesh.position.set(ux, 0.3 * Math.sin(um.angle), uz);
+        });
+
+        var neptunePos = neptuneMesh.position;
+        if (!isPaused) {
+          orbitAngles['triton'] = (orbitAngles['triton'] || 0) - 0.02 * delta * speedMultiplier;
+        }
+        var tx = neptunePos.x + Math.cos(orbitAngles['triton'] || 0) * 16;
+        var tz = neptunePos.z + Math.sin(orbitAngles['triton'] || 0) * 16;
+        tritonMesh.position.set(tx, 1.2 * Math.sin(orbitAngles['triton'] || 0), tz);
 
         if (!isPaused) {
           for (var a = 0; a < asteroidCount; a++) {
