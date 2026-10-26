@@ -24,28 +24,50 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
+  /* Warm Editorial + Soft Neo-Brutalism + Swiss Grid Tokens */
+  --bg-paper: #FAF7F2;
+  --bg-parchment: #F2ECE1;
+  --bg-elevated: #EBE3D5;
+  --ink-primary: #2C2623;
+  --ink-secondary: #5C534E;
+  --ink-muted: #8C827A;
+  --accent-terracotta: #D95D39;
+  --accent-mustard: #E6AA28;
+  --accent-forest: #2E5A44;
+  --accent-cobalt: #2B4C7E;
+  --border-grid: 1.5px solid #2C2623;
+  --border-double: 3px double #2C2623;
+  --shadow-brutal: 4px 4px 0px #2C2623;
+  --shadow-brutal-sm: 2px 2px 0px #2C2623;
+  --shadow-brutal-hover: 6px 6px 0px #2C2623;
+  --radius-soft: 6px;
+
+  --font-display: 'Newsreader', 'Playfair Display', 'Fraunces', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, monospace;
+
   /* Design System Tokens — Nhiemvu_9 (Phase 1–5) */
   --navbar-height: 76px;
-  --bg-base: #0b0d12;
-  --surface-base: #11151d;
-  --surface-elevated: #161b27;
-  --surface-overlay: #1d2430;
-  --surface-active: rgba(242, 204, 143, 0.14);
-  --border-subtle: rgba(244, 241, 222, 0.13);
-  --text-primary: #f4f1de;
-  --text-secondary: #b5b2a9;
-  --accent-gold: #f2cc8f;
-  --accent-terracotta: #e07a5f;
-  --accent-sage: #81b29a;
-  --success-glow: #81b29a;
-  --ff-ui-radius-card: 1rem;
-  --ff-ui-radius-control: 0.75rem;
-  --ff-ui-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --ff-ui-focus: rgba(242, 204, 143, 0.78);
-  --ff-ui-card-shadow: 3px 3px 0 rgba(4, 6, 11, 0.68), inset 0 1px 0 rgba(244, 241, 222, 0.055);
-  --ff-ui-card-hover-shadow: 0 12px 28px rgba(0, 0, 0, 0.23), 3px 3px 0 rgba(4, 6, 11, 0.58), inset 0 1px 0 rgba(244, 241, 222, 0.07);
-  --ff-btn-shadow: #05070a;
-  color-scheme: dark;
+  --bg-base: #FAF7F2;
+  --surface-base: #FAF7F2;
+  --surface-elevated: #F2ECE1;
+  --surface-overlay: #EBE3D5;
+  --surface-active: rgba(230, 170, 40, 0.14);
+  --border-subtle: #2C2623;
+  --text-primary: #2C2623;
+  --text-secondary: #5C534E;
+  --accent-gold: #E6AA28;
+  --accent-terracotta: #D95D39;
+  --accent-sage: #2E5A44;
+  --success-glow: #2E5A44;
+  --ff-ui-radius-card: 6px;
+  --ff-ui-radius-control: 4px;
+  --ff-ui-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ff-ui-focus: #D95D39;
+  --ff-ui-card-shadow: 4px 4px 0px #2C2623;
+  --ff-ui-card-hover-shadow: 6px 6px 0px #2C2623;
+  --ff-btn-shadow: 2px 2px 0px #2C2623;
+  color-scheme: light;
 }
 
 ::view-transition-old(root),

@@ -21,36 +21,36 @@
  */
 
 :root {
-  --ff-ds-bg-deep: #0b0d12;
-  --ff-ds-bg-elevated: #121620;
-  --ff-ds-bg-card: #151a26;
-  --ff-ds-ink-primary: #f8f7f4;
-  --ff-ds-ink-secondary: #dad7d0;
-  --ff-ds-ink-muted: #a39f96;
-  --ff-ds-text-primary: #f8f7f4;
-  --ff-ds-text-secondary: #dad7d0;
-  --ff-ds-text-muted: #a39f96;
+  --ff-ds-bg-deep: #FAF7F2;
+  --ff-ds-bg-elevated: #F2ECE1;
+  --ff-ds-bg-card: #FAF7F2;
+  --ff-ds-ink-primary: #2C2623;
+  --ff-ds-ink-secondary: #5C534E;
+  --ff-ds-ink-muted: #8C827A;
+  --ff-ds-text-primary: #2C2623;
+  --ff-ds-text-secondary: #5C534E;
+  --ff-ds-text-muted: #8C827A;
 
   /* 10. Academic Library Palette (Warm Ivory, Library Sage, Academic Gold, Muted Terracotta) */
-  --ff-ds-organic-terracotta: #d97757;
-  --ff-ds-organic-sage: #81b29a;
-  --ff-ds-organic-cream: #f8f7f4;
-  --ff-ds-organic-sand: #e9c46a;
+  --ff-ds-organic-terracotta: #D95D39;
+  --ff-ds-organic-sage: #2E5A44;
+  --ff-ds-organic-cream: #FAF7F2;
+  --ff-ds-organic-sand: #E6AA28;
 
   /* 6. Clean Digital Library Accents (Zero Rainbow Gradients) */
-  --ff-ds-scifi-cyan: #81b29a;
-  --ff-ds-scifi-violet: #e9c46a;
-  --ff-ds-scifi-emerald: #81b29a;
-  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(129, 178, 154, 0.16) 0%, rgba(233, 196, 106, 0.14) 100%);
+  --ff-ds-scifi-cyan: #2E5A44;
+  --ff-ds-scifi-violet: #E6AA28;
+  --ff-ds-scifi-emerald: #2E5A44;
+  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(46, 90, 68, 0.16) 0%, rgba(230, 170, 40, 0.14) 100%);
 
   /* 3. Structured Academic Border & Composed Shadow */
-  --ff-ds-brutal-shadow: 0 6px 22px -6px rgba(0, 0, 0, 0.45), 2px 2px 0px rgba(4, 6, 11, 0.75);
-  --ff-ds-brutal-shadow-sm: 1.5px 1.5px 0px rgba(4, 6, 11, 0.72);
-  --ff-ds-brutal-border: rgba(248, 247, 244, 0.16);
+  --ff-ds-brutal-shadow: 4px 4px 0px #2C2623;
+  --ff-ds-brutal-shadow-sm: 2px 2px 0px #2C2623;
+  --ff-ds-brutal-border: #2C2623;
 
   /* 8. Apple / Notion Calm Micro-Interaction Curves */
-  --ff-ds-spring: cubic-bezier(0.22, 1, 0.36, 1);
-  --ff-ds-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --ff-ds-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ff-ds-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 html.light {

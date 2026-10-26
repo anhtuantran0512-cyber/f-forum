@@ -41,7 +41,8 @@ body {
 .ff-app-shell:not(.ff-view-landing) .layer-gradient-aura,
 .ff-app-shell:not(.ff-view-landing) .aura-blob,
 .ff-app-shell:not(.ff-view-landing) .ff-godray-layer,
-.ff-app-shell:not(.ff-view-landing) .ff-fabulous-stage {
+.ff-app-shell:not(.ff-view-landing) .ff-fabulous-stage,
+.ff-app-shell:not(.ff-view-landing) .ff-clubs-bg > div {
   display: none !important;
 }
 
@@ -296,17 +297,7 @@ p.editorial-dropcap-para::first-letter {
   background: var(--bg-parchment);
 }
 
-.ff-app-shell:not(.ff-view-landing) :is(
-  .liquid-glass,
-  .obsidian-glass,
-  .glass-panel,
-  .backdrop-blur-md,
-  .backdrop-blur-xl,
-  .backdrop-blur-lg,
-  .backdrop-blur-sm,
-  .backdrop-blur-2xl,
-  .backdrop-blur-3xl
-) {
+.ff-app-shell:not(.ff-view-landing) * {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -326,7 +317,10 @@ p.editorial-dropcap-para::first-letter {
   .pc-12-well,
   .ff-chat-workspace,
   .ff-daily-attendance,
-  .faa-shell
+  .faa-shell,
+  .club-plaza-page,
+  .threads-page,
+  .qa-forum-page
 ) {
   background-color: var(--bg-paper) !important;
   border: 1.5px solid var(--ink-primary) !important;
@@ -487,4 +481,20 @@ p.editorial-dropcap-para::first-letter {
   color: var(--bg-paper) !important;
   font-family: var(--font-display) !important;
   font-weight: 800 !important;
+}
+
+.ff-app-shell:not(.ff-view-landing) ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.ff-app-shell:not(.ff-view-landing) ::-webkit-scrollbar-track {
+  background: var(--bg-parchment);
+  border-left: 1px solid var(--ink-primary);
+}
+.ff-app-shell:not(.ff-view-landing) ::-webkit-scrollbar-thumb {
+  background: var(--ink-primary);
+  border-radius: 0px;
+}
+.ff-app-shell:not(.ff-view-landing) ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-terracotta);
 }
