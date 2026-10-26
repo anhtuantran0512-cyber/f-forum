@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mô Phỏng Hệ Mặt Trời Siêu Thực (Photorealistic NASA) · Three.js PBR Engine</title>
+  <title>Mô Phỏng Hệ Mặt Trời Siêu Thực Full-HD · Three.js NASA PBR Engine</title>
   <style>
     * {
       box-sizing: border-box;
@@ -16,7 +16,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #000002;
+      background: #000003;
       color: #f1f5f9;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     }
@@ -41,14 +41,14 @@
     }
     .hud-header {
       pointer-events: auto;
-      background: rgba(10, 14, 23, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      padding: 14px 20px;
-      border-radius: 16px;
-      max-width: 440px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      background: rgba(8, 12, 22, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      padding: 14px 22px;
+      border-radius: 18px;
+      max-width: 480px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
     }
     .hud-title {
       font-size: 15px;
@@ -73,21 +73,21 @@
     .hud-sub {
       font-size: 11px;
       color: #94a3b8;
-      margin-top: 4px;
-      line-height: 1.4;
+      margin-top: 5px;
+      line-height: 1.45;
     }
     .hud-card {
       position: absolute;
       top: 20px;
       right: 20px;
-      width: 320px;
-      background: rgba(10, 14, 23, 0.82);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-radius: 18px;
-      padding: 18px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+      width: 330px;
+      background: rgba(8, 12, 22, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8);
       pointer-events: auto;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
@@ -100,25 +100,25 @@
       margin-bottom: 12px;
     }
     .hud-card-title {
-      font-size: 18px;
+      font-size: 19px;
       font-weight: 800;
       color: #ffffff;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
     }
     .hud-card-type {
-      font-size: 10.5px;
+      font-size: 11px;
       color: #38bdf8;
       font-family: ui-monospace, monospace;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
     }
     .telemetry-row {
       display: flex;
       justify-content: space-between;
-      font-size: 11px;
-      padding: 5px 0;
-      border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+      font-size: 11.5px;
+      padding: 6px 0;
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
     }
     .telemetry-label {
       color: #64748b;
@@ -133,15 +133,15 @@
       align-self: center;
       display: flex;
       gap: 6px;
-      background: rgba(10, 14, 23, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(8, 12, 22, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.16);
       padding: 6px 10px;
-      border-radius: 18px;
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      border-radius: 20px;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       overflow-x: auto;
       max-width: calc(100vw - 40px);
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
     }
     .nav-btn {
       background: transparent;
@@ -150,7 +150,7 @@
       padding: 7px 12px;
       font-size: 11.5px;
       font-weight: 600;
-      border-radius: 10px;
+      border-radius: 12px;
       cursor: pointer;
       white-space: nowrap;
       transition: all 0.2s ease;
@@ -163,10 +163,10 @@
       color: #ffffff;
     }
     .nav-btn.active {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.15));
-      border-color: rgba(245, 158, 11, 0.5);
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.28), rgba(217, 119, 6, 0.18));
+      border-color: rgba(245, 158, 11, 0.55);
       color: #fef08a;
-      box-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+      box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
     }
     .controls-panel {
       position: absolute;
@@ -174,24 +174,28 @@
       left: 20px;
       pointer-events: auto;
       display: flex;
+      flex-wrap: wrap;
       gap: 8px;
     }
     .ctrl-btn {
-      background: rgba(10, 14, 23, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(8, 12, 22, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.14);
       color: #94a3b8;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 600;
       padding: 8px 14px;
       border-radius: 12px;
       cursor: pointer;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(16px);
       transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     .ctrl-btn:hover, .ctrl-btn.active {
       color: #38bdf8;
-      border-color: rgba(56, 189, 248, 0.4);
-      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.45);
+      background: rgba(56, 189, 248, 0.14);
     }
     @media (max-width: 768px) {
       .hud-header { max-width: 100%; font-size: 13px; }
@@ -230,10 +234,10 @@
     <header class="hud-header">
       <div class="hud-title">
         <span>NASA Photorealistic Solar Engine</span>
-        <span class="hud-badge">PBR &amp; Shaders</span>
+        <span class="hud-badge">Full-HD PBR</span>
       </div>
       <div class="hud-sub">
-        Mô phỏng vật lý thiên văn: Quỹ đạo elip Kepler, độ nghiêng trục chuẩn, ranh giới ngày-đêm sắc nét, khí quyển Fresnel và quầng sáng quang sai Mặt Trời.
+        Động cơ mô phỏng siêu thực: 8 hành tinh PBR độ phân giải cao, Trái Đất ngày-đêm đèn đô thị, mây trôi độc lập, vành đai Sao Thổ Cassini, khí quyển Rayleigh và bão plasma Mặt Trời.
       </div>
     </header>
 
@@ -241,6 +245,7 @@
       <button type="button" id="btnPause" class="ctrl-btn">Tạm dừng</button>
       <button type="button" id="btnSpeed" class="ctrl-btn">Tốc độ: 1x</button>
       <button type="button" id="btnOrbits" class="ctrl-btn active">Quỹ đạo: Bật</button>
+      <button type="button" id="btnTour" class="ctrl-btn">Tự động du hành</button>
       <button type="button" id="btnReset" class="ctrl-btn">Toàn cảnh</button>
     </div>
 
@@ -248,7 +253,7 @@
       <div class="hud-card-header">
         <div class="hud-card-title">
           <span id="cardName">Mặt Trời</span>
-          <span id="cardSymbol" style="font-size:16px;">☀️</span>
+          <span id="cardSymbol" style="font-size:18px;">☀️</span>
         </div>
         <span class="hud-badge" id="cardBadge">STAR</span>
       </div>
@@ -282,20 +287,21 @@
     (function() {
       var canvas = document.getElementById('webgl-canvas');
       var scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x000003, 0.00015);
+      scene.fog = new THREE.FogExp2(0x000003, 0.00012);
 
-      var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 4000);
-      camera.position.set(0, 160, 320);
+      var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+      camera.position.set(0, 160, 340);
 
       var renderer = new THREE.WebGLRenderer({
         canvas: canvas,
         antialias: true,
-        powerPreference: 'high-performance'
+        powerPreference: 'high-performance',
+        alpha: false
       });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.15;
+      renderer.toneMappingExposure = 1.18;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -303,21 +309,21 @@
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
       controls.minDistance = 6;
-      controls.maxDistance = 1800;
+      controls.maxDistance = 2200;
       controls.maxPolarAngle = Math.PI * 0.95;
 
       var renderScene = new THREE.RenderPass(scene, camera);
       var bloomPass = new THREE.UnrealBloomPass(
         new THREE.Vector2(window.innerWidth, window.innerHeight),
-        1.35,
-        0.5,
-        0.75
+        1.45,
+        0.55,
+        0.72
       );
       var composer = new THREE.EffectComposer(renderer);
       composer.addPass(renderScene);
       composer.addPass(bloomPass);
 
-      var sunPointLight = new THREE.PointLight(0xffffff, 2.8, 2500, 0.4);
+      var sunPointLight = new THREE.PointLight(0xffffff, 3.2, 3000, 0.35);
       sunPointLight.position.set(0, 0, 0);
       sunPointLight.castShadow = true;
       sunPointLight.shadow.mapSize.width = 2048;
@@ -325,13 +331,13 @@
       sunPointLight.shadow.bias = -0.0001;
       scene.add(sunPointLight);
 
-      var ambientLight = new THREE.AmbientLight(0x0e1424, 0.035);
+      var ambientLight = new THREE.AmbientLight(0x090f1d, 0.038);
       scene.add(ambientLight);
 
       var textureLoader = new THREE.TextureLoader();
       textureLoader.setCrossOrigin('anonymous');
 
-      function createProceduralTexture(type, colorBase, secondary) {
+      function generateProceduralTexture(type, colorBase, secondary) {
         var cv = document.createElement('canvas');
         cv.width = 1024;
         cv.height = 512;
@@ -346,14 +352,14 @@
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, cv.width, cv.height);
 
-        for (var i = 0; i < 4000; i++) {
+        for (var i = 0; i < 4500; i++) {
           var x = Math.random() * cv.width;
           var y = Math.random() * cv.height;
           var r = Math.random() * (type === 'bands' ? 24 : 8) + 1;
-          ctx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.12) + ')';
+          ctx.fillStyle = 'rgba(255,255,255,' + (Math.random() * 0.14) + ')';
           ctx.beginPath();
           if (type === 'bands') {
-            ctx.ellipse(x, y, r * 4, r * 0.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, y, r * 4.5, r * 0.45, 0, 0, Math.PI * 2);
           } else {
             ctx.arc(x, y, r, 0, Math.PI * 2);
           }
@@ -367,7 +373,7 @@
 
       function loadPBRTexture(url, fallbackType, color1, color2) {
         var tex = textureLoader.load(url, undefined, undefined, function() {
-          var fb = createProceduralTexture(fallbackType, color1, color2);
+          var fb = generateProceduralTexture(fallbackType, color1, color2);
           tex.image = fb.image;
           tex.needsUpdate = true;
         });
@@ -375,47 +381,49 @@
         return tex;
       }
 
-      var starGeo = new THREE.SphereGeometry(1600, 64, 64);
+      var starGeo = new THREE.SphereGeometry(1800, 64, 64);
       var starMat = new THREE.MeshBasicMaterial({
         map: loadPBRTexture(
-          'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg',
+          'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/galaxy_starfield.png',
           'stars',
           '#000003',
           '#02040b'
         ),
         side: THREE.BackSide
       });
-      var skybox = new THREE.Mesh(starGeo, starMat);
-      scene.add(skybox);
+      scene.add(new THREE.Mesh(starGeo, starMat));
 
-      var starParticlesGeo = new THREE.BufferGeometry();
-      var starCount = 3500;
+      var starCount = 4200;
       var starPositions = new Float32Array(starCount * 3);
       var starColors = new Float32Array(starCount * 3);
       var pColor = new THREE.Color();
       for (var s = 0; s < starCount; s++) {
-        var r = 800 + Math.random() * 700;
+        var r = 900 + Math.random() * 800;
         var theta = Math.random() * Math.PI * 2;
         var phi = Math.acos((Math.random() * 2) - 1);
         starPositions[s * 3] = r * Math.sin(phi) * Math.cos(theta);
         starPositions[s * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
         starPositions[s * 3 + 2] = r * Math.cos(phi);
 
-        var hue = Math.random() > 0.8 ? 0.6 : (Math.random() > 0.6 ? 0.1 : 0.0);
-        pColor.setHSL(hue, 0.4, 0.7 + Math.random() * 0.3);
+        var starType = Math.random();
+        if (starType > 0.85) pColor.setHSL(0.6, 0.55, 0.85);
+        else if (starType > 0.65) pColor.setHSL(0.12, 0.6, 0.8);
+        else if (starType > 0.5) pColor.setHSL(0.04, 0.7, 0.75);
+        else pColor.setHSL(0.0, 0.0, 0.95);
+
         starColors[s * 3] = pColor.r;
         starColors[s * 3 + 1] = pColor.g;
         starColors[s * 3 + 2] = pColor.b;
       }
+      var starParticlesGeo = new THREE.BufferGeometry();
       starParticlesGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
       starParticlesGeo.setAttribute('color', new THREE.BufferAttribute(starColors, 3));
-      var starParticleMat = new THREE.PointsMaterial({
-        size: 1.8,
+      scene.add(new THREE.Points(starParticlesGeo, new THREE.PointsMaterial({
+        size: 1.85,
         vertexColors: true,
         transparent: true,
-        opacity: 0.85
-      });
-      scene.add(new THREE.Points(starParticlesGeo, starParticleMat));
+        opacity: 0.9
+      })));
 
       var sunVertexShader = [
         'varying vec2 vUv;',
@@ -479,18 +487,18 @@
         '  return 42.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));',
         '}',
         'void main() {',
-        '  float t = uTime * 0.18;',
-        '  float n1 = snoise(vPosition * 0.12 + vec3(0.0, t, 0.0));',
-        '  float n2 = snoise(vPosition * 0.28 - vec3(t * 0.8, 0.0, t * 0.4));',
+        '  float t = uTime * 0.16;',
+        '  float n1 = snoise(vPosition * 0.13 + vec3(0.0, t, 0.0));',
+        '  float n2 = snoise(vPosition * 0.3 - vec3(t * 0.8, 0.0, t * 0.5));',
         '  float plasma = clamp((n1 * 0.65 + n2 * 0.35 + 0.5), 0.0, 1.0);',
-        '  vec3 colDeep = vec3(0.95, 0.22, 0.02);',
-        '  vec3 colMid = vec3(1.0, 0.68, 0.08);',
-        '  vec3 colHot = vec3(1.0, 0.98, 0.85);',
-        '  vec3 col = mix(colDeep, colMid, smoothstep(0.15, 0.65, plasma));',
-        '  col = mix(col, colHot, smoothstep(0.65, 0.95, plasma));',
-        '  float fresnel = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 2.2);',
-        '  col += vec3(1.0, 0.45, 0.1) * fresnel * 1.8;',
-        '  gl_FragColor = vec4(col * 1.6, 1.0);',
+        '  vec3 colDeep = vec3(0.92, 0.18, 0.01);',
+        '  vec3 colMid = vec3(1.0, 0.65, 0.06);',
+        '  vec3 colHot = vec3(1.0, 0.98, 0.88);',
+        '  vec3 col = mix(colDeep, colMid, smoothstep(0.12, 0.62, plasma));',
+        '  col = mix(col, colHot, smoothstep(0.62, 0.96, plasma));',
+        '  float fresnel = pow(1.0 - max(dot(vNormal, vec3(0.0, 0.0, 1.0)), 0.0), 2.1);',
+        '  col += vec3(1.0, 0.48, 0.12) * fresnel * 2.0;',
+        '  gl_FragColor = vec4(col * 1.65, 1.0);',
         '}'
       ].join('\n');
 
@@ -499,64 +507,91 @@
         vertexShader: sunVertexShader,
         fragmentShader: sunFragmentShader
       });
-      var sunGeo = new THREE.SphereGeometry(18, 64, 64);
+      var sunGeo = new THREE.SphereGeometry(18.5, 64, 64);
       var sunMesh = new THREE.Mesh(sunGeo, sunMat);
       scene.add(sunMesh);
 
-      var coronaGeo = new THREE.SphereGeometry(21.5, 32, 32);
-      var coronaMat = new THREE.ShaderMaterial({
-        uniforms: { uTime: { value: 0.0 } },
-        vertexShader: [
-          'varying vec3 vNormal;',
-          'void main() {',
-          '  vNormal = normalize(normalMatrix * normal);',
-          '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
-          '}'
-        ].join('\n'),
-        fragmentShader: [
-          'varying vec3 vNormal;',
-          'void main() {',
-          '  float intensity = pow(0.7 - dot(vNormal, vec3(0, 0, 1.0)), 2.8);',
-          '  gl_FragColor = vec4(1.0, 0.55, 0.15, 1.0) * intensity * 2.2;',
-          '}'
-        ].join('\n'),
+      var coronaMesh = new THREE.Mesh(new THREE.SphereGeometry(22.2, 32, 32), new THREE.ShaderMaterial({
+        vertexShader: 'varying vec3 vNormal; void main() { vNormal = normalize(normalMatrix * normal); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+        fragmentShader: 'varying vec3 vNormal; void main() { float intensity = pow(0.72 - dot(vNormal, vec3(0, 0, 1.0)), 2.6); gl_FragColor = vec4(1.0, 0.58, 0.16, 1.0) * intensity * 2.4; }',
         blending: THREE.AdditiveBlending,
         side: THREE.BackSide,
         transparent: true
-      });
-      var coronaMesh = new THREE.Mesh(coronaGeo, coronaMat);
+      }));
       scene.add(coronaMesh);
 
       function createFresnelAtmosphere(radius, colorHex, intensity, falloff) {
-        var atmoGeo = new THREE.SphereGeometry(radius * 1.025, 64, 64);
-        var atmoMat = new THREE.ShaderMaterial({
-          uniforms: {
-            glowColor: { value: new THREE.Color(colorHex) },
-            viewVector: { value: camera.position }
-          },
-          vertexShader: [
-            'uniform vec3 viewVector;',
-            'varying float vIntensity;',
-            'void main() {',
-            '  vec3 vNormal = normalize(normalMatrix * normal);',
-            '  vec3 vNormel = normalize(normalMatrix * viewVector);',
-            '  vIntensity = pow(' + intensity.toFixed(2) + ' - dot(vNormal, vec3(0.0, 0.0, 1.0)), ' + falloff.toFixed(2) + ');',
-            '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
-            '}'
-          ].join('\n'),
-          fragmentShader: [
-            'uniform vec3 glowColor;',
-            'varying float vIntensity;',
-            'void main() {',
-            '  gl_FragColor = vec4(glowColor, 1.0) * vIntensity;',
-            '}'
-          ].join('\n'),
+        return new THREE.Mesh(new THREE.SphereGeometry(radius * 1.025, 64, 64), new THREE.ShaderMaterial({
+          uniforms: { glowColor: { value: new THREE.Color(colorHex) } },
+          vertexShader: 'varying float vIntensity; void main() { vec3 vNormal = normalize(normalMatrix * normal); vIntensity = pow(' + intensity.toFixed(2) + ' - dot(vNormal, vec3(0.0, 0.0, 1.0)), ' + falloff.toFixed(2) + '); gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+          fragmentShader: 'uniform vec3 glowColor; varying float vIntensity; void main() { gl_FragColor = vec4(glowColor, 1.0) * vIntensity; }',
           blending: THREE.AdditiveBlending,
           side: THREE.BackSide,
           transparent: true
-        });
-        return new THREE.Mesh(atmoGeo, atmoMat);
+        }));
       }
+
+      var earthDayTex = loadPBRTexture(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+        'earth',
+        '#1d4ed8',
+        '#047857'
+      );
+      var earthNightTex = loadPBRTexture(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_lights_2048.png',
+        'night',
+        '#000000',
+        '#f59e0b'
+      );
+      var earthNormalTex = loadPBRTexture(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg',
+        'normal',
+        '#8080ff',
+        '#8080ff'
+      );
+      var earthSpecularTex = loadPBRTexture(
+        'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg',
+        'specular',
+        '#ffffff',
+        '#222222'
+      );
+
+      var earthCustomMat = new THREE.ShaderMaterial({
+        uniforms: {
+          dayTexture: { value: earthDayTex },
+          nightTexture: { value: earthNightTex },
+          sunPosition: { value: new THREE.Vector3(0, 0, 0) }
+        },
+        vertexShader: [
+          'varying vec2 vUv;',
+          'varying vec3 vNormal;',
+          'varying vec3 vWorldPosition;',
+          'void main() {',
+          '  vUv = uv;',
+          '  vNormal = normalize((modelMatrix * vec4(normal, 0.0)).xyz);',
+          '  vec4 worldPos = modelMatrix * vec4(position, 1.0);',
+          '  vWorldPosition = worldPos.xyz;',
+          '  gl_Position = projectionMatrix * viewMatrix * worldPos;',
+          '}'
+        ].join('\n'),
+        fragmentShader: [
+          'uniform sampler2D dayTexture;',
+          'uniform sampler2D nightTexture;',
+          'uniform vec3 sunPosition;',
+          'varying vec2 vUv;',
+          'varying vec3 vNormal;',
+          'varying vec3 vWorldPosition;',
+          'void main() {',
+          '  vec3 lightDir = normalize(sunPosition - vWorldPosition);',
+          '  float dProd = dot(vNormal, lightDir);',
+          '  vec4 dayColor = texture2D(dayTexture, vUv);',
+          '  vec4 nightColor = texture2D(nightTexture, vUv) * vec4(1.4, 1.1, 0.8, 1.0);',
+          '  float dayWeight = smoothstep(-0.15, 0.25, dProd);',
+          '  vec4 finalColor = mix(nightColor, dayColor * max(dProd, 0.04), dayWeight);',
+          '  gl_FragColor = finalColor;',
+          '}'
+        ].join('\n')
+      });
 
       var planetConfigs = [
         {
@@ -573,7 +608,8 @@
           semiMajor: 34,
           eccentricity: 0.2056,
           orbitSpeed: 4.15,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/moon_1024.jpg',
+          map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/mercurymap.jpg',
+          bumpMap: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/mercurybump.jpg',
           roughness: 0.88,
           metalness: 0.12,
           color1: '#8c8c94',
@@ -593,7 +629,8 @@
           semiMajor: 52,
           eccentricity: 0.0067,
           orbitSpeed: 1.62,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/venus_atmosphere.jpg',
+          map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/venusmap.jpg',
+          bumpMap: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/venusbump.jpg',
           hasAtmo: true,
           atmoColor: 0xf59e0b,
           roughness: 0.65,
@@ -615,11 +652,10 @@
           semiMajor: 74,
           eccentricity: 0.0167,
           orbitSpeed: 1.0,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-          normalMap: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg',
-          specularMap: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_specular_2048.jpg',
+          customEarthShader: true,
           cloudsMap: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png',
           hasEarthClouds: true,
+          hasMoon: true,
           hasAtmo: true,
           atmoColor: 0x38bdf8,
           roughness: 0.55,
@@ -631,7 +667,7 @@
           id: 'mars',
           name: 'Sao Hỏa',
           symbol: '♂',
-          type: 'Hành tinh Đỏ (Oxide sắt & Hẻm núi Valles)',
+          type: 'Hành tinh Đỏ (Oxide sắt & Núi Olympus)',
           diameter: '6.779 km',
           distAu: '1.524 AU',
           period: '686.98 ngày',
@@ -641,7 +677,8 @@
           semiMajor: 98,
           eccentricity: 0.0934,
           orbitSpeed: 0.53,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mars_1024.jpg',
+          map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/marsmap1k.jpg',
+          bumpMap: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/marsbump1k.jpg',
           hasAtmo: true,
           atmoColor: 0xf97316,
           roughness: 0.82,
@@ -663,7 +700,7 @@
           semiMajor: 138,
           eccentricity: 0.0484,
           orbitSpeed: 0.22,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/jupiter_1024.jpg',
+          map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/jupitermap.jpg',
           roughness: 0.48,
           metalness: 0.02,
           color1: '#d97706',
@@ -684,7 +721,7 @@
           eccentricity: 0.0541,
           orbitSpeed: 0.12,
           hasSaturnRings: true,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/saturn_1024.jpg',
+          map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/saturnmap.jpg',
           roughness: 0.52,
           metalness: 0.02,
           color1: '#ca8a04',
@@ -704,7 +741,7 @@
           semiMajor: 228,
           eccentricity: 0.0472,
           orbitSpeed: 0.06,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/uranus_1024.jpg',
+          map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/uranusmap.jpg',
           hasAtmo: true,
           atmoColor: 0x38bdf8,
           roughness: 0.45,
@@ -726,7 +763,7 @@
           semiMajor: 274,
           eccentricity: 0.0086,
           orbitSpeed: 0.035,
-          map: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/neptune_1024.jpg',
+          map: 'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/neptunemap.jpg',
           hasAtmo: true,
           atmoColor: 0x60a5fa,
           roughness: 0.42,
@@ -740,7 +777,7 @@
       var orbitLines = [];
 
       function createSaturnRing(innerR, outerR) {
-        var ringGeo = new THREE.RingGeometry(innerR, outerR, 96);
+        var ringGeo = new THREE.RingGeometry(innerR, outerR, 128);
         var pos = ringGeo.attributes.position;
         var uvs = ringGeo.attributes.uv;
         for (var i = 0; i < pos.count; i++) {
@@ -753,17 +790,19 @@
         ringGeo.uvsNeedUpdate = true;
 
         var cv = document.createElement('canvas');
-        cv.width = 512;
-        cv.height = 16;
+        cv.width = 1024;
+        cv.height = 32;
         var ctx = cv.getContext('2d');
-        var grad = ctx.createLinearGradient(0, 0, 512, 0);
-        grad.addColorStop(0.0, 'rgba(160, 140, 110, 0.0)');
-        grad.addColorStop(0.12, 'rgba(195, 175, 135, 0.85)');
-        grad.addColorStop(0.45, 'rgba(215, 195, 155, 0.95)');
-        grad.addColorStop(0.55, 'rgba(50, 45, 35, 0.1)');
-        grad.addColorStop(0.68, 'rgba(185, 165, 125, 0.8)');
-        grad.addColorStop(0.92, 'rgba(150, 130, 95, 0.5)');
-        grad.addColorStop(1.0, 'rgba(120, 100, 70, 0.0)');
+        var grad = ctx.createLinearGradient(0, 0, 1024, 0);
+        grad.addColorStop(0.0, 'rgba(120, 100, 75, 0.0)');
+        grad.addColorStop(0.08, 'rgba(165, 145, 115, 0.45)');
+        grad.addColorStop(0.22, 'rgba(195, 175, 135, 0.88)');
+        grad.addColorStop(0.48, 'rgba(225, 205, 165, 0.96)');
+        grad.addColorStop(0.53, 'rgba(40, 35, 25, 0.05)');
+        grad.addColorStop(0.56, 'rgba(190, 170, 130, 0.82)');
+        grad.addColorStop(0.72, 'rgba(210, 190, 150, 0.9)');
+        grad.addColorStop(0.88, 'rgba(145, 125, 95, 0.55)');
+        grad.addColorStop(1.0, 'rgba(100, 85, 60, 0.0)');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, cv.width, cv.height);
 
@@ -772,9 +811,9 @@
           map: ringTex,
           side: THREE.DoubleSide,
           transparent: true,
-          opacity: 0.92,
-          roughness: 0.6,
-          metalness: 0.1
+          opacity: 0.94,
+          roughness: 0.65,
+          metalness: 0.08
         });
         var ringMesh = new THREE.Mesh(ringGeo, ringMat);
         ringMesh.rotation.x = Math.PI / 2;
@@ -793,19 +832,17 @@
           var z = b * Math.sin(theta);
           points.push(new THREE.Vector3(x, 0, z));
         }
-        var geo = new THREE.BufferGeometry().setFromPoints(points);
-        var mat = new THREE.LineBasicMaterial({
+        var line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({
           color: 0x38bdf8,
           transparent: true,
-          opacity: 0.22,
+          opacity: 0.24,
           depthWrite: false
-        });
-        var line = new THREE.Line(geo, mat);
+        }));
         scene.add(line);
         orbitLines.push(line);
       }
 
-      planetConfigs.forEach(function(cfg, idx) {
+      planetConfigs.forEach(function(cfg) {
         buildOrbitPath(cfg.semiMajor, cfg.eccentricity);
 
         var pivotGroup = new THREE.Group();
@@ -816,24 +853,22 @@
         pivotGroup.add(tiltGroup);
 
         var sphereGeo = new THREE.SphereGeometry(cfg.radius, 64, 64);
-        var albedoTex = loadPBRTexture(cfg.map, 'bands', cfg.color1, cfg.color2);
+        var planetMesh;
 
-        var matOptions = {
-          map: albedoTex,
-          roughness: cfg.roughness,
-          metalness: cfg.metalness
-        };
-
-        if (cfg.normalMap) {
-          matOptions.normalMap = loadPBRTexture(cfg.normalMap, 'noise', '#8080ff', '#8080ff');
-          matOptions.normalScale = new THREE.Vector2(0.85, 0.85);
+        if (cfg.customEarthShader) {
+          planetMesh = new THREE.Mesh(sphereGeo, earthCustomMat);
+        } else {
+          var matOptions = {
+            map: loadPBRTexture(cfg.map, 'bands', cfg.color1, cfg.color2),
+            roughness: cfg.roughness,
+            metalness: cfg.metalness
+          };
+          if (cfg.bumpMap) {
+            matOptions.bumpMap = loadPBRTexture(cfg.bumpMap, 'noise', '#808080', '#202020');
+            matOptions.bumpScale = 0.045;
+          }
+          planetMesh = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial(matOptions));
         }
-        if (cfg.specularMap) {
-          matOptions.roughnessMap = loadPBRTexture(cfg.specularMap, 'noise', '#ffffff', '#222222');
-        }
-
-        var planetMat = new THREE.MeshStandardMaterial(matOptions);
-        var planetMesh = new THREE.Mesh(sphereGeo, planetMat);
         planetMesh.castShadow = true;
         planetMesh.receiveShadow = true;
         tiltGroup.add(planetMesh);
@@ -845,7 +880,7 @@
           var cloudMat = new THREE.MeshStandardMaterial({
             map: cloudTex,
             transparent: true,
-            opacity: 0.45,
+            opacity: 0.48,
             blending: THREE.AdditiveBlending,
             depthWrite: false
           });
@@ -853,14 +888,35 @@
           tiltGroup.add(cloudsMesh);
         }
 
+        var moonPivot = null;
+        var moonMesh = null;
+        if (cfg.hasMoon) {
+          moonPivot = new THREE.Group();
+          pivotGroup.add(moonPivot);
+          var moonGeo = new THREE.SphereGeometry(1.15, 32, 32);
+          var moonMat = new THREE.MeshStandardMaterial({
+            map: loadPBRTexture(
+              'https://cdn.jsdelivr.net/gh/jeromeetienne/threex.planets@master/images/moonmap1k.jpg',
+              'noise',
+              '#94a3b8',
+              '#334155'
+            ),
+            roughness: 0.9,
+            metalness: 0.05
+          });
+          moonMesh = new THREE.Mesh(moonGeo, moonMat);
+          moonMesh.position.set(7.5, 0, 0);
+          moonMesh.castShadow = true;
+          moonMesh.receiveShadow = true;
+          moonPivot.add(moonMesh);
+        }
+
         if (cfg.hasAtmo) {
-          var atmoMesh = createFresnelAtmosphere(cfg.radius, cfg.atmoColor, 1.15, 2.6);
-          tiltGroup.add(atmoMesh);
+          tiltGroup.add(createFresnelAtmosphere(cfg.radius, cfg.atmoColor, 1.15, 2.6));
         }
 
         if (cfg.hasSaturnRings) {
-          var rings = createSaturnRing(cfg.radius * 1.35, cfg.radius * 2.5);
-          tiltGroup.add(rings);
+          tiltGroup.add(createSaturnRing(cfg.radius * 1.35, cfg.radius * 2.5));
         }
 
         planetMeshes.push({
@@ -869,24 +925,25 @@
           tiltGroup: tiltGroup,
           planetMesh: planetMesh,
           cloudsMesh: cloudsMesh,
+          moonPivot: moonPivot,
           angle: Math.random() * Math.PI * 2
         });
       });
 
       var asteroidGroup = new THREE.Group();
-      var asteroidGeo = new THREE.DodecahedronGeometry(0.35, 1);
+      var asteroidGeo = new THREE.DodecahedronGeometry(0.38, 1);
       var asteroidMat = new THREE.MeshStandardMaterial({
-        color: 0x78716c,
-        roughness: 0.9,
-        metalness: 0.1
+        color: 0x71717a,
+        roughness: 0.92,
+        metalness: 0.12
       });
-      var instancedAsteroids = new THREE.InstancedMesh(asteroidGeo, asteroidMat, 500);
+      var instancedAsteroids = new THREE.InstancedMesh(asteroidGeo, asteroidMat, 650);
       var dummy = new THREE.Object3D();
-      for (var a = 0; a < 500; a++) {
-        var dist = 114 + (Math.random() - 0.5) * 18;
+      for (var a = 0; a < 650; a++) {
+        var dist = 114 + (Math.random() - 0.5) * 20;
         var theta = Math.random() * Math.PI * 2;
-        var y = (Math.random() - 0.5) * 6;
-        var scale = 0.5 + Math.random() * 0.9;
+        var y = (Math.random() - 0.5) * 7.5;
+        var scale = 0.45 + Math.random() * 0.95;
         dummy.position.set(dist * Math.cos(theta), y, dist * Math.sin(theta));
         dummy.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
         dummy.scale.set(scale, scale, scale);
@@ -900,6 +957,9 @@
       var clock = new THREE.Clock();
       var isRunning = true;
       var speedMultiplier = 1.0;
+      var isTouring = false;
+      var tourIndex = 0;
+      var tourTimer = 0;
       var selectedTarget = null;
       var targetPosition = new THREE.Vector3();
 
@@ -921,13 +981,14 @@
       sunBtn.className = 'nav-btn active';
       sunBtn.innerHTML = '<span>☀️</span><span>Mặt Trời</span>';
       sunBtn.onclick = function() {
+        isTouring = false;
         selectedTarget = null;
         document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
         sunBtn.classList.add('active');
         document.getElementById('cardName').textContent = 'Mặt Trời';
         document.getElementById('cardSymbol').textContent = '☀️';
         document.getElementById('cardBadge').textContent = 'STAR';
-        document.getElementById('cardType').textContent = 'Ngôi sao trung tâm G2V';
+        document.getElementById('cardType').textContent = 'Ngôi sao trung tâm G2V (Yellow Dwarf)';
         document.getElementById('cardDiameter').textContent = '1.392.700 km';
         document.getElementById('cardDist').textContent = '0.0 AU (Tâm)';
         document.getElementById('cardPeriod').textContent = '230 triệu năm';
@@ -942,6 +1003,7 @@
         btn.className = 'nav-btn';
         btn.innerHTML = '<span>' + cfg.symbol + '</span><span>' + cfg.name + '</span>';
         btn.onclick = function() {
+          isTouring = false;
           selectedTarget = planetMeshes[i];
           document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
           btn.classList.add('active');
@@ -970,10 +1032,32 @@
         this.textContent = !isVisible ? 'Quỹ đạo: Bật' : 'Quỹ đạo: Tắt';
       };
 
+      document.getElementById('btnTour').onclick = function() {
+        isTouring = !isTouring;
+        this.classList.toggle('active', isTouring);
+        this.textContent = isTouring ? 'Đang du hành...' : 'Tự động du hành';
+        if (isTouring) {
+          tourIndex = 0;
+          tourTimer = 0;
+          selectTourPlanet(tourIndex);
+        }
+      };
+
+      function selectTourPlanet(idx) {
+        selectedTarget = planetMeshes[idx];
+        document.querySelectorAll('.nav-btn').forEach(function(b, i) {
+          b.classList.toggle('active', i === idx + 1);
+        });
+        updateCard(planetConfigs[idx]);
+      }
+
       document.getElementById('btnReset').onclick = function() {
+        isTouring = false;
+        document.getElementById('btnTour').classList.remove('active');
+        document.getElementById('btnTour').textContent = 'Tự động du hành';
         selectedTarget = null;
         controls.target.set(0, 0, 0);
-        camera.position.set(0, 160, 320);
+        camera.position.set(0, 160, 340);
         document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
         sunBtn.classList.add('active');
       };
@@ -985,8 +1069,17 @@
         var elapsed = clock.getElapsedTime();
 
         sunMat.uniforms.uTime.value = elapsed;
-        coronaMesh.rotation.y = elapsed * 0.05;
-        asteroidGroup.rotation.y = elapsed * 0.015;
+        coronaMesh.rotation.y = elapsed * 0.055;
+        asteroidGroup.rotation.y = elapsed * 0.018;
+
+        if (isTouring) {
+          tourTimer += delta;
+          if (tourTimer > 8.0) {
+            tourTimer = 0;
+            tourIndex = (tourIndex + 1) % planetMeshes.length;
+            selectTourPlanet(tourIndex);
+          }
+        }
 
         if (isRunning) {
           planetMeshes.forEach(function(item) {
@@ -1003,7 +1096,10 @@
             item.planetMesh.rotation.y += spinRate;
 
             if (item.cloudsMesh) {
-              item.cloudsMesh.rotation.y += spinRate * 1.25;
+              item.cloudsMesh.rotation.y += spinRate * 1.28;
+            }
+            if (item.moonPivot) {
+              item.moonPivot.rotation.y += delta * 1.4 * speedMultiplier;
             }
           });
         }
@@ -1011,11 +1107,9 @@
         if (selectedTarget) {
           selectedTarget.pivotGroup.getWorldPosition(targetPosition);
           controls.target.lerp(targetPosition, 0.08);
-          var offset = camera.position.clone().sub(controls.target);
-          var minR = selectedTarget.cfg.radius * 4.2;
-          if (offset.length() > minR * 3) {
-            camera.position.lerp(targetPosition.clone().add(new THREE.Vector3(0, minR * 1.2, minR * 2.2)), 0.05);
-          }
+          var minR = selectedTarget.cfg.radius * 4.4;
+          var desiredCamPos = targetPosition.clone().add(new THREE.Vector3(0, minR * 0.9, minR * 2.2));
+          camera.position.lerp(desiredCamPos, 0.06);
         }
 
         controls.update();
