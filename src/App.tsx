@@ -63,6 +63,7 @@ import { safeStorage } from './utils/storage';
 import { isMasterAdmin } from './config/admin';
 import { capsCanOpenAdminPanel, useAdminCapabilitiesLoader, useAdminCaps } from './utils/adminCapabilities';
 import { PageResourceLoader } from './components/PageResourceLoader';
+import { TheColophon } from './components/TheColophon';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
@@ -1159,6 +1160,7 @@ export const App: React.FC = () => {
       >
         {/* Phase 1.2: Z-index Layering — Anti Gradient Bleeding */}
         <div className="layer-base-color" aria-hidden="true" />
+        <div className="paper-grain-overlay" aria-hidden="true" />
         <div className="layer-gradient-aura" aria-hidden="true">
           <div className="aura-blob aura-blob-1" />
           {fabulousMode && !potatorMode && !reducedMotion ? (
@@ -1394,6 +1396,10 @@ export const App: React.FC = () => {
                 handleViewChange('exam-vault');
               }}
             />
+          )}
+
+          {currentView !== 'landing' && currentView !== 'exam-viewer' && currentView !== 'chat' && (
+            <TheColophon onNavigate={handleNavigate} onOpenAbout={() => handleOpenProfile('overview')} />
           )}
           </div>
         </Suspense>

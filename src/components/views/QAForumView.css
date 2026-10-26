@@ -1,26 +1,25 @@
 /* Q&A: warm archive table / field notebook visual language. */
 .ff-qa-room {
-  --qa-ink: #10160f;
-  --qa-ink-raised: #182018;
-  --qa-paper: #f4f1de;
-  --qa-copy: #e8e3d5;
-  --qa-muted: #aaa69a;
-  --qa-line: rgba(244, 241, 222, 0.15);
-  --qa-brass: #e9c46a;
-  --qa-clay: #e07a5f;
-  --qa-sage: #81b29a;
+  --qa-ink: #2C2623;
+  --qa-ink-raised: #FAF7F2;
+  --qa-paper: #FAF7F2;
+  --qa-copy: #2C2623;
+  --qa-muted: #5C534E;
+  --qa-line: #2C2623;
+  --qa-brass: #E6AA28;
+  --qa-clay: #D95D39;
+  --qa-sage: #2E5A44;
   isolation: isolate;
   color: var(--qa-copy);
+  background: var(--bg-paper);
 }
 
 .ff-qa-room .ff-qa-dispatch-board {
   overflow: visible;
-  border: 1px solid rgba(233, 196, 106, 0.25) !important;
-  border-radius: 20px 8px 20px 8px !important;
-  background:
-    radial-gradient(ellipse at 4% 0%, rgba(224, 122, 95, 0.12), transparent 42%),
-    linear-gradient(145deg, rgba(27, 34, 28, 0.98), rgba(15, 20, 16, 0.99)) !important;
-  box-shadow: 0 18px 48px -28px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 250, 234, 0.08) !important;
+  border: 1.5px solid #2C2623 !important;
+  border-radius: 6px !important;
+  background: #FAF7F2 !important;
+  box-shadow: 4px 4px 0px #2C2623 !important;
 }
 
 .ff-qa-room .ff-qa-dispatch-board > div:first-child {

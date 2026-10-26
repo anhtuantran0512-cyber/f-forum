@@ -1,25 +1,25 @@
 /* Leaderboard — a tactile study ledger with a warm paper-and-ink palette. */
 .ff-board {
-  --fb-surface: linear-gradient(165deg, #1d2b21 0%, #17231b 58%, #121c16 100%);
-  --fb-border: rgba(239, 234, 218, 0.15);
-  --fb-ink: #f0ead9;
-  --fb-ink-dim: #aeb8a9;
-  --fb-tile: rgba(239, 234, 218, 0.055);
-  --fb-gold: #e8c985;
-  --fb-sage: #8eb69a;
-  --fb-terra: #d87960;
-  --fb-score-surface: linear-gradient(135deg, #f2e6ca, #e7d9b9);
-  --fb-score-ink: #29352b;
-  --fb-score-muted: #68715f;
+  --fb-surface: #FAF7F2;
+  --fb-border: #2C2623;
+  --fb-ink: #2C2623;
+  --fb-ink-dim: #5C534E;
+  --fb-tile: #F2ECE1;
+  --fb-gold: #E6AA28;
+  --fb-sage: #2E5A44;
+  --fb-terra: #D95D39;
+  --fb-score-surface: #FAF7F2;
+  --fb-score-ink: #2C2623;
+  --fb-score-muted: #8C827A;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   padding: 17px 15px 15px;
-  border: 1px solid var(--fb-border) !important;
-  border-radius: 22px 7px 22px 7px !important;
-  background: var(--fb-surface) !important;
-  color: var(--fb-ink);
-  box-shadow: 0 20px 46px -28px rgba(0, 0, 0, 0.78), inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+  border: 1.5px solid #2C2623 !important;
+  border-radius: 6px !important;
+  background: #FAF7F2 !important;
+  color: #2C2623 !important;
+  box-shadow: 4px 4px 0px #2C2623 !important;
 }
 
 .ff-board::after {

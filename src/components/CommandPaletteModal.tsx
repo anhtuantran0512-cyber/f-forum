@@ -360,6 +360,47 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
         </div>
 
         <div ref={listRef} className="max-h-[52vh] sm:max-h-[60vh] overflow-y-auto p-2 space-y-3">
+          {!query && activeCategory === 'all' && (
+            <div className="mb-4 p-2.5 border-[1.5px] border-[#2C2623] bg-[#FAF7F2] rounded-[6px] shadow-[2px_2px_0px_#2C2623]">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#2C2623]/20">
+                <span className="font-mono text-[10px] font-bold text-[#D95D39] uppercase">MỤC LỤC CHUYÊN MỤC // 3x3 GRID</span>
+                <span className="font-mono text-[9px] text-[#8C827A]">SWISS NUMERALS</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { num: '01', title: 'Kho Đề Thi', cat: 'exam', icon: <BookOpen className="w-3.5 h-3.5 text-[#2B4C7E]" /> },
+                  { num: '02', title: 'Hỏi Đáp', cat: 'bounty', icon: <HelpCircle className="w-3.5 h-3.5 text-[#2E5A44]" /> },
+                  { num: '03', title: 'Thảo Luận', cat: 'thread', icon: <MessageCircleMore className="w-3.5 h-3.5 text-[#D95D39]" /> },
+                  { num: '04', title: 'Tập Trung', cat: 'focus', icon: <Headphones className="w-3.5 h-3.5 text-[#E6AA28]" /> },
+                  { num: '05', title: 'Bảng Vàng', cat: 'all', icon: <Award className="w-3.5 h-3.5 text-[#D95D39]" /> },
+                  { num: '06', title: 'Đấu Trường', cat: 'all', icon: <Swords className="w-3.5 h-3.5 text-[#2E5A44]" /> },
+                  { num: '07', title: 'Câu Lạc Bộ', cat: 'all', icon: <Flame className="w-3.5 h-3.5 text-[#E6AA28]" /> },
+                  { num: '08', title: 'Kỷ Niệm', cat: 'all', icon: <Sparkles className="w-3.5 h-3.5 text-[#2B4C7E]" /> },
+                  { num: '09', title: 'Tra Cứu', cat: 'all', icon: <Search className="w-3.5 h-3.5 text-[#2C2623]" /> },
+                ].map((item) => (
+                  <button
+                    key={item.num}
+                    type="button"
+                    onClick={() => {
+                      if (item.cat !== 'all') {
+                        setActiveCategory(item.cat as CategoryFilter);
+                      } else {
+                        setQuery(item.title);
+                      }
+                    }}
+                    className="group p-2 border border-[#2C2623] bg-[#F2ECE1] hover:bg-[#EBE3D5] rounded-[4px] text-left transition-colors flex flex-col justify-between h-16 cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <span className="swiss-numeral text-xl font-bold">{item.num}</span>
+                      {item.icon}
+                    </div>
+                    <span className="font-mono text-[10px] font-bold text-[#2C2623] truncate">{item.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {flat.length === 0 ? (
             <div className="py-12 text-center text-xs font-semibold text-[#2B2331]/60 dark:text-neutral-400">
               Không tìm thấy lệnh hoặc nội dung nào khớp với từ khoá.
