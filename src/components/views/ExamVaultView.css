@@ -85,8 +85,8 @@ html.light .ff-exam-filter-label {
 
 html.light .ff-exam-header-bar {
   background: var(--bg-paper);
-  border: 1.5px solid #2C2623;
-  box-shadow: 4px 4px 0px #2C2623;
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
 }
 
 /* Hero Search Pod */
@@ -99,8 +99,8 @@ html.light .ff-exam-header-bar {
 
 html.light .ff-exam-hero-search {
   background: var(--bg-parchment);
-  border: 1.5px solid #2C2623;
-  box-shadow: 4px 4px 0px #2C2623;
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
 }
 
 /* Exam Card */
@@ -254,15 +254,15 @@ html.light .ff-diff-badge--van-dung-cao {
 /* Modal Surface */
 .ff-exam-modal {
   background: var(--bg-paper);
-  border: var(--border-grid);
+  border: var(--border-double);
   box-shadow: var(--shadow-brutal-hover);
   border-radius: 6px;
 }
 
 html.light .ff-exam-modal {
   background: var(--bg-paper);
-  border: 2px solid #2C2623;
-  box-shadow: 6px 6px 0px #2C2623;
+  border: var(--border-double);
+  box-shadow: var(--shadow-brutal-hover);
   border-radius: 6px;
 }
 

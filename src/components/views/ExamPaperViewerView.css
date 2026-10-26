@@ -1,17 +1,17 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 .ff-paper-viewer {
-  --paper-bg: #FAF7F2;
-  --paper-surface: #FAF7F2;
-  --paper-surface-soft: #F2ECE1;
-  --paper-border: #2C2623;
-  --paper-border-strong: #2C2623;
-  --paper-text: #2C2623;
-  --paper-muted: #5C534E;
-  --paper-accent: #E6AA28;
-  --paper-terracotta: #D95D39;
-  --paper-sage: #2E5A44;
-  --paper-shadow: 4px 4px 0px #2C2623;
+  --paper-bg: var(--bg-paper);
+  --paper-surface: var(--bg-paper);
+  --paper-surface-soft: var(--bg-parchment);
+  --paper-border: var(--border-color);
+  --paper-border-strong: var(--border-color);
+  --paper-text: var(--ink-primary);
+  --paper-muted: var(--ink-secondary);
+  --paper-accent: var(--accent-mustard);
+  --paper-terracotta: var(--accent-terracotta);
+  --paper-sage: var(--accent-forest);
+  --paper-shadow: var(--shadow-brutal);
   min-height: 100vh;
   color: var(--paper-text);
   background: var(--paper-bg);
@@ -19,17 +19,17 @@
 }
 
 html.light .ff-paper-viewer {
-  --paper-bg: #FAF7F2;
-  --paper-surface: #FAF7F2;
-  --paper-surface-soft: #F2ECE1;
-  --paper-border: #2C2623;
-  --paper-border-strong: #2C2623;
-  --paper-text: #2C2623;
-  --paper-muted: #5C534E;
-  --paper-accent: #E6AA28;
-  --paper-terracotta: #D95D39;
-  --paper-sage: #2E5A44;
-  --paper-shadow: 4px 4px 0px #2C2623;
+  --paper-bg: var(--bg-paper);
+  --paper-surface: var(--bg-paper);
+  --paper-surface-soft: var(--bg-parchment);
+  --paper-border: var(--border-color);
+  --paper-border-strong: var(--border-color);
+  --paper-text: var(--ink-primary);
+  --paper-muted: var(--ink-secondary);
+  --paper-accent: var(--accent-mustard);
+  --paper-terracotta: var(--accent-terracotta);
+  --paper-sage: var(--accent-forest);
+  --paper-shadow: var(--shadow-brutal);
   background: var(--paper-bg);
 }
 

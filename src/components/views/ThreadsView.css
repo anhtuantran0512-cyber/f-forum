@@ -1489,74 +1489,76 @@ html.light .threads-bg .thread-card.card-hard {
 }
 
 html.light .threads-bg .thread-room-header {
-  border-color: rgba(45, 54, 43, 0.12);
-  background: linear-gradient(118deg, #fffdf6, #f4f1e8 62%, #ecefe5);
-  box-shadow: var(--thread-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  border: var(--border-grid);
+  background: var(--bg-parchment);
+  box-shadow: var(--shadow-brutal);
 }
 
 html.light .threads-bg .thread-room-title {
-  color: #30372f;
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .thread-room-caption,
 html.light .threads-bg .thread-room-metrics small {
-  color: #626b5e;
+  color: var(--ink-muted);
 }
 
 html.light .threads-bg .thread-room-metrics {
-  border-color: rgba(45, 54, 43, 0.12);
-  background: rgba(255, 253, 247, 0.72);
+  border: 1px solid var(--border-color);
+  background: var(--bg-paper);
 }
 
 html.light .threads-bg .thread-room-metrics > span + span {
-  border-left-color: rgba(45, 54, 43, 0.11);
+  border-left: 1px solid var(--border-color);
 }
 
 html.light .threads-bg .thread-room-metrics b {
-  color: #30372f;
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .threads-search-box {
-  border-color: rgba(45, 54, 43, 0.16);
-  background: rgba(255, 253, 247, 0.8);
-  color: #596354;
+  border: var(--border-grid);
+  background: var(--bg-paper);
+  color: var(--ink-primary);
+  box-shadow: var(--shadow-brutal-sm);
 }
 
 html.light .threads-bg .threads-search-input {
-  color: #293229;
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .threads-search-input::placeholder {
-  color: #7d8276;
+  color: var(--ink-muted);
 }
 
 html.light .threads-bg .thread-room-controls {
-  border-top-color: rgba(45, 54, 43, 0.14);
+  border-top: 1px solid var(--border-color);
 }
 
 html.light .threads-bg .threads-filter-pill {
-  border-color: rgba(45, 54, 43, 0.15);
-  background: rgba(255, 253, 247, 0.62);
-  color: #596354;
+  border: 1px solid var(--border-color);
+  background: var(--bg-paper);
+  color: var(--ink-secondary);
 }
 
 html.light .threads-bg .threads-filter-pill:hover,
 html.light .threads-bg .threads-filter-pill.is-active {
-  border-color: rgba(85, 123, 96, 0.34);
-  background: rgba(142, 182, 154, 0.18);
-  color: #2c4e35;
+  border: var(--border-grid);
+  background: var(--accent-terracotta);
+  color: #FAF8F5;
+  box-shadow: var(--shadow-brutal-sm);
 }
 
 html.light .threads-bg .threads-active-tag-chip {
-  border-color: rgba(170, 123, 52, 0.32);
-  background: rgba(232, 201, 133, 0.18);
-  color: #765728;
+  border: 1px solid var(--accent-mustard);
+  background: rgba(207, 146, 38, 0.15);
+  color: var(--accent-mustard);
 }
 
 html.light .threads-bg .thread-topic-panel {
-  border-color: rgba(45, 54, 43, 0.13);
-  background: linear-gradient(145deg, #fffdf7, #f2f1e8);
-  box-shadow: 0 12px 30px rgba(48, 44, 35, 0.07);
+  border: var(--border-grid);
+  background: var(--bg-parchment);
+  box-shadow: var(--shadow-brutal);
 }
 
 html.light .threads-bg .thread-topic-panel-title,
@@ -1567,7 +1569,7 @@ html.light .threads-bg .thread-content,
 html.light .threads-bg .author-name,
 html.light .threads-bg .repost-quote-name,
 html.light .threads-bg .repost-quote-content {
-  color: #30372f;
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .thread-topic-note,
@@ -1576,7 +1578,7 @@ html.light .threads-bg .author-time,
 html.light .threads-bg .author-level,
 html.light .threads-bg .repost-quote-level,
 html.light .threads-bg .repost-quote-time {
-  color: #6d7568;
+  color: var(--ink-muted);
 }
 
 /* Huy hiệu ADMIN (nền vàng chữ kem), huy hiệu streak và biểu tượng nút
@@ -1586,110 +1588,106 @@ html.light .threads-bg .author-level-badge {
 }
 
 html.light .threads-bg .streak-badge {
-  color: #8a442f;
+  color: var(--accent-terracotta);
 }
 
 html.light .threads-bg .streak-badge svg {
-  color: #b45309;
-  fill: #b45309;
+  color: var(--accent-terracotta);
+  fill: var(--accent-terracotta);
 }
 
 html.light .threads-bg .primary-compose-btn svg {
-  /* Nút giữ nền xanh đậm ở cả hai chế độ; icon phải giữ vàng như bản tối
-     thay vì bị lớp chuyển sáng đổi sang đỏ đậm (1.2:1 trên nền xanh). */
   color: #e8c985 !important;
 }
 
 html.light .threads-bg .thread-topic-tag {
-  border-color: rgba(85, 123, 96, 0.2);
-  background: rgba(255, 253, 247, 0.76);
-  color: #416247;
+  border: 1px solid var(--border-color);
+  background: var(--bg-paper);
+  color: var(--ink-secondary);
 }
 
 html.light .threads-bg .thread-topic-tag.is-active {
-  border-color: rgba(170, 86, 63, 0.34);
-  background: rgba(216, 121, 96, 0.12);
-  color: #8a442f;
+  border: var(--border-grid);
+  background: var(--accent-terracotta);
+  color: #FAF8F5;
 }
 
 html.light .threads-bg .thread-featured-spotlight {
-  border-color: rgba(85, 123, 96, 0.22);
-  background:
-    radial-gradient(circle at 100% 0%, rgba(232, 201, 133, 0.19), transparent 55%),
-    linear-gradient(145deg, #e6ecdf, #dfe8dc);
-  color: #30372f;
-  box-shadow: 0 14px 32px rgba(48, 44, 35, 0.09);
+  border: var(--border-grid);
+  background: var(--bg-parchment);
+  color: var(--ink-primary);
+  box-shadow: var(--shadow-brutal);
 }
 
 html.light .threads-bg .thread-featured-copy {
-  color: #30372f;
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .thread-featured-byline {
-  color: #60695c;
+  color: var(--ink-muted);
 }
 
 html.light .threads-bg .thread-featured-open {
-  border-top-color: rgba(45, 54, 43, 0.13);
-  color: #52765c;
+  border-top: 1px solid var(--border-color);
+  color: var(--accent-forest);
 }
 
 html.light .threads-bg .thread-feed-count {
-  border-color: rgba(45, 54, 43, 0.13);
+  border-color: var(--border-color);
 }
 
 html.light .threads-bg .thread-feed-count b {
-  color: #52765c;
+  color: var(--accent-forest);
 }
 
 html.light .threads-bg .thread-card {
-  border-color: rgba(45, 54, 43, 0.13);
-  border-left-color: #6f9775;
-  background: linear-gradient(145deg, #fffdf8, #f8f6ef);
-  box-shadow: 0 10px 28px rgba(48, 44, 35, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: var(--border-grid);
+  background: var(--bg-paper);
+  box-shadow: var(--shadow-brutal);
 }
 
 html.light .threads-bg .thread-card:hover {
-  border-color: rgba(85, 123, 96, 0.28);
-  border-left-color: #557b60;
-  box-shadow: 0 16px 34px rgba(48, 44, 35, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  border: var(--border-grid);
+  border-color: var(--accent-terracotta);
+  box-shadow: var(--shadow-brutal-hover);
 }
 
 html.light .threads-bg .thread-card.is-featured {
-  border-left-color: #b17e3b;
+  border-left: 5px solid var(--accent-terracotta);
 }
 
 html.light .threads-bg .thread-content,
 html.light .threads-bg .repost-quote-content {
-  color: #4c5349;
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .thread-hashtag-pill,
 html.light .threads-bg .thread-reply-pill {
-  background: rgba(85, 123, 96, 0.12);
-  color: #416247;
+  background: rgba(39, 90, 65, 0.12);
+  color: var(--accent-forest);
+  border: 1px solid var(--accent-forest);
 }
 
 html.light .threads-bg .thread-actions,
 html.light .threads-bg .repost-quote-box {
-  border-color: rgba(45, 54, 43, 0.13);
+  border-color: var(--border-color);
 }
 
 html.light .threads-bg .action-text-btn {
-  color: #687164;
+  color: var(--ink-secondary);
 }
 
 html.light .threads-bg .action-text-btn:hover,
 html.light .threads-bg .action-text-btn.is-active {
-  border-color: rgba(85, 123, 96, 0.2);
-  background: rgba(85, 123, 96, 0.09);
-  color: #30372f;
+  border: var(--border-grid);
+  background: var(--bg-parchment);
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .action-text-btn.is-saved {
-  border-color: rgba(170, 86, 63, 0.28);
-  background: rgba(216, 121, 96, 0.11);
-  color: #8a442f;
+  border: 1px solid var(--accent-terracotta);
+  background: rgba(196, 77, 41, 0.12);
+  color: var(--accent-terracotta);
 }
 
 html.light .threads-bg .reply-composer,
@@ -1697,57 +1695,59 @@ html.light .threads-bg .repost-modal,
 html.light .threads-bg .repost-quote-box,
 html.light .threads-bg .reply-input,
 html.light .threads-bg .quote-input {
-  border-color: rgba(45, 54, 43, 0.14);
-  background: rgba(255, 253, 247, 0.76);
-  color: #30372f;
+  border: var(--border-grid);
+  background: var(--bg-paper);
+  color: var(--ink-primary);
+  box-shadow: var(--shadow-brutal-sm);
 }
 
 html.light .threads-bg .reply-input::placeholder,
 html.light .threads-bg .quote-input::placeholder {
-  color: #7d8276;
+  color: var(--ink-muted);
 }
 
 html.light .threads-bg .repost-modal-title {
-  color: #30372f;
+  color: var(--ink-primary);
 }
 
 html.light .threads-bg .repost-type-btn {
-  border-color: rgba(45, 54, 43, 0.14);
-  background: rgba(255, 253, 247, 0.8);
-  color: #596354;
+  border: 1px solid var(--border-color);
+  background: var(--bg-parchment);
+  color: var(--ink-secondary);
 }
 
 html.light .threads-bg .repost-type-btn.active {
-  border-color: rgba(170, 86, 63, 0.32);
-  background: rgba(216, 121, 96, 0.12);
-  color: #8a442f;
+  border: var(--border-grid);
+  background: var(--accent-terracotta);
+  color: #FAF8F5;
+  box-shadow: var(--shadow-brutal-sm);
 }
 
 html.light .threads-bg .thread-empty,
 html.light .threads-bg .thread-feed-skeleton {
-  border-color: rgba(45, 54, 43, 0.2);
-  background: rgba(255, 253, 247, 0.55);
+  border: 1.5px dashed var(--border-color);
+  background: var(--bg-parchment);
 }
 
 html.light .threads-bg .thread-empty-title,
 html.light .threads-bg .skeleton-note {
-  color: #686e62;
+  color: var(--ink-muted);
 }
 
 html.light .threads-bg .thread-reader-panel {
-  border-color: rgba(45, 54, 43, 0.15);
-  background: #fffdf7;
-  color: #30372f;
-  box-shadow: 0 24px 70px rgba(36, 42, 35, 0.22);
+  border: var(--border-grid);
+  background: var(--bg-paper);
+  color: var(--ink-primary);
+  box-shadow: var(--shadow-brutal-hover);
 }
 
 html.light .thread-report-dialog {
-  --thread-line: rgba(45, 54, 43, 0.14);
-  --thread-surface: #fffdf7;
-  --thread-copy: #30372f;
-  --thread-muted: #687164;
-  --thread-gold: #8a672f;
-  border-color: rgba(45, 54, 43, 0.16) !important;
+  --thread-line: var(--border-color);
+  --thread-surface: var(--bg-paper);
+  --thread-copy: var(--ink-primary);
+  --thread-muted: var(--ink-secondary);
+  --thread-gold: var(--accent-mustard);
+  border-color: var(--border-color) !important;
   background: #fffdf7 !important;
   color: #30372f !important;
   box-shadow: 0 24px 70px rgba(36, 42, 35, 0.22) !important;

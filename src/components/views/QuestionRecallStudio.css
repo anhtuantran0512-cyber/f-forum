@@ -1,15 +1,15 @@
 /* A small, isolated study surface: theme tokens stay independent from the app shell. */
 .ff-recall-backdrop {
-  --recall-ink: #2C2623;
-  --recall-copy: #2C2623;
-  --recall-muted: #5C534E;
-  --recall-line: #2C2623;
-  --recall-paper: #FAF7F2;
-  --recall-raised: #F2ECE1;
-  --recall-inset: #EBE3D5;
-  --recall-brass: #E6AA28;
-  --recall-sage: #2E5A44;
-  --recall-clay: #D95D39;
+  --recall-ink: var(--ink-primary);
+  --recall-copy: var(--ink-primary);
+  --recall-muted: var(--ink-secondary);
+  --recall-line: var(--border-color);
+  --recall-paper: var(--bg-paper);
+  --recall-raised: var(--bg-parchment);
+  --recall-inset: var(--bg-elevated);
+  --recall-brass: var(--accent-mustard);
+  --recall-sage: var(--accent-forest);
+  --recall-clay: var(--accent-terracotta);
   position: fixed;
   z-index: 145;
   inset: 0;
@@ -18,7 +18,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom));
-  background: rgba(44, 38, 35, 0.65);
+  background: rgba(0, 0, 0, 0.75);
   color: var(--recall-ink);
   isolation: isolate;
 }
@@ -31,10 +31,10 @@
   max-height: min(900px, calc(100dvh - max(28px, env(safe-area-inset-top) + env(safe-area-inset-bottom))));
   min-height: min(540px, calc(100dvh - 28px));
   overflow: hidden;
-  border: 2px solid #2C2623;
+  border: var(--border-double);
   border-radius: 6px;
   background: var(--recall-paper);
-  box-shadow: 6px 6px 0px #2C2623;
+  box-shadow: var(--shadow-brutal-hover);
   color: var(--recall-ink);
 }
 
@@ -1070,43 +1070,43 @@
 }
 
 html.light .ff-recall-backdrop {
-  --recall-ink: #302c24;
-  --recall-copy: #4b463d;
-  --recall-muted: #756e61;
-  --recall-line: rgba(75, 64, 45, 0.17);
-  --recall-paper: #f6f1e6;
-  --recall-raised: #fffdf8;
-  --recall-inset: #fbf8f0;
-  --recall-brass: #946d2e;
-  --recall-sage: #47745b;
-  --recall-clay: #b5543e;
-  background: rgba(39, 32, 23, 0.44);
+  --recall-ink: var(--ink-primary);
+  --recall-copy: var(--ink-primary);
+  --recall-muted: var(--ink-secondary);
+  --recall-line: var(--border-color);
+  --recall-paper: var(--bg-paper);
+  --recall-raised: var(--bg-parchment);
+  --recall-inset: var(--bg-elevated);
+  --recall-brass: var(--accent-mustard);
+  --recall-sage: var(--accent-forest);
+  --recall-clay: var(--accent-terracotta);
+  background: rgba(35, 31, 29, 0.65);
 }
 
 html.light .ff-recall-studio {
-  border-color: rgba(112, 82, 40, 0.23);
-  box-shadow: 0 26px 80px rgba(50, 38, 21, 0.24), inset 0 1px 0 #fff;
+  border: var(--border-double);
+  box-shadow: var(--shadow-brutal-hover);
 }
 
 html.light .ff-recall-header,
 html.light .ff-recall-footer {
-  background: rgba(246, 241, 230, 0.78);
+  background: var(--bg-parchment);
 }
 
 html.light .ff-recall-subject {
-  background: rgba(129, 178, 154, 0.15);
-  color: #375e47;
+  background: rgba(39, 90, 65, 0.12);
+  color: var(--accent-forest);
 }
 
 html.light .ff-recall-question,
 html.light .ff-recall-attempt,
 html.light .ff-recall-summary,
 html.light .ff-recall-deck-builder {
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.86), rgba(243, 237, 224, 0.72));
+  background: var(--bg-paper);
 }
 
 html.light .ff-recall-deck-filters {
-  background: rgba(255, 255, 255, 0.42);
+  background: var(--bg-parchment);
 }
 
 html.light .ff-recall-deck-card {

@@ -21,32 +21,32 @@
  */
 
 :root {
-  --ff-ds-bg-deep: #FAF7F2;
-  --ff-ds-bg-elevated: #F2ECE1;
-  --ff-ds-bg-card: #FAF7F2;
-  --ff-ds-ink-primary: #2C2623;
-  --ff-ds-ink-secondary: #5C534E;
-  --ff-ds-ink-muted: #8C827A;
-  --ff-ds-text-primary: #2C2623;
-  --ff-ds-text-secondary: #5C534E;
-  --ff-ds-text-muted: #8C827A;
+  --ff-ds-bg-deep: var(--bg-paper);
+  --ff-ds-bg-elevated: var(--bg-parchment);
+  --ff-ds-bg-card: var(--bg-paper);
+  --ff-ds-ink-primary: var(--ink-primary);
+  --ff-ds-ink-secondary: var(--ink-secondary);
+  --ff-ds-ink-muted: var(--ink-muted);
+  --ff-ds-text-primary: var(--ink-primary);
+  --ff-ds-text-secondary: var(--ink-secondary);
+  --ff-ds-text-muted: var(--ink-muted);
 
   /* 10. Academic Library Palette (Warm Ivory, Library Sage, Academic Gold, Muted Terracotta) */
-  --ff-ds-organic-terracotta: #D95D39;
-  --ff-ds-organic-sage: #2E5A44;
-  --ff-ds-organic-cream: #FAF7F2;
-  --ff-ds-organic-sand: #E6AA28;
+  --ff-ds-organic-terracotta: var(--accent-terracotta);
+  --ff-ds-organic-sage: var(--accent-forest);
+  --ff-ds-organic-cream: var(--bg-paper);
+  --ff-ds-organic-sand: var(--accent-mustard);
 
   /* 6. Clean Digital Library Accents (Zero Rainbow Gradients) */
-  --ff-ds-scifi-cyan: #2E5A44;
-  --ff-ds-scifi-violet: #E6AA28;
-  --ff-ds-scifi-emerald: #2E5A44;
-  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(46, 90, 68, 0.16) 0%, rgba(230, 170, 40, 0.14) 100%);
+  --ff-ds-scifi-cyan: var(--accent-forest);
+  --ff-ds-scifi-violet: var(--accent-mustard);
+  --ff-ds-scifi-emerald: var(--accent-forest);
+  --ff-ds-scifi-gradient: linear-gradient(135deg, rgba(39, 90, 65, 0.16) 0%, rgba(207, 146, 38, 0.14) 100%);
 
   /* 3. Structured Academic Border & Composed Shadow */
-  --ff-ds-brutal-shadow: 4px 4px 0px #2C2623;
-  --ff-ds-brutal-shadow-sm: 2px 2px 0px #2C2623;
-  --ff-ds-brutal-border: #2C2623;
+  --ff-ds-brutal-shadow: var(--shadow-brutal);
+  --ff-ds-brutal-shadow-sm: var(--shadow-brutal-sm);
+  --ff-ds-brutal-border: var(--border-color);
 
   /* 8. Apple / Notion Calm Micro-Interaction Curves */
   --ff-ds-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -54,15 +54,15 @@
 }
 
 html.light {
-  --ff-ds-bg-deep: #f8f5ec;
-  --ff-ds-bg-elevated: #f0ece1;
-  --ff-ds-bg-card: #fffdf8;
-  --ff-ds-ink-primary: #1c1917;
-  --ff-ds-ink-secondary: #44403c;
-  --ff-ds-ink-muted: #78716c;
-  --ff-ds-brutal-shadow: 3px 3px 0px rgba(28, 25, 23, 0.18);
-  --ff-ds-brutal-shadow-sm: 2px 2px 0px rgba(28, 25, 23, 0.16);
-  --ff-ds-brutal-border: rgba(28, 25, 23, 0.24);
+  --ff-ds-bg-deep: var(--bg-paper);
+  --ff-ds-bg-elevated: var(--bg-parchment);
+  --ff-ds-bg-card: var(--bg-paper);
+  --ff-ds-ink-primary: var(--ink-primary);
+  --ff-ds-ink-secondary: var(--ink-secondary);
+  --ff-ds-ink-muted: var(--ink-muted);
+  --ff-ds-brutal-shadow: var(--shadow-brutal);
+  --ff-ds-brutal-shadow-sm: var(--shadow-brutal-sm);
+  --ff-ds-brutal-border: var(--border-color);
 }
 
 /* ========================================================================== */

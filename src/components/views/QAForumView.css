@@ -306,103 +306,102 @@ html.light .ff-qa-search input[type='search'] {
 }
 
 html.light .ff-qa-room .ff-qa-dispatch-board {
-  border-color: rgba(100, 74, 39, 0.24) !important;
-  background:
-    radial-gradient(ellipse at 4% 0%, rgba(224, 122, 95, 0.08), transparent 42%),
-    linear-gradient(145deg, #fffdf8, #f6f0e3) !important;
-  box-shadow: 0 16px 40px -28px rgba(68, 52, 28, 0.25), inset 0 1px 0 #fff !important;
+  border: var(--border-grid) !important;
+  background: var(--bg-paper) !important;
+  box-shadow: var(--shadow-brutal) !important;
 }
 
 html.light .ff-qa-room .ff-qa-page-title {
-  color: #2d2a24 !important;
+  color: var(--ink-primary) !important;
 }
 
 html.light .ff-qa-room .ff-qa-subtitle,
 html.light .ff-qa-room .ff-qa-feed-count {
-  color: #70695e !important;
+  color: var(--ink-secondary) !important;
 }
 
 html.light .ff-qa-room .ff-qa-feed-label {
-  color: #806238 !important;
+  color: var(--accent-terracotta) !important;
 }
 
 html.light .ff-qa-room .ff-qa-search input[type='search'] {
-  color: #2e2a22 !important;
-  background: #fffdf8 !important;
-  border-color: rgba(72, 58, 37, 0.2) !important;
+  color: var(--ink-primary) !important;
+  background: var(--bg-paper) !important;
+  border: var(--border-grid) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 html.light .ff-qa-room .ff-qa-search input[type='search']::placeholder {
-  color: #777166 !important;
+  color: var(--ink-muted) !important;
 }
 
 html.light .ff-qa-room .ff-qa-filter-chip,
 html.light .ff-qa-room .ff-qa-subject-chip {
-  color: #5f5a50 !important;
-  border-color: rgba(75, 64, 45, 0.16) !important;
-  background: rgba(255, 255, 255, 0.56) !important;
+  color: var(--ink-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-parchment) !important;
 }
 
 html.light .ff-qa-room .ff-qa-filter-chip[aria-pressed='true'],
 html.light .ff-qa-room .ff-qa-subject-chip[aria-pressed='true'] {
-  color: #513d22 !important;
-  border-color: rgba(159, 111, 48, 0.48) !important;
-  background: rgba(233, 196, 106, 0.23) !important;
+  color: #FAF8F5 !important;
+  border: var(--border-grid) !important;
+  background: var(--accent-terracotta) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 html.light .ff-qa-room .ff-qa-card {
-  border-color: rgba(75, 64, 45, 0.16) !important;
-  background:
-    radial-gradient(ellipse at 100% 0%, rgba(129, 178, 154, 0.08), transparent 47%),
-    linear-gradient(150deg, #fffdf8, #f7f3e9) !important;
-  box-shadow: 0 12px 30px -24px rgba(68, 52, 28, 0.28), inset 0 1px 0 #fff !important;
+  border: var(--border-grid) !important;
+  background: var(--bg-paper) !important;
+  box-shadow: var(--shadow-brutal) !important;
 }
 
 html.light .ff-qa-room .ff-qa-card .ff-typo-thread-title {
-  color: #302c24 !important;
+  color: var(--ink-primary) !important;
 }
 
 html.light .ff-qa-room .ff-qa-card .ff-typo-measure {
-  color: #5d584e !important;
+  color: var(--ink-secondary) !important;
 }
 
 html.light .ff-qa-detail {
-  background: #f4f0e6 !important;
-  color: #302c24;
+  background: var(--bg-paper) !important;
+  color: var(--ink-primary);
 }
 
 html.light .ff-qa-detail > header {
-  background: rgba(255, 253, 248, 0.97) !important;
-  border-bottom-color: rgba(100, 74, 39, 0.2) !important;
-  box-shadow: 0 8px 22px rgba(55, 43, 27, 0.1) !important;
+  background: var(--bg-parchment) !important;
+  border-bottom: var(--border-grid) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 html.light .ff-qa-detail .question-card,
 html.light .ff-qa-detail .answer-card {
-  border-color: rgba(75, 64, 45, 0.16) !important;
-  background: linear-gradient(150deg, #fffdf8, #f7f3e9) !important;
-  box-shadow: 0 14px 32px -22px rgba(68, 52, 28, 0.24), inset 0 1px 0 #fff !important;
+  border: var(--border-grid) !important;
+  background: var(--bg-paper) !important;
+  box-shadow: var(--shadow-brutal) !important;
 }
 
 html.light .ff-qa-detail .answer-card.verified {
-  border-left-color: #537f68 !important;
-  background: linear-gradient(150deg, #f5fbf3, #eaf3e8) !important;
+  border: var(--border-grid) !important;
+  border-left: 5px solid var(--accent-forest) !important;
+  background: var(--bg-parchment) !important;
 }
 
 html.light .ff-qa-detail .question-text h1,
 html.light .ff-qa-detail .question-text h2,
 html.light .ff-qa-detail .answer-card h3 {
-  color: #302c24 !important;
+  color: var(--ink-primary) !important;
 }
 
 html.light .ff-qa-detail .question-text h1 + div {
-  background: #f7f3e9 !important;
-  border-color: rgba(75, 64, 45, 0.14) !important;
+  background: var(--bg-parchment) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 html.light .ff-qa-detail .question-text h1 + div p,
 html.light .ff-qa-detail .answer-card p {
-  color: #48443c !important;
+  color: var(--ink-primary) !important;
 }
 
 @media (max-width: 760px) {
