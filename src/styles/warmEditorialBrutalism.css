@@ -27,6 +27,24 @@ body {
   font-family: var(--font-sans);
 }
 
+.ff-app-shell:not(.ff-view-landing) {
+  background-color: var(--bg-paper) !important;
+  color: var(--ink-primary) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.ff-app-shell:not(.ff-view-landing) .content-layer {
+  color: var(--ink-primary) !important;
+}
+
+.ff-app-shell:not(.ff-view-landing) .layer-base-color,
+.ff-app-shell:not(.ff-view-landing) .layer-gradient-aura,
+.ff-app-shell:not(.ff-view-landing) .aura-blob,
+.ff-app-shell:not(.ff-view-landing) .ff-godray-layer,
+.ff-app-shell:not(.ff-view-landing) .ff-fabulous-stage {
+  display: none !important;
+}
+
 .editorial-swash {
   font-family: var(--font-display);
   font-style: italic;
@@ -230,7 +248,8 @@ p.editorial-dropcap-para::first-letter {
 .tactile-brutal-btn,
 .btn-feastables,
 .ff-tactile-btn,
-.ff-tactile-pop {
+.ff-tactile-pop,
+.ff-brutal-btn {
   transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   box-shadow: var(--shadow-brutal-sm);
   border: 1.5px solid #2C2623;
@@ -238,14 +257,16 @@ p.editorial-dropcap-para::first-letter {
 .tactile-brutal-btn:hover,
 .btn-feastables:hover,
 .ff-tactile-btn:hover,
-.ff-tactile-pop:hover {
+.ff-tactile-pop:hover,
+.ff-brutal-btn:hover {
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-brutal-hover);
 }
 .tactile-brutal-btn:active,
 .btn-feastables:active,
 .ff-tactile-btn:active,
-.ff-tactile-pop:active {
+.ff-tactile-pop:active,
+.ff-brutal-btn:active {
   transform: translate(2px, 2px);
   box-shadow: 0px 0px 0px #2C2623;
 }
@@ -275,55 +296,38 @@ p.editorial-dropcap-para::first-letter {
   background: var(--bg-parchment);
 }
 
-.ff-app-shell,
-.ff-app-shell.ff-view-qa,
-.ff-app-shell.ff-view-threads,
-.ff-app-shell.ff-view-clubs,
-.ff-app-shell.ff-view-chat,
-.ff-app-shell.ff-view-chronicles,
-.ff-app-shell.ff-view-exam-vault,
-.ff-app-shell.ff-view-coming-soon,
-.ff-app-shell.ff-view-home,
-.club-plaza-page,
-.threads-page,
-.qa-forum-page {
-  background-color: var(--bg-paper) !important;
-  color: var(--ink-primary) !important;
-  font-family: var(--font-sans) !important;
-}
-
-.layer-base-color,
-.layer-gradient-aura,
-.aura-blob,
-.ff-fabulous-stage,
-.ff-godray-layer,
-.ff-clubs-bg > div {
-  display: none !important;
-}
-
-.liquid-glass,
-.obsidian-glass,
-.glass-panel,
-.backdrop-blur-md,
-.backdrop-blur-xl,
-.backdrop-blur-lg,
-.backdrop-blur-sm,
-.backdrop-blur-2xl,
-.backdrop-blur-3xl {
+.ff-app-shell:not(.ff-view-landing) :is(
+  .liquid-glass,
+  .obsidian-glass,
+  .glass-panel,
+  .backdrop-blur-md,
+  .backdrop-blur-xl,
+  .backdrop-blur-lg,
+  .backdrop-blur-sm,
+  .backdrop-blur-2xl,
+  .backdrop-blur-3xl
+) {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
-.ff-qa-card,
-.thread-card,
-.ff-exam-card,
-.ff-media-card,
-.gb-card,
-.bento-card,
-.card-hard,
-.ff-ui-card,
-.ff-virtual-card,
-.ff-bento-cell {
+.ff-app-shell:not(.ff-view-landing) :is(
+  .ff-qa-card,
+  .thread-card,
+  .ff-exam-card,
+  .ff-media-card,
+  .gb-card,
+  .bento-card,
+  .card-hard,
+  .ff-ui-card,
+  .ff-virtual-card,
+  .ff-bento-cell,
+  .pc-12-card,
+  .pc-12-well,
+  .ff-chat-workspace,
+  .ff-daily-attendance,
+  .faa-shell
+) {
   background-color: var(--bg-paper) !important;
   border: 1.5px solid var(--ink-primary) !important;
   box-shadow: var(--shadow-brutal) !important;
@@ -332,33 +336,40 @@ p.editorial-dropcap-para::first-letter {
   transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
 }
 
-.ff-qa-card:hover,
-.thread-card:hover,
-.ff-exam-card:hover,
-.ff-media-card:hover,
-.gb-card:hover,
-.bento-card:hover,
-.card-hard:hover,
-.ff-bento-cell:hover {
+.ff-app-shell:not(.ff-view-landing) :is(
+  .ff-qa-card:hover,
+  .thread-card:hover,
+  .ff-exam-card:hover,
+  .ff-media-card:hover,
+  .gb-card:hover,
+  .bento-card:hover,
+  .card-hard:hover,
+  .ff-bento-cell:hover
+) {
   transform: translate(-2px, -2px) !important;
   box-shadow: var(--shadow-brutal-hover) !important;
 }
 
-.ff-qa-card:active,
-.thread-card:active,
-.ff-exam-card:active,
-.ff-media-card:active,
-.gb-card:active {
+.ff-app-shell:not(.ff-view-landing) :is(
+  .ff-qa-card:active,
+  .thread-card:active,
+  .ff-exam-card:active,
+  .ff-media-card:active,
+  .gb-card:active
+) {
   transform: translate(2px, 2px) !important;
   box-shadow: 0px 0px 0px var(--ink-primary) !important;
 }
 
-.modal-container,
-div[role="dialog"] .card-hard,
-div[role="dialog"] .modal-container,
-.ff-dialog-panel,
-.popover-card,
-.profile-modal-shell {
+.ff-app-shell:not(.ff-view-landing) :is(
+  .modal-container,
+  div[role="dialog"] .card-hard,
+  div[role="dialog"] .modal-container,
+  .ff-dialog-panel,
+  .popover-card,
+  .profile-modal-shell,
+  .settings-modal-panel
+) {
   background-color: var(--bg-paper) !important;
   border: 2px solid var(--ink-primary) !important;
   box-shadow: 6px 6px 0px var(--ink-primary) !important;
@@ -366,37 +377,36 @@ div[role="dialog"] .modal-container,
   color: var(--ink-primary) !important;
 }
 
-.profile-modal-header {
+.ff-app-shell:not(.ff-view-landing) :is(
+  .profile-modal-header,
+  .settings-modal-header,
+  .dialog-header
+) {
   border-bottom: 3px double var(--ink-primary) !important;
+  background-color: var(--bg-parchment) !important;
 }
 
-.profile-modal-tabs {
+.ff-app-shell:not(.ff-view-landing) .profile-modal-tabs {
   background-color: var(--bg-parchment) !important;
   border: 1.5px solid var(--ink-primary) !important;
   border-radius: 4px !important;
 }
 
-.profile-modal-tab {
+.ff-app-shell:not(.ff-view-landing) .profile-modal-tab {
   color: var(--ink-primary) !important;
   font-family: var(--font-mono) !important;
   border-radius: 4px !important;
 }
 
-.profile-modal-tab.active,
-.profile-modal-tab[aria-selected="true"] {
+.ff-app-shell:not(.ff-view-landing) :is(
+  .profile-modal-tab.active,
+  .profile-modal-tab[aria-selected="true"]
+) {
   background-color: var(--accent-mustard) !important;
   color: var(--ink-primary) !important;
   border: 1.5px solid var(--ink-primary) !important;
   box-shadow: 2px 2px 0px var(--ink-primary) !important;
   font-weight: 800 !important;
-}
-
-.pc-12-card,
-.pc-12-well {
-  background-color: var(--bg-parchment) !important;
-  border: 1.5px solid var(--ink-primary) !important;
-  box-shadow: 2px 2px 0px var(--ink-primary) !important;
-  color: var(--ink-primary) !important;
 }
 
 .ff-verified-seal {
@@ -406,12 +416,15 @@ div[role="dialog"] .modal-container,
   box-shadow: 4px 4px 0px var(--accent-forest) !important;
 }
 
-input[type="text"],
-input[type="search"],
-input[type="password"],
-input[type="email"],
-textarea,
-select {
+.ff-app-shell:not(.ff-view-landing) :is(
+  input[type="text"],
+  input[type="search"],
+  input[type="password"],
+  input[type="email"],
+  input[type="number"],
+  textarea,
+  select
+) {
   background-color: var(--bg-paper) !important;
   color: var(--ink-primary) !important;
   border: 1.5px solid var(--ink-primary) !important;
@@ -419,9 +432,11 @@ select {
   box-shadow: 2px 2px 0px var(--ink-primary) !important;
 }
 
-input:focus,
-textarea:focus,
-select:focus {
+.ff-app-shell:not(.ff-view-landing) :is(
+  input:focus,
+  textarea:focus,
+  select:focus
+) {
   outline: none !important;
   border-color: var(--accent-terracotta) !important;
   box-shadow: 3px 3px 0px var(--ink-primary) !important;

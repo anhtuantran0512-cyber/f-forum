@@ -1156,7 +1156,7 @@ export const App: React.FC = () => {
       <div
         className={`relative isolate w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
-        } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-[var(--bg-base)]'} text-white font-sans`}
+        } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)] text-white' : 'bg-[#FAF7F2] text-[#2C2623]'} font-sans`}
       >
         {/* Phase 1.2: Z-index Layering — Anti Gradient Bleeding */}
         <div className="layer-base-color" aria-hidden="true" />

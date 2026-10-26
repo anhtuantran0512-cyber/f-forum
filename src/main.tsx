@@ -2,10 +2,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
-import './styles/warmEditorialBrutalism.css';
 import './styles/forumDesignSystem.css';
 import './styles/responsiveExperience.css';
 import './styles/fabulousTheme.css';
+import './styles/warmEditorialBrutalism.css';
 import App from './App.tsx';
 import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { AdaptiveQualityProvider } from './context/AdaptiveQualityContext';
