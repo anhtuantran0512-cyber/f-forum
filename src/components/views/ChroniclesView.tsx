@@ -125,7 +125,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 href="https://www.facebook.com/TuanNotTun/"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="tactile-brutal-btn px-3 py-1.5 rounded-[4px] bg-[var(--bg-paper)] border border-[var(--border-grid)] text-[var(--ink-primary)] font-bold transition-colors"
+                className="tactile-brutal-btn px-3 py-1.5 rounded-[4px] bg-[var(--bg-paper)] border border-[var(--border-color)] text-[var(--ink-primary)] font-bold transition-colors"
               >
                 Facebook
               </a>
@@ -133,7 +133,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 href="https://discord.gg/GMDCnxxJwX"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="tactile-brutal-btn px-3 py-1.5 rounded-[4px] bg-[var(--bg-paper)] border border-[var(--border-grid)] text-[var(--ink-primary)] font-bold transition-colors"
+                className="tactile-brutal-btn px-3 py-1.5 rounded-[4px] bg-[var(--bg-paper)] border border-[var(--border-color)] text-[var(--ink-primary)] font-bold transition-colors"
               >
                 Discord
               </a>
@@ -159,7 +159,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                   value={name}
                   onChange={e => setUserNameInput(e.target.value)}
                   placeholder="Nhập họ tên..."
-                  className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-grid)] rounded-[4px] px-3.5 py-2 text-xs text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ink-primary)]"
+                  className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-color)] rounded-[4px] px-3.5 py-2 text-xs text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ink-primary)]"
                 />
               </div>
 
@@ -174,7 +174,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                   value={email}
                   onChange={e => setUserEmailInput(e.target.value)}
                   placeholder="name@example.com"
-                  className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-grid)] rounded-[4px] px-3.5 py-2 text-xs text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ink-primary)]"
+                  className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-color)] rounded-[4px] px-3.5 py-2 text-xs text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ink-primary)]"
                 />
               </div>
             </div>
@@ -186,7 +186,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
               <select
                 value={category}
                 onChange={e => setCategory(e.target.value)}
-                className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-grid)] rounded-[4px] px-3.5 py-2 text-xs text-[var(--ink-primary)] focus:outline-none cursor-pointer font-mono"
+                className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-color)] rounded-[4px] px-3.5 py-2 text-xs text-[var(--ink-primary)] focus:outline-none cursor-pointer font-mono"
               >
                 <option value="Báo lỗi giao diện">Báo lỗi giao diện</option>
                 <option value="Đề xuất tính năng">Đề xuất tính năng</option>
@@ -211,7 +211,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
                 value={content}
                 onChange={e => setContent(e.target.value)}
                 placeholder="Nhập nội dung góp ý..."
-                className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-grid)] rounded-[4px] p-3 text-xs text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none resize-none leading-relaxed font-sans"
+                className="w-full bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-color)] rounded-[4px] p-3 text-xs text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none resize-none leading-relaxed font-sans"
               />
             </div>
 

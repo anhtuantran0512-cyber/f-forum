@@ -1,24 +1,24 @@
 /* Leaderboard — a tactile study ledger with a warm paper-and-ink palette. */
 .ff-board {
-  --fb-surface: #151922;
-  --fb-border: rgba(244, 241, 222, 0.16);
-  --fb-ink: #f4f1de;
-  --fb-ink-dim: #c5c1b6;
-  --fb-tile: #1c2230;
-  --fb-gold: #e9c46a;
-  --fb-sage: #81b29a;
-  --fb-terra: #e07a5f;
-  --fb-score-surface: #1c2230;
-  --fb-score-ink: #f4f1de;
-  --fb-score-muted: #8c887e;
+  --fb-surface: #181b22;
+  --fb-border: rgba(237, 232, 223, 0.14);
+  --fb-ink: #ede8df;
+  --fb-ink-dim: #b5afa4;
+  --fb-tile: #20242e;
+  --fb-gold: #d9a23e;
+  --fb-sage: #5b9b79;
+  --fb-terra: #de6a45;
+  --fb-score-surface: #20242e;
+  --fb-score-ink: #ede8df;
+  --fb-score-muted: #827c72;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   padding: 17px 15px 15px;
-  border: 1.5px solid rgba(244, 241, 222, 0.16) !important;
+  border: 1.5px solid rgba(237, 232, 223, 0.14) !important;
   border-radius: 6px !important;
-  background: #151922 !important;
-  color: #f4f1de !important;
+  background: #181b22 !important;
+  color: #ede8df !important;
   box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65) !important;
 }
 
@@ -1127,22 +1127,22 @@ html.light .ff-hours__source { color: #46684c; background: rgba(142, 182, 154, 0
 html.light .ff-hours__minutes { color: #805d2b; }
 
 html.light .ff-board {
-  --fb-surface: #FAF7F2;
-  --fb-border: #2C2623;
-  --fb-ink: #2C2623;
-  --fb-ink-dim: #5C534E;
-  --fb-tile: #F2ECE1;
-  --fb-gold: #E6AA28;
-  --fb-sage: #2E5A44;
-  --fb-terra: #D95D39;
-  --fb-score-surface: #FAF7F2;
-  --fb-score-ink: #2C2623;
-  --fb-score-muted: #8C827A;
-  border-color: #2C2623 !important;
+  --fb-surface: #FAF8F5;
+  --fb-border: #231F1D;
+  --fb-ink: #231F1D;
+  --fb-ink-dim: #5C5550;
+  --fb-tile: #F3EFEA;
+  --fb-gold: #CF9226;
+  --fb-sage: #275A41;
+  --fb-terra: #C44D29;
+  --fb-score-surface: #FAF8F5;
+  --fb-score-ink: #231F1D;
+  --fb-score-muted: #8C847D;
+  border-color: #231F1D !important;
   background: var(--fb-surface) !important;
-  color: #2C2623 !important;
+  color: #231F1D !important;
   border-radius: 6px !important;
-  box-shadow: 4px 4px 0px #2C2623 !important;
+  box-shadow: 4px 4px 0px #231F1D !important;
 }
 
 html.light .ff-board__crest {

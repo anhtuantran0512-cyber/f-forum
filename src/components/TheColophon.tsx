@@ -20,8 +20,8 @@ export const TheColophon: React.FC<TheColophonProps> = ({ onNavigate, onOpenAbou
   };
 
   return (
-    <footer className="broadsheet-colophon w-full mt-20 border-t-[3px] border-double border-[var(--border-grid)] bg-[var(--bg-parchment)] text-[var(--ink-primary)] select-none">
-      <div className="w-full border-b-[1.5px] border-[var(--border-grid)] px-4 sm:px-8 py-6 bg-[var(--bg-paper)]">
+    <footer className="broadsheet-colophon w-full mt-20 border-t-[3px] border-double border-[var(--border-color)] bg-[var(--bg-parchment)] text-[var(--ink-primary)] select-none">
+      <div className="w-full border-b-[1.5px] border-[var(--border-color)] px-4 sm:px-8 py-6 bg-[var(--bg-paper)]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3 text-center md:text-left">
             <span className="brutalist-stamp">Châm ngôn</span>
@@ -36,7 +36,7 @@ export const TheColophon: React.FC<TheColophonProps> = ({ onNavigate, onOpenAbou
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
               placeholder="Ý kiến đóng góp..."
-              className="flex-1 px-3 py-2 text-xs font-mono bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-grid)] rounded-[4px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ink-primary)]"
+              className="flex-1 px-3 py-2 text-xs font-mono bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-color)] rounded-[4px] text-[var(--ink-primary)] placeholder:text-[var(--ink-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--ink-primary)]"
             />
             <button
               type="submit"
@@ -149,7 +149,7 @@ export const TheColophon: React.FC<TheColophonProps> = ({ onNavigate, onOpenAbou
             <button
               type="button"
               onClick={onOpenAbout}
-              className="tactile-brutal-btn px-3 py-1.5 bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-grid)] text-xs font-mono font-bold rounded-[4px] cursor-pointer"
+              className="tactile-brutal-btn px-3 py-1.5 bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-color)] text-xs font-mono font-bold rounded-[4px] cursor-pointer"
             >
               <span>Về diễn đàn</span>
             </button>
@@ -157,12 +157,12 @@ export const TheColophon: React.FC<TheColophonProps> = ({ onNavigate, onOpenAbou
         </div>
       </div>
 
-      <div className="w-full border-t-[1.5px] border-[var(--border-grid)] py-8 px-4 sm:px-8 bg-[var(--bg-paper)] overflow-hidden">
+      <div className="w-full border-t-[1.5px] border-[var(--border-color)] py-8 px-4 sm:px-8 bg-[var(--bg-paper)] overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-col items-center justify-center">
           <h2 className="text-[clamp(3.5rem,13vw,10.5rem)] font-black tracking-tighter leading-none text-[var(--ink-primary)] select-none text-center">
             F-FORUM
           </h2>
-          <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-[var(--border-grid)]/20 font-mono text-[10px] text-[var(--ink-muted)]">
+          <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 border-t border-[var(--border-color)]/20 font-mono text-[10px] text-[var(--ink-muted)]">
             <span>ARCHIVE &amp; ACADEMIC COMMUNITY // EST. 2026</span>
             <span>WARM EDITORIAL + SOFT NEO-BRUTALISM + SWISS GRID</span>
             <span>TẤT CẢ BẢN QUYỀN ĐƯỢC BẢO LƯU</span>

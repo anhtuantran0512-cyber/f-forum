@@ -15,8 +15,8 @@
   container: ff-media / inline-size;
   position: relative;
   border-radius: 6px;
-  background: #151922;
-  border: 1.5px solid rgba(244, 241, 222, 0.16);
+  background: #181b22;
+  border: 1.5px solid rgba(237, 232, 223, 0.14);
   box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65);
   transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
@@ -29,13 +29,13 @@
   width: 28px;
   height: 4px;
   border-radius: 0 0 4px 4px;
-  background: #D95D39;
+  background: var(--accent-terracotta);
   opacity: 0.95;
   pointer-events: none;
 }
 .ff-media-card:hover {
   transform: translate(-2px, -2px);
-  border-color: rgba(244, 241, 222, 0.28);
+  border-color: var(--accent-terracotta);
   box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.85);
 }
 .ff-media-card__layout {
@@ -74,18 +74,19 @@
 
 /* Light mode adaptation */
 html.light .ff-media-card {
-  background: #FAF7F2 !important;
-  border: 1.5px solid #2C2623 !important;
-  box-shadow: 4px 4px 0px #2C2623 !important;
+  background: #FAF8F5 !important;
+  border: 1.5px solid #231F1D !important;
+  box-shadow: 4px 4px 0px #231F1D !important;
   border-radius: 6px !important;
 }
 html.light .ff-media-card:hover {
-  background: #FAF7F2 !important;
+  background: #FAF8F5 !important;
   transform: translate(-2px, -2px) !important;
-  box-shadow: 6px 6px 0px #2C2623 !important;
+  border-color: var(--accent-terracotta) !important;
+  box-shadow: 6px 6px 0px #231F1D !important;
 }
 html.light .ff-media-card__cover {
-  border: 1.5px solid #2C2623 !important;
+  border: 1.5px solid #231F1D !important;
   border-radius: 4px !important;
 }
 
