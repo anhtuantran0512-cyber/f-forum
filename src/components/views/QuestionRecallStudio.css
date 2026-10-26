@@ -1152,13 +1152,9 @@ html.light .ff-recall-primary:hover {
 }
 
 html.fabulous-mode .ff-recall-studio {
-  border-color: color-mix(in srgb, var(--recall-brass) 45%, rgba(255, 255, 255, 0.32));
-  background:
-    radial-gradient(ellipse at 94% 0%, color-mix(in srgb, var(--recall-sage) 20%, transparent), transparent 39%),
-    linear-gradient(155deg, color-mix(in srgb, var(--recall-raised) 78%, transparent), color-mix(in srgb, var(--recall-paper) 88%, transparent));
-  -webkit-backdrop-filter: blur(26px) saturate(165%);
-  backdrop-filter: blur(26px) saturate(165%);
-  box-shadow: 0 30px 100px rgba(0, 0, 0, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  border: 1.5px solid #2C2623;
+  background: var(--bg-paper);
+  box-shadow: 4px 4px 0px #2C2623;
 }
 
 html.fabulous-mode .ff-recall-question,

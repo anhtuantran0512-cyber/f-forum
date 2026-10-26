@@ -1441,8 +1441,7 @@ html.light .threads-bg .thread-card.card-hard {
   align-items: center;
   justify-content: center;
   padding: 22px;
-  background: rgba(7, 11, 8, 0.92);
-  backdrop-filter: blur(12px);
+  background: rgba(44, 38, 35, 0.88);
 }
 
 .thread-lightbox-close {

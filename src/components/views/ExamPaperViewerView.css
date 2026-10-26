@@ -52,10 +52,9 @@ html.light .ff-paper-viewer {
   gap: 1rem;
   min-height: 64px;
   padding: 0.65rem clamp(1rem, 3vw, 2rem);
-  border-bottom: 1px solid var(--paper-border);
-  background: color-mix(in srgb, var(--paper-bg) 88%, transparent);
-  backdrop-filter: blur(18px) saturate(1.15);
-  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  border-bottom: 1.5px solid #2C2623;
+  background: var(--bg-paper);
+  box-shadow: 0 2px 0px #2C2623;
 }
 
 .ff-paper-viewer__brand,
