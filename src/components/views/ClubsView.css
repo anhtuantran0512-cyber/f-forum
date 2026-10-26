@@ -15,9 +15,9 @@
   container: ff-media / inline-size;
   position: relative;
   border-radius: 6px;
-  background: #FAF7F2;
-  border: 1.5px solid #2C2623;
-  box-shadow: 4px 4px 0px #2C2623;
+  background: #151922;
+  border: 1.5px solid rgba(244, 241, 222, 0.16);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65);
   transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   overflow: hidden;
 }
@@ -35,8 +35,8 @@
 }
 .ff-media-card:hover {
   transform: translate(-2px, -2px);
-  border-color: #2C2623;
-  box-shadow: 6px 6px 0px #2C2623;
+  border-color: rgba(244, 241, 222, 0.28);
+  box-shadow: 6px 6px 0px rgba(0, 0, 0, 0.85);
 }
 .ff-media-card__layout {
   display: flex;
@@ -73,21 +73,18 @@
 }
 
 /* Light mode adaptation */
-html.light .ff-media-card,
-.ff-media-card {
+html.light .ff-media-card {
   background: #FAF7F2 !important;
   border: 1.5px solid #2C2623 !important;
   box-shadow: 4px 4px 0px #2C2623 !important;
   border-radius: 6px !important;
 }
-html.light .ff-media-card:hover,
-.ff-media-card:hover {
+html.light .ff-media-card:hover {
   background: #FAF7F2 !important;
   transform: translate(-2px, -2px) !important;
   box-shadow: 6px 6px 0px #2C2623 !important;
 }
-html.light .ff-media-card__cover,
-.ff-media-card__cover {
+html.light .ff-media-card__cover {
   border: 1.5px solid #2C2623 !important;
   border-radius: 4px !important;
 }
@@ -95,15 +92,15 @@ html.light .ff-media-card__cover,
 .ff-postcard-card {
   position: relative;
   background: var(--accent-terracotta);
-  border: 1.5px solid #2C2623;
-  box-shadow: 4px 4px 0px #2C2623;
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
   border-radius: 6px;
   overflow: hidden;
 }
 
 .ff-postcard-inner {
   background: var(--bg-paper);
-  border-bottom: 1.5px solid #2C2623;
+  border-bottom: var(--border-grid);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 

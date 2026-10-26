@@ -1,25 +1,25 @@
 /* Leaderboard — a tactile study ledger with a warm paper-and-ink palette. */
 .ff-board {
-  --fb-surface: #FAF7F2;
-  --fb-border: #2C2623;
-  --fb-ink: #2C2623;
-  --fb-ink-dim: #5C534E;
-  --fb-tile: #F2ECE1;
-  --fb-gold: #E6AA28;
-  --fb-sage: #2E5A44;
-  --fb-terra: #D95D39;
-  --fb-score-surface: #FAF7F2;
-  --fb-score-ink: #2C2623;
-  --fb-score-muted: #8C827A;
+  --fb-surface: #151922;
+  --fb-border: rgba(244, 241, 222, 0.16);
+  --fb-ink: #f4f1de;
+  --fb-ink-dim: #c5c1b6;
+  --fb-tile: #1c2230;
+  --fb-gold: #e9c46a;
+  --fb-sage: #81b29a;
+  --fb-terra: #e07a5f;
+  --fb-score-surface: #1c2230;
+  --fb-score-ink: #f4f1de;
+  --fb-score-muted: #8c887e;
   position: relative;
   isolation: isolate;
   overflow: hidden;
   padding: 17px 15px 15px;
-  border: 1.5px solid #2C2623 !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.16) !important;
   border-radius: 6px !important;
-  background: #FAF7F2 !important;
-  color: #2C2623 !important;
-  box-shadow: 4px 4px 0px #2C2623 !important;
+  background: #151922 !important;
+  color: #f4f1de !important;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65) !important;
 }
 
 .ff-board::after {
@@ -1127,21 +1127,22 @@ html.light .ff-hours__source { color: #46684c; background: rgba(142, 182, 154, 0
 html.light .ff-hours__minutes { color: #805d2b; }
 
 html.light .ff-board {
-  --fb-surface: linear-gradient(160deg, #fffdf7 0%, #f7f4eb 65%, #eef0e8 100%);
-  --fb-border: rgba(50, 58, 46, 0.15);
-  --fb-ink: #30372f;
-  --fb-ink-dim: #687164;
-  --fb-tile: rgba(50, 58, 46, 0.045);
-  --fb-gold: #8a672f;
-  --fb-sage: #557b60;
-  --fb-terra: #a6533e;
-  --fb-score-surface: linear-gradient(135deg, #f4e8cb, #ecdfc0);
-  --fb-score-ink: #29352b;
-  --fb-score-muted: #5c6856;
-  border-color: rgba(50, 58, 46, 0.14) !important;
+  --fb-surface: #FAF7F2;
+  --fb-border: #2C2623;
+  --fb-ink: #2C2623;
+  --fb-ink-dim: #5C534E;
+  --fb-tile: #F2ECE1;
+  --fb-gold: #E6AA28;
+  --fb-sage: #2E5A44;
+  --fb-terra: #D95D39;
+  --fb-score-surface: #FAF7F2;
+  --fb-score-ink: #2C2623;
+  --fb-score-muted: #8C827A;
+  border-color: #2C2623 !important;
   background: var(--fb-surface) !important;
-  border-radius: 22px 7px 22px 7px !important;
-  box-shadow: 0 16px 36px rgba(48, 44, 35, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+  color: #2C2623 !important;
+  border-radius: 6px !important;
+  box-shadow: 4px 4px 0px #2C2623 !important;
 }
 
 html.light .ff-board__crest {

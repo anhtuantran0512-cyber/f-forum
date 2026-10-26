@@ -5,7 +5,7 @@
   width: 100%;
   min-height: 100vh;
   padding-bottom: calc(96px + var(--safe-bottom, 0px));
-  color: #2C2623;
+  color: var(--ink-primary);
   isolation: isolate;
   overflow-x: clip;
   --ff-exam-parallax-a-x: 0px;
@@ -22,7 +22,7 @@
 
 html.light .ff-exam-vault {
   background: var(--bg-paper);
-  color: #2C2623;
+  color: var(--ink-primary);
 }
 
 html.light .ff-exam-vault::before,
@@ -78,8 +78,8 @@ html.light .ff-exam-filter-label {
 /* Header surface */
 .ff-exam-header-bar {
   background: var(--bg-paper);
-  border: 1.5px solid #2C2623;
-  box-shadow: 4px 4px 0px #2C2623;
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
   border-radius: 6px;
 }
 
@@ -92,8 +92,8 @@ html.light .ff-exam-header-bar {
 /* Hero Search Pod */
 .ff-exam-hero-search {
   background: var(--bg-parchment);
-  border: 1.5px solid #2C2623;
-  box-shadow: 4px 4px 0px #2C2623;
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
   border-radius: 6px;
 }
 
@@ -254,8 +254,8 @@ html.light .ff-diff-badge--van-dung-cao {
 /* Modal Surface */
 .ff-exam-modal {
   background: var(--bg-paper);
-  border: 2px solid #2C2623;
-  box-shadow: 6px 6px 0px #2C2623;
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal-hover);
   border-radius: 6px;
 }
 

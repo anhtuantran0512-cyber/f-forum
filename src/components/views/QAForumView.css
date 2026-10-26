@@ -1,5 +1,20 @@
 /* Q&A: warm archive table / field notebook visual language. */
 .ff-qa-room {
+  --qa-ink: #f4f1de;
+  --qa-ink-raised: #1c2230;
+  --qa-paper: #151922;
+  --qa-copy: #f4f1de;
+  --qa-muted: #c5c1b6;
+  --qa-line: rgba(244, 241, 222, 0.16);
+  --qa-brass: #e9c46a;
+  --qa-clay: #e07a5f;
+  --qa-sage: #81b29a;
+  isolation: isolate;
+  color: var(--qa-copy);
+  background: var(--bg-paper);
+}
+
+html.light .ff-qa-room {
   --qa-ink: #2C2623;
   --qa-ink-raised: #FAF7F2;
   --qa-paper: #FAF7F2;
@@ -9,15 +24,18 @@
   --qa-brass: #E6AA28;
   --qa-clay: #D95D39;
   --qa-sage: #2E5A44;
-  isolation: isolate;
-  color: var(--qa-copy);
-  background: var(--bg-paper);
 }
 
 .ff-qa-room .ff-qa-dispatch-board {
   overflow: visible;
-  border: 1.5px solid #2C2623 !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.16) !important;
   border-radius: 6px !important;
+  background: #151922 !important;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65) !important;
+}
+
+html.light .ff-qa-room .ff-qa-dispatch-board {
+  border: 1.5px solid #2C2623 !important;
   background: #FAF7F2 !important;
   box-shadow: 4px 4px 0px #2C2623 !important;
 }
@@ -52,11 +70,18 @@
 .ff-qa-search input[type='search'] {
   min-height: 42px;
   padding-left: 38px;
-  border: 1.5px solid #2C2623 !important;
+  border: 1.5px solid rgba(244, 241, 222, 0.18) !important;
   border-radius: 4px !important;
+  background: #1c2230 !important;
+  color: #f4f1de !important;
+  font-size: 13px !important;
+  box-shadow: 2px 2px 0px rgba(0, 0, 0, 0.6) !important;
+}
+
+html.light .ff-qa-search input[type='search'] {
+  border: 1.5px solid #2C2623 !important;
   background: #FAF7F2 !important;
   color: #2C2623 !important;
-  font-size: 13px !important;
   box-shadow: 2px 2px 0px #2C2623 !important;
 }
 

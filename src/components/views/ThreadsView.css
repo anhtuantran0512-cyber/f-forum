@@ -1,18 +1,18 @@
 /* Sổ chung — a warm, editorial conversation room rather than a generic social feed. */
 .threads-bg {
-  --thread-page: #FAF7F2;
-  --thread-surface: #FAF7F2;
-  --thread-surface-raised: #F2ECE1;
-  --thread-paper: #FAF7F2;
-  --thread-ink: #2C2623;
-  --thread-copy: #2C2623;
-  --thread-muted: #5C534E;
-  --thread-faint: #8C827A;
-  --thread-line: #2C2623;
-  --thread-accent: #D95D39;
-  --thread-sage: #2E5A44;
-  --thread-gold: #E6AA28;
-  --thread-shadow: 4px 4px 0px #2C2623;
+  --thread-page: #0e1117;
+  --thread-surface: #151922;
+  --thread-surface-raised: #1c2230;
+  --thread-paper: #151922;
+  --thread-ink: #f4f1de;
+  --thread-copy: #f4f1de;
+  --thread-muted: #c5c1b6;
+  --thread-faint: #8c887e;
+  --thread-line: rgba(244, 241, 222, 0.16);
+  --thread-accent: #e07a5f;
+  --thread-sage: #81b29a;
+  --thread-gold: #e9c46a;
+  --thread-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65);
   color: var(--thread-copy);
   background: var(--bg-paper);
 }
@@ -34,8 +34,14 @@ html.light .threads-bg {
   background: var(--bg-paper);
 }
 
-html.light .threads-bg .thread-card,
 .threads-bg .thread-card {
+  background: #151922;
+  border: 1.5px solid rgba(244, 241, 222, 0.16);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65);
+  color: #f4f1de;
+}
+
+html.light .threads-bg .thread-card {
   background: #FAF7F2;
   border: 1.5px solid #2C2623;
   box-shadow: 4px 4px 0px #2C2623;
@@ -55,8 +61,15 @@ html.light .threads-bg .thread-card,
   gap: 22px;
   overflow: hidden;
   padding: clamp(22px, 3.2vw, 38px);
-  border: 1.5px solid #2C2623;
+  border: 1.5px solid rgba(244, 241, 222, 0.16);
   border-radius: 6px;
+  background: #151922;
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.65);
+  color: #f4f1de;
+}
+
+html.light .thread-room-header {
+  border: 1.5px solid #2C2623;
   background: #F2ECE1;
   box-shadow: 4px 4px 0px #2C2623;
   color: #2C2623;

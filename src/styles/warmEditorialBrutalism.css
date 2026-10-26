@@ -1,4 +1,27 @@
 :root {
+  --bg-paper: #0e1117;
+  --bg-parchment: #151922;
+  --bg-elevated: #1c2230;
+  --ink-primary: #f4f1de;
+  --ink-secondary: #c5c1b6;
+  --ink-muted: #8c887e;
+  --accent-terracotta: #e07a5f;
+  --accent-mustard: #e9c46a;
+  --accent-forest: #81b29a;
+  --accent-cobalt: #5e81ac;
+  --border-grid: 1.5px solid rgba(244, 241, 222, 0.16);
+  --border-double: 3px double rgba(244, 241, 222, 0.24);
+  --shadow-brutal: 4px 4px 0px rgba(0, 0, 0, 0.65);
+  --shadow-brutal-sm: 2px 2px 0px rgba(0, 0, 0, 0.65);
+  --shadow-brutal-hover: 6px 6px 0px rgba(0, 0, 0, 0.85);
+  --radius-soft: 6px;
+
+  --font-display: 'Newsreader', 'Playfair Display', 'Fraunces', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, monospace;
+}
+
+html.light {
   --bg-paper: #FAF7F2;
   --bg-parchment: #F2ECE1;
   --bg-elevated: #EBE3D5;
@@ -14,11 +37,6 @@
   --shadow-brutal: 4px 4px 0px #2C2623;
   --shadow-brutal-sm: 2px 2px 0px #2C2623;
   --shadow-brutal-hover: 6px 6px 0px #2C2623;
-  --radius-soft: 6px;
-
-  --font-display: 'Newsreader', 'Playfair Display', 'Fraunces', Georgia, serif;
-  --font-sans: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, monospace;
 }
 
 body {
@@ -75,9 +93,9 @@ p.editorial-dropcap-para::first-letter {
   line-height: 0.85;
   padding: 8px 12px;
   margin-right: 12px;
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
   background: var(--accent-mustard);
-  box-shadow: 2px 2px 0px #2C2623;
+  box-shadow: var(--shadow-brutal-sm);
   font-weight: 700;
   color: var(--ink-primary);
 }
@@ -88,14 +106,14 @@ p.editorial-dropcap-para::first-letter {
   font-weight: 700;
   line-height: 1;
   color: transparent;
-  -webkit-text-stroke: 1.5px #2C2623;
+  -webkit-text-stroke: 1.5px var(--ink-primary);
   transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   display: inline-block;
 }
 
 .swiss-numeral:hover,
 *:hover > .swiss-numeral {
-  color: #D95D39 !important;
+  color: var(--accent-terracotta) !important;
   -webkit-text-stroke: 0px transparent !important;
 }
 
@@ -133,22 +151,22 @@ p.editorial-dropcap-para::first-letter {
   align-items: center;
   justify-content: center;
   transform: rotate(-5deg);
-  border: 1.5px dashed #2C2623;
+  border: 1.5px dashed var(--ink-primary);
   background: var(--accent-mustard);
-  color: #2C2623;
+  color: #12100F;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   padding: 3px 8px;
-  box-shadow: 2px 2px 0px #2C2623;
+  box-shadow: var(--shadow-brutal-sm);
   border-radius: 2px;
 }
 
 .ticket-card {
   position: relative;
-  border: 1.5px dashed #2C2623;
+  border: 1.5px dashed var(--ink-primary);
   background: var(--bg-paper);
   border-radius: var(--radius-soft);
   padding: 18px;
@@ -162,7 +180,7 @@ p.editorial-dropcap-para::first-letter {
   height: 14px;
   border-radius: 50%;
   background: var(--bg-parchment);
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
   transform: translateY(-50%);
 }
 .ticket-card::before {
@@ -196,28 +214,28 @@ p.editorial-dropcap-para::first-letter {
 }
 
 .halftone-bg {
-  background-image: radial-gradient(#2C2623 1px, transparent 1px);
+  background-image: radial-gradient(var(--ink-muted) 1px, transparent 1px);
   background-size: 8px 8px;
 }
 
 .editorial-frame {
   padding: 12px;
   background: var(--bg-parchment);
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
   border-radius: 6px;
-  box-shadow: 4px 4px 0px #2C2623;
+  box-shadow: var(--shadow-brutal);
 }
 .editorial-frame img {
-  border: 1px solid #2C2623;
+  border: 1px solid var(--ink-primary);
   filter: contrast(103%) sepia(6%);
 }
 
 .exhibit-frame {
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
   background: var(--bg-parchment);
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 4px 4px 0px #2C2623;
+  box-shadow: var(--shadow-brutal);
 }
 .exhibit-frame-header {
   padding: 6px 10px;
@@ -225,7 +243,7 @@ p.editorial-dropcap-para::first-letter {
   font-size: 10px;
   font-weight: 700;
   color: var(--ink-muted);
-  border-bottom: 1px solid #2C2623;
+  border-bottom: 1px solid var(--ink-primary);
   background: var(--bg-elevated);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -234,14 +252,14 @@ p.editorial-dropcap-para::first-letter {
 .dossier-avatar {
   aspect-ratio: 4 / 5;
   object-fit: cover;
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
   box-shadow: var(--shadow-brutal);
   border-radius: 4px;
 }
 
 .arch-avatar {
   border-radius: 999px 999px 8px 8px;
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
   box-shadow: var(--shadow-brutal);
   object-fit: cover;
 }
@@ -253,7 +271,7 @@ p.editorial-dropcap-para::first-letter {
 .ff-brutal-btn {
   transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
   box-shadow: var(--shadow-brutal-sm);
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
 }
 .tactile-brutal-btn:hover,
 .btn-feastables:hover,
@@ -269,31 +287,31 @@ p.editorial-dropcap-para::first-letter {
 .ff-tactile-pop:active,
 .ff-brutal-btn:active {
   transform: translate(2px, 2px);
-  box-shadow: 0px 0px 0px #2C2623;
+  box-shadow: 0px 0px 0px transparent;
 }
 
 .swiss-grid-cell {
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
   background: var(--bg-paper);
   padding: 24px;
 }
 
 .swiss-grid-border {
-  border: 1.5px solid #2C2623;
+  border: var(--border-grid);
 }
 
 .swiss-double-border {
-  border-top: 3px double #2C2623;
-  border-bottom: 3px double #2C2623;
+  border-top: var(--border-double);
+  border-bottom: var(--border-double);
 }
 
 .broadsheet-masthead {
-  border-bottom: 3px double #2C2623;
+  border-bottom: var(--border-double);
   background: var(--bg-paper);
 }
 
 .broadsheet-colophon {
-  border-top: 3px double #2C2623;
+  border-top: var(--border-double);
   background: var(--bg-parchment);
 }
 
@@ -323,7 +341,7 @@ p.editorial-dropcap-para::first-letter {
   .qa-forum-page
 ) {
   background-color: var(--bg-paper) !important;
-  border: 1.5px solid var(--ink-primary) !important;
+  border: var(--border-grid) !important;
   box-shadow: var(--shadow-brutal) !important;
   border-radius: var(--radius-soft) !important;
   color: var(--ink-primary) !important;
@@ -352,7 +370,7 @@ p.editorial-dropcap-para::first-letter {
   .gb-card:active
 ) {
   transform: translate(2px, 2px) !important;
-  box-shadow: 0px 0px 0px var(--ink-primary) !important;
+  box-shadow: 0px 0px 0px transparent !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) :is(
@@ -365,8 +383,8 @@ p.editorial-dropcap-para::first-letter {
   .settings-modal-panel
 ) {
   background-color: var(--bg-paper) !important;
-  border: 2px solid var(--ink-primary) !important;
-  box-shadow: 6px 6px 0px var(--ink-primary) !important;
+  border: var(--border-double) !important;
+  box-shadow: var(--shadow-brutal-hover) !important;
   border-radius: var(--radius-soft) !important;
   color: var(--ink-primary) !important;
 }
@@ -376,18 +394,19 @@ p.editorial-dropcap-para::first-letter {
   .settings-modal-header,
   .dialog-header
 ) {
-  border-bottom: 3px double var(--ink-primary) !important;
+  border-bottom: var(--border-double) !important;
   background-color: var(--bg-parchment) !important;
+  color: var(--ink-primary) !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .profile-modal-tabs {
   background-color: var(--bg-parchment) !important;
-  border: 1.5px solid var(--ink-primary) !important;
+  border: var(--border-grid) !important;
   border-radius: 4px !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .profile-modal-tab {
-  color: var(--ink-primary) !important;
+  color: var(--ink-secondary) !important;
   font-family: var(--font-mono) !important;
   border-radius: 4px !important;
 }
@@ -397,15 +416,15 @@ p.editorial-dropcap-para::first-letter {
   .profile-modal-tab[aria-selected="true"]
 ) {
   background-color: var(--accent-mustard) !important;
-  color: var(--ink-primary) !important;
-  border: 1.5px solid var(--ink-primary) !important;
-  box-shadow: 2px 2px 0px var(--ink-primary) !important;
+  color: #12100F !important;
+  border: var(--border-grid) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
   font-weight: 800 !important;
 }
 
 .ff-verified-seal {
   border: 3px double var(--accent-forest) !important;
-  background-color: #EBF3EE !important;
+  background-color: rgba(46, 90, 68, 0.16) !important;
   color: var(--ink-primary) !important;
   box-shadow: 4px 4px 0px var(--accent-forest) !important;
 }
@@ -419,11 +438,11 @@ p.editorial-dropcap-para::first-letter {
   textarea,
   select
 ) {
-  background-color: var(--bg-paper) !important;
+  background-color: var(--bg-parchment) !important;
   color: var(--ink-primary) !important;
-  border: 1.5px solid var(--ink-primary) !important;
+  border: var(--border-grid) !important;
   border-radius: 4px !important;
-  box-shadow: 2px 2px 0px var(--ink-primary) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) :is(
@@ -433,19 +452,19 @@ p.editorial-dropcap-para::first-letter {
 ) {
   outline: none !important;
   border-color: var(--accent-terracotta) !important;
-  box-shadow: 3px 3px 0px var(--ink-primary) !important;
+  box-shadow: var(--shadow-brutal) !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-nav-capsule.liquid-glass {
-  background: var(--bg-paper) !important;
-  border: 1.5px solid var(--ink-primary) !important;
-  box-shadow: 4px 4px 0px var(--ink-primary) !important;
+  background: var(--bg-parchment) !important;
+  border: var(--border-grid) !important;
+  box-shadow: var(--shadow-brutal) !important;
   border-radius: var(--radius-soft) !important;
   color: var(--ink-primary) !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-nav-capsule .nav-tab-btn {
-  color: var(--ink-primary) !important;
+  color: var(--ink-secondary) !important;
   font-family: var(--font-mono) !important;
   border: 1px solid transparent !important;
   border-radius: 4px !important;
@@ -453,15 +472,15 @@ p.editorial-dropcap-para::first-letter {
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-nav-capsule .nav-tab-btn:hover {
-  background: var(--bg-parchment) !important;
-  border-color: var(--ink-primary) !important;
+  background: var(--bg-elevated) !important;
+  color: var(--ink-primary) !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-nav-capsule .nav-tab-btn--active {
   background: var(--accent-mustard) !important;
-  color: var(--ink-primary) !important;
-  border: 1.5px solid var(--ink-primary) !important;
-  box-shadow: 2px 2px 0px var(--ink-primary) !important;
+  color: #12100F !important;
+  border: var(--border-grid) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
   font-weight: 800 !important;
 }
 
@@ -472,13 +491,13 @@ p.editorial-dropcap-para::first-letter {
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-nav-capsule .ff-nav-logo {
   background: var(--accent-terracotta) !important;
-  border: 1.5px solid var(--ink-primary) !important;
-  box-shadow: 2px 2px 0px var(--ink-primary) !important;
+  border: var(--border-grid) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
   border-radius: 4px !important;
 }
 
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) .ff-nav-capsule .ff-nav-logo__core {
-  color: var(--bg-paper) !important;
+  color: #FAF7F2 !important;
   font-family: var(--font-display) !important;
   font-weight: 800 !important;
 }
@@ -489,10 +508,10 @@ p.editorial-dropcap-para::first-letter {
 }
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) ::-webkit-scrollbar-track {
   background: var(--bg-parchment);
-  border-left: 1px solid var(--ink-primary);
+  border-left: 1px solid var(--border-grid);
 }
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) ::-webkit-scrollbar-thumb {
-  background: var(--ink-primary);
+  background: var(--ink-muted);
   border-radius: 0px;
 }
 .ff-app-shell:not(:is(.ff-view-landing, .ff-view-home)) ::-webkit-scrollbar-thumb:hover {

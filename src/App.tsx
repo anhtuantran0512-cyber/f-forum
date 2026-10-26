@@ -1157,12 +1157,12 @@ export const App: React.FC = () => {
         className={`relative isolate w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
         } ff-app-shell ff-view-${currentView} ${
-          currentView === 'landing' || currentView === 'home' ? 'bg-[var(--ff-bg)] text-white' : 'bg-[#FAF7F2] text-[#2C2623]'
+          currentView === 'landing' || currentView === 'home' ? 'bg-[var(--ff-bg)] text-white' : 'bg-[var(--bg-paper)] text-[var(--ink-primary)]'
         } font-sans`}
       >
         {/* Phase 1.2: Z-index Layering — Anti Gradient Bleeding */}
         <div className="layer-base-color" aria-hidden="true" />
-        {currentView !== 'landing' && currentView !== 'home' && (
+        {currentView !== 'landing' && currentView !== 'home' && isLightTheme && (
           <div className="paper-grain-overlay" aria-hidden="true" />
         )}
         <div className="layer-gradient-aura" aria-hidden="true">
