@@ -1836,37 +1836,6 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-7 min-h-0 pb-6 items-start">
           {/* Left: Questions Feed */}
           <div ref={questionFeedRef} className="ff-qa-feed lg:col-span-8 space-y-4 sm:space-y-5 pb-8">
-            <div
-              className="p-3.5 sm:p-4 rounded-xl backdrop-blur-md border border-white/10 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs mb-1"
-              style={{
-                background: 'linear-gradient(135deg, rgba(16, 24, 39, 0.75) 0%, rgba(9, 12, 18, 0.85) 100%)',
-                border: '1px solid rgba(148, 163, 184, 0.16)',
-              }}
-            >
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-400 shrink-0">
-                  <Award className="w-4 h-4" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-white text-[12.5px]">Cơ Chế Danh Dự &amp; Thẩm Định Thủ Khoa</span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                      Chống Spam 24/7
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-300 mt-0.5">
-                    Lời giải có tâm, lập luận từng bước được thưởng Bounty Points và xác thực danh hiệu Thủ khoa F-Forum.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[10.5px] font-mono text-amber-300 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-400/25">
-                  Môn trọng tâm: Toán, Lý, Hóa, Sinh, Tin, Văn
-                </span>
-              </div>
-            </div>
-
           {(isSynced || filteredQuestions.length > 0) && (
             <div className="ff-qa-feed-summary" role="status" aria-live="polite" aria-atomic="true">
               <span className="ff-qa-feed-label">BẢNG CÂU HỎI</span>
