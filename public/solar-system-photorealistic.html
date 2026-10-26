@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Mô Phỏng Hệ Mặt Trời Siêu Thực NASA Full-HD 2K · Three.js PBR Engine</title>
+  <title>Mô Phỏng Hệ Mặt Trời Siêu Thực NASA Full-HD 2K · Chuẩn Google Earth</title>
   <style>
     * {
       box-sizing: border-box;
@@ -41,6 +41,11 @@
       flex-direction: column;
       justify-content: space-between;
       padding: 20px;
+      transition: opacity 0.3s ease;
+    }
+    .hud-layer.cinema-mode {
+      opacity: 0;
+      pointer-events: none;
     }
     .hud-header {
       pointer-events: auto;
@@ -200,22 +205,107 @@
       border-color: rgba(56, 189, 248, 0.5);
       background: rgba(56, 189, 248, 0.16);
     }
+    .google-nav-cluster {
+      position: absolute;
+      right: 20px;
+      bottom: 84px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: auto;
+      z-index: 20;
+    }
+    .g-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: rgba(8, 12, 22, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      color: #e2e8f0;
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+      transition: all 0.18s ease;
+    }
+    .g-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fbbf24;
+      border-color: rgba(251, 191, 36, 0.4);
+      transform: scale(1.05);
+    }
+    .compass-dial {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: rgba(8, 12, 22, 0.9);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      transition: transform 0.2s ease;
+    }
+    .compass-needle {
+      width: 4px;
+      height: 24px;
+      background: linear-gradient(to bottom, #ef4444 50%, #e2e8f0 50%);
+      border-radius: 2px;
+      transform-origin: center center;
+    }
     .planet-hover-tooltip {
       position: absolute;
       pointer-events: none;
       z-index: 50;
-      padding: 5px 10px;
-      border-radius: 8px;
-      background: rgba(10, 15, 28, 0.88);
-      border: 1px solid rgba(251, 191, 36, 0.45);
+      padding: 5px 11px;
+      border-radius: 9px;
+      background: rgba(10, 15, 28, 0.92);
+      border: 1px solid rgba(251, 191, 36, 0.5);
       color: #fef08a;
-      font-size: 11px;
+      font-size: 11.5px;
       font-weight: 700;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
-      transform: translate(-50%, -130%);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+      transform: translate(-50%, -135%);
       opacity: 0;
       transition: opacity 0.15s ease;
+    }
+    .geo-landmark-label {
+      position: absolute;
+      pointer-events: none;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #bae6fd;
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      transform: translate(-50%, -50%);
+      transition: opacity 0.2s ease;
+    }
+    .zen-exit-btn {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 40;
+      display: none;
+      pointer-events: auto;
+      background: rgba(8, 12, 22, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f1f5f9;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+      backdrop-filter: blur(20px);
     }
     @media (max-width: 768px) {
       .hud-header { max-width: 100%; font-size: 13px; }
@@ -230,6 +320,10 @@
         bottom: auto;
         top: 130px;
         left: 16px;
+      }
+      .google-nav-cluster {
+        bottom: 140px;
+        right: 16px;
       }
       .nav-bar {
         bottom: 12px;
@@ -250,15 +344,26 @@
 <body>
   <canvas id="webgl-canvas"></canvas>
   <div id="hoverTooltip" class="planet-hover-tooltip"></div>
+  <div id="landmarkContainer"></div>
+  <button type="button" id="btnExitZen" class="zen-exit-btn">Hiện bảng điều khiển</button>
 
-  <div class="hud-layer">
+  <div class="google-nav-cluster">
+    <div id="compassDial" class="compass-dial" title="Bấm để xoay thẳng hướng Bắc">
+      <div id="compassNeedle" class="compass-needle"></div>
+    </div>
+    <button type="button" id="btnZoomIn" class="g-btn" title="Phóng to">+</button>
+    <button type="button" id="btnZoomOut" class="g-btn" title="Thu nhỏ">-</button>
+    <button type="button" id="btnTilt" class="g-btn" style="font-size:12px;" title="Nghiêng góc nhìn 3D">3D</button>
+  </div>
+
+  <div class="hud-layer" id="hudLayer">
     <header class="hud-header">
       <div class="hud-title">
         <span>NASA Photorealistic Solar Engine</span>
-        <span class="hud-badge">Full-HD 2K PBR</span>
+        <span class="hud-badge">Google Earth 2K</span>
       </div>
       <div class="hud-sub">
-        Nhấp trực tiếp vào bất kỳ hành tinh nào để zoom cận cảnh ngắm bề mặt 2K siêu thực. Trái Đất hiển thị đại dương phản quang, đèn đêm đô thị, mây trôi 3D; Mặt Trời hiển thị vết đen quang cầu và rực lửa plasma.
+        Điều hướng mượt mà chuẩn Google Earth: Nhấp đúp chuột để zoom sát vào bất kỳ vùng đất nào, xoay quán tính 360 độ tự do. Trái Đất hiển thị thềm lục địa, biển phản quang ánh nắng, đèn đêm thành phố và dải mây trôi.
       </div>
     </header>
 
@@ -266,9 +371,11 @@
       <button type="button" id="btnPause" class="ctrl-btn">Tạm dừng</button>
       <button type="button" id="btnSpeed" class="ctrl-btn">Tốc độ: 1x</button>
       <button type="button" id="btnOrbits" class="ctrl-btn active">Quỹ đạo: Bật</button>
+      <button type="button" id="btnLandmarks" class="ctrl-btn active">Điểm mốc: Bật</button>
       <button type="button" id="btnTour" class="ctrl-btn">Tự động du hành</button>
       <button type="button" id="btnVenusMode" class="ctrl-btn">Sao Kim: Khí quyển</button>
       <button type="button" id="btnAudio" class="ctrl-btn">Âm thanh vũ trụ</button>
+      <button type="button" id="btnZen" class="ctrl-btn">Ẩn giao diện</button>
       <button type="button" id="btnReset" class="ctrl-btn">Toàn cảnh</button>
     </div>
 
@@ -314,6 +421,7 @@
     (function() {
       var canvas = document.getElementById('webgl-canvas');
       var tooltip = document.getElementById('hoverTooltip');
+      var landmarkContainer = document.getElementById('landmarkContainer');
       var scene = new THREE.Scene();
       scene.fog = new THREE.FogExp2(0x000003, 0.00008);
 
@@ -335,8 +443,10 @@
 
       var controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.minDistance = 3.5;
+      controls.dampingFactor = 0.06;
+      controls.rotateSpeed = 0.85;
+      controls.zoomSpeed = 1.15;
+      controls.minDistance = 3.2;
       controls.maxDistance = 2500;
       controls.maxPolarAngle = Math.PI * 0.95;
 
@@ -555,7 +665,10 @@
           bump: true,
           bumpScale: 0.065,
           roughness: 0.95,
-          metalness: 0.08
+          metalness: 0.08,
+          landmarks: [
+            { name: 'Lưu vực Caloris', lat: 30.5, lon: -160 }
+          ]
         },
         {
           id: 'venus',
@@ -576,7 +689,11 @@
           hasAtmo: true,
           atmoColor: 0xf59e0b,
           roughness: 0.65,
-          metalness: 0.05
+          metalness: 0.05,
+          landmarks: [
+            { name: 'Cao nguyên Ishtar', lat: 70.4, lon: 27.5 },
+            { name: 'Núi Maxwell Montes (11 km)', lat: 65.2, lon: 3.3 }
+          ]
         },
         {
           id: 'earth',
@@ -599,7 +716,15 @@
           hasAtmo: true,
           atmoColor: 0x38bdf8,
           roughness: 0.55,
-          metalness: 0.1
+          metalness: 0.1,
+          landmarks: [
+            { name: 'Châu Á · Dãy Himalaya', lat: 28.0, lon: 86.9 },
+            { name: 'Thái Bình Dương', lat: 0.0, lon: -160.0 },
+            { name: 'Châu Âu', lat: 48.0, lon: 16.0 },
+            { name: 'Bắc Mỹ', lat: 40.0, lon: -100.0 },
+            { name: 'Châu Phi · Sa mạc Sahara', lat: 23.0, lon: 12.0 },
+            { name: 'Nam Cực', lat: -85.0, lon: 0.0 }
+          ]
         },
         {
           id: 'mars',
@@ -622,7 +747,12 @@
           hasAtmo: true,
           atmoColor: 0xf97316,
           roughness: 0.88,
-          metalness: 0.08
+          metalness: 0.08,
+          landmarks: [
+            { name: 'Núi Olympus (21.9 km)', lat: 18.65, lon: -133.8 },
+            { name: 'Hẻm Valles Marineris (4000 km)', lat: -13.9, lon: -59.2 },
+            { name: 'Chỏm băng cực Bắc', lat: 84.0, lon: 0.0 }
+          ]
         },
         {
           id: 'jupiter',
@@ -642,7 +772,10 @@
           hasMoons: true,
           map: '/textures/planets/2k_jupiter.jpg',
           roughness: 0.48,
-          metalness: 0.02
+          metalness: 0.02,
+          landmarks: [
+            { name: 'Bão Vết Đỏ Lớn (Great Red Spot)', lat: -22.0, lon: -165.0 }
+          ]
         },
         {
           id: 'saturn',
@@ -662,7 +795,10 @@
           hasSaturnRings: true,
           map: '/textures/planets/2k_saturn.jpg',
           roughness: 0.52,
-          metalness: 0.02
+          metalness: 0.02,
+          landmarks: [
+            { name: 'Vành đai A & Khoảng chia Cassini', lat: 0.0, lon: 0.0 }
+          ]
         },
         {
           id: 'uranus',
@@ -704,13 +840,18 @@
           hasAtmo: true,
           atmoColor: 0x60a5fa,
           roughness: 0.42,
-          metalness: 0.06
+          metalness: 0.06,
+          landmarks: [
+            { name: 'Vết Tối Lớn (Great Dark Spot)', lat: -22.0, lon: 40.0 }
+          ]
         }
       ];
 
       var planetMeshes = [];
       var orbitLines = [];
       var clickableObjects = [sunMesh];
+      var landmarkElements = [];
+      var showLandmarks = true;
 
       function createSaturnRing(innerR, outerR) {
         var ringGeo = new THREE.RingGeometry(innerR, outerR, 128);
@@ -759,6 +900,16 @@
         }));
         scene.add(line);
         orbitLines.push(line);
+      }
+
+      function latLonToVector3(lat, lon, radius) {
+        var phi = (90 - lat) * (Math.PI / 180);
+        var theta = (lon + 180) * (Math.PI / 180);
+        return new THREE.Vector3(
+          -(radius * Math.sin(phi) * Math.cos(theta)),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta)
+        );
       }
 
       planetConfigs.forEach(function(cfg, idx) {
@@ -857,6 +1008,19 @@
           tiltGroup.add(createSaturnRing(cfg.radius * 1.35, cfg.radius * 2.5));
         }
 
+        var pLandmarks = [];
+        if (cfg.landmarks) {
+          cfg.landmarks.forEach(function(lm) {
+            var localPos = latLonToVector3(lm.lat, lm.lon, cfg.radius * 1.02);
+            var el = document.createElement('div');
+            el.className = 'geo-landmark-label';
+            el.textContent = lm.name;
+            landmarkContainer.appendChild(el);
+            pLandmarks.push({ el: el, localPos: localPos });
+            landmarkElements.push({ el: el, localPos: localPos, planetMesh: planetMesh, planetCfg: cfg });
+          });
+        }
+
         planetMeshes.push({
           cfg: cfg,
           pivotGroup: pivotGroup,
@@ -864,6 +1028,7 @@
           planetMesh: planetMesh,
           cloudsMesh: cloudsMesh,
           moonPivot: moonPivot,
+          landmarks: pLandmarks,
           angle: Math.random() * Math.PI * 2
         });
       });
@@ -934,6 +1099,26 @@
       }
       document.getElementById('btnAudio').onclick = toggleSpaceAudio;
 
+      var hudLayer = document.getElementById('hudLayer');
+      var btnExitZen = document.getElementById('btnExitZen');
+      document.getElementById('btnZen').onclick = function() {
+        hudLayer.classList.add('cinema-mode');
+        btnExitZen.style.display = 'block';
+      };
+      btnExitZen.onclick = function() {
+        hudLayer.classList.remove('cinema-mode');
+        btnExitZen.style.display = 'none';
+      };
+
+      document.getElementById('btnLandmarks').onclick = function() {
+        showLandmarks = !showLandmarks;
+        this.classList.toggle('active', showLandmarks);
+        this.textContent = showLandmarks ? 'Điểm mốc: Bật' : 'Điểm mốc: Tắt';
+        landmarkElements.forEach(function(lm) {
+          lm.el.style.display = showLandmarks ? 'block' : 'none';
+        });
+      };
+
       var clock = new THREE.Clock();
       var isRunning = true;
       var speedMultiplier = 1.0;
@@ -942,8 +1127,30 @@
       var tourTimer = 0;
       var selectedTarget = null;
       var targetPosition = new THREE.Vector3();
-      var isCameraTransitioning = false;
       var lastTargetPos = new THREE.Vector3();
+
+      var flight = {
+        active: false,
+        startTime: 0,
+        duration: 1200,
+        startCamPos: new THREE.Vector3(),
+        endCamPos: new THREE.Vector3(),
+        startTarget: new THREE.Vector3(),
+        endTarget: new THREE.Vector3()
+      };
+
+      function startCameraFlight(destTarget, idealDistance) {
+        flight.active = true;
+        flight.startTime = performance.now();
+        flight.startCamPos.copy(camera.position);
+        flight.startTarget.copy(controls.target);
+        flight.endTarget.copy(destTarget);
+
+        var currentOffset = camera.position.clone().sub(controls.target);
+        if (currentOffset.length() < 1) currentOffset.set(0, idealDistance * 0.45, idealDistance * 0.9);
+        var normOffset = currentOffset.normalize().multiplyScalar(idealDistance);
+        flight.endCamPos.copy(destTarget).add(normOffset);
+      }
 
       function updateCard(cfg) {
         document.getElementById('cardName').textContent = cfg.name;
@@ -961,7 +1168,6 @@
       function selectSun() {
         isTouring = false;
         selectedTarget = null;
-        isCameraTransitioning = true;
         document.querySelectorAll('.nav-btn').forEach(function(b) { b.classList.remove('active'); });
         document.getElementById('navBtnSun').classList.add('active');
         document.getElementById('cardName').textContent = 'Mặt Trời';
@@ -974,15 +1180,18 @@
         document.getElementById('cardTemp').textContent = '5.778 K (5.505 °C)';
         document.getElementById('cardTilt').textContent = '7.25°';
         document.getElementById('cardRotation').textContent = '25.38 ngày';
+        startCameraFlight(new THREE.Vector3(0, 0, 0), 220);
       }
 
       function selectPlanet(idx) {
         selectedTarget = planetMeshes[idx];
-        isCameraTransitioning = true;
         document.querySelectorAll('.nav-btn').forEach(function(b, i) {
           b.classList.toggle('active', i === idx + 1);
         });
         updateCard(planetConfigs[idx]);
+        selectedTarget.pivotGroup.getWorldPosition(targetPosition);
+        startCameraFlight(targetPosition, selectedTarget.cfg.radius * 2.85);
+        lastTargetPos.copy(targetPosition);
       }
 
       var navBar = document.getElementById('navBar');
@@ -1035,6 +1244,18 @@
         }
       });
 
+      window.addEventListener('dblclick', function(e) {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(mouse, camera);
+
+        var hits = raycaster.intersectObjects(clickableObjects);
+        if (hits.length > 0) {
+          var hitPt = hits[0].point;
+          startCameraFlight(hitPt, (selectedTarget ? selectedTarget.cfg.radius : 18) * 1.6);
+        }
+      });
+
       window.addEventListener('pointermove', function(e) {
         mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
         mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -1053,6 +1274,40 @@
           canvas.style.cursor = 'grab';
         }
       });
+
+      document.getElementById('btnZoomIn').onclick = function() {
+        var offset = camera.position.clone().sub(controls.target);
+        var targetDist = Math.max(offset.length() * 0.72, controls.minDistance);
+        var newPos = controls.target.clone().add(offset.normalize().multiplyScalar(targetDist));
+        startCameraFlight(controls.target, targetDist);
+      };
+
+      document.getElementById('btnZoomOut').onclick = function() {
+        var offset = camera.position.clone().sub(controls.target);
+        var targetDist = Math.min(offset.length() * 1.38, controls.maxDistance);
+        startCameraFlight(controls.target, targetDist);
+      };
+
+      document.getElementById('btnTilt').onclick = function() {
+        var offset = camera.position.clone().sub(controls.target);
+        var dist = offset.length();
+        var isTopDown = Math.abs(offset.y) > dist * 0.85;
+        var newOffset;
+        if (isTopDown) {
+          newOffset = new THREE.Vector3(0, dist * 0.45, dist * 0.88);
+        } else {
+          newOffset = new THREE.Vector3(0, dist * 0.95, dist * 0.05);
+        }
+        startCameraFlight(controls.target, dist);
+      };
+
+      var compassNeedle = document.getElementById('compassNeedle');
+      document.getElementById('compassDial').onclick = function() {
+        var offset = camera.position.clone().sub(controls.target);
+        var dist = offset.length();
+        var newPos = controls.target.clone().add(new THREE.Vector3(0, dist * 0.45, dist * 0.89));
+        startCameraFlight(controls.target, dist);
+      };
 
       document.getElementById('btnPause').onclick = function() {
         isRunning = !isRunning;
@@ -1091,6 +1346,43 @@
         document.getElementById('btnTour').textContent = 'Tự động du hành';
         selectSun();
       };
+
+      var tempVec = new THREE.Vector3();
+
+      function updateLandmarkOverlays() {
+        if (!showLandmarks || !selectedTarget) {
+          landmarkElements.forEach(function(lm) { lm.el.style.opacity = '0'; });
+          return;
+        }
+
+        var camDist = camera.position.distanceTo(controls.target);
+        var isCloseEnough = camDist < selectedTarget.cfg.radius * 7.5;
+
+        landmarkElements.forEach(function(lm) {
+          if (lm.planetCfg.id !== selectedTarget.cfg.id || !isCloseEnough) {
+            lm.el.style.opacity = '0';
+            return;
+          }
+
+          tempVec.copy(lm.localPos);
+          lm.planetMesh.localToWorld(tempVec);
+
+          var norm = tempVec.clone().sub(controls.target).normalize();
+          var viewVec = camera.position.clone().sub(tempVec).normalize();
+          if (norm.dot(viewVec) < 0.15) {
+            lm.el.style.opacity = '0';
+            return;
+          }
+
+          tempVec.project(camera);
+          var x = (tempVec.x * 0.5 + 0.5) * window.innerWidth;
+          var y = (-(tempVec.y * 0.5) + 0.5) * window.innerHeight;
+
+          lm.el.style.left = x + 'px';
+          lm.el.style.top = y + 'px';
+          lm.el.style.opacity = '1';
+        });
+      }
 
       function animate() {
         requestAnimationFrame(animate);
@@ -1134,42 +1426,29 @@
           });
         }
 
-        if (selectedTarget) {
+        if (flight.active) {
+          var now = performance.now();
+          var progress = Math.min((now - flight.startTime) / flight.duration, 1.0);
+          var ease = 0.5 - 0.5 * Math.cos(progress * Math.PI);
+
+          camera.position.lerpVectors(flight.startCamPos, flight.endCamPos, ease);
+          controls.target.lerpVectors(flight.startTarget, flight.endTarget, ease);
+
+          if (progress >= 1.0) {
+            flight.active = false;
+          }
+        } else if (selectedTarget) {
           selectedTarget.pivotGroup.getWorldPosition(targetPosition);
-          var minR = selectedTarget.cfg.radius * 2.85;
-
-          if (isCameraTransitioning) {
-            controls.target.lerp(targetPosition, 0.08);
-            var currentOffset = camera.position.clone().sub(controls.target);
-            var currentDist = currentOffset.length();
-            var idealOffset = currentOffset.normalize().multiplyScalar(minR);
-            if (idealOffset.length() < 1) idealOffset.set(0, minR * 0.45, minR * 0.9);
-            var targetCamPos = targetPosition.clone().add(idealOffset);
-
-            camera.position.lerp(targetCamPos, 0.08);
-
-            if (controls.target.distanceTo(targetPosition) < 0.2 && Math.abs(currentDist - minR) < 0.5) {
-              isCameraTransitioning = false;
-            }
-          } else {
-            var shift = targetPosition.clone().sub(lastTargetPos);
-            controls.target.copy(targetPosition);
-            camera.position.add(shift);
-          }
+          var shift = targetPosition.clone().sub(lastTargetPos);
+          controls.target.copy(targetPosition);
+          camera.position.add(shift);
           lastTargetPos.copy(targetPosition);
-        } else {
-          var sunTarget = new THREE.Vector3(0, 0, 0);
-          if (isCameraTransitioning) {
-            controls.target.lerp(sunTarget, 0.08);
-            var defaultPos = new THREE.Vector3(0, 160, 340);
-            camera.position.lerp(defaultPos, 0.08);
-            if (controls.target.distanceTo(sunTarget) < 0.2 && camera.position.distanceTo(defaultPos) < 1.0) {
-              isCameraTransitioning = false;
-            }
-          } else {
-            controls.target.copy(sunTarget);
-          }
         }
+
+        var camAngle = Math.atan2(camera.position.x - controls.target.x, camera.position.z - controls.target.z);
+        compassNeedle.style.transform = 'rotate(' + (-camAngle) + 'rad)';
+
+        updateLandmarkOverlays();
 
         controls.update();
         composer.render();
