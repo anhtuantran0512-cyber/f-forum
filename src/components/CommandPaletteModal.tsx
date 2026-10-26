@@ -251,23 +251,23 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
         tabIndex={-1}
         aria-label="Đóng bảng lệnh"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/75 backdrop-blur-md border-none outline-none"
+        className="absolute inset-0 cursor-default bg-black/60 border-none outline-none"
       />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-label="Bảng lệnh học thuật F-Forum 2027"
-        className="card-hard modal-container relative w-full max-w-[660px] overflow-hidden rounded-2xl bg-[#FBF2E1] dark:bg-[#12161f] text-[#2B2331] dark:text-[#f4f1de] border-2 border-[#2B2331] dark:border-white/20 shadow-[6px_6px_0px_#2B2331] dark:shadow-[6px_6px_0px_rgba(0,0,0,0.8)]"
+        className="relative w-full max-w-[660px] overflow-hidden rounded-[var(--radius-soft)] bg-[var(--bg-paper)] text-[var(--ink-primary)] border-[1.5px] border-[var(--border-color)] shadow-[var(--shadow-brutal-hover)]"
       >
-        <div className="h-[4px] w-full bg-gradient-to-r from-amber-400 via-rose-400 to-cyan-400" aria-hidden="true" />
+        <div className="h-[3px] w-full bg-[var(--accent-terracotta)]" aria-hidden="true" />
 
-        <div className="flex items-center gap-3 px-4 py-3.5 border-b-2 border-[#2B2331]/15 dark:border-white/10 bg-[#F7EBD3] dark:bg-[#171c27]">
-          <span className="w-9 h-9 rounded-xl bg-amber-400 border border-[#2B2331] dark:border-white/20 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#2B2331]">
-            <Sparkles className="w-4 h-4 text-[#2B2331]" />
+        <div className="flex items-center gap-3 px-4 py-3.5 border-b-[1.5px] border-[var(--border-color)] bg-[var(--bg-parchment)]">
+          <span className="w-9 h-9 rounded-[var(--radius-soft)] bg-[var(--accent-mustard)]/20 border border-[var(--border-color)] flex items-center justify-center shrink-0 shadow-[var(--shadow-brutal-sm)]">
+            <Sparkles className="w-4 h-4 text-[var(--accent-terracotta)]" />
           </span>
           <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-[#2B2331]/60 dark:text-neutral-400 absolute left-0 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-[var(--ink-muted)] absolute left-0 top-1/2 -translate-y-1/2" />
             <input
               ref={inputRef}
               value={query}
@@ -278,7 +278,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               }}
               placeholder="Tìm đề thi, bài thảo luận, câu hỏi bounty, phòng học..."
               aria-label="Tìm lệnh"
-              className="w-full bg-transparent pl-6 pr-2 py-1.5 text-sm font-semibold text-[#2B2331] dark:text-[#f4f1de] placeholder-[#2B2331]/40 dark:placeholder-neutral-500 focus:outline-none"
+              className="w-full bg-transparent pl-6 pr-2 py-1.5 text-sm font-semibold text-[var(--ink-primary)] placeholder-[var(--ink-muted)] focus:outline-none"
             />
           </div>
           {query ? (
@@ -290,25 +290,25 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                 inputRef.current?.focus();
               }}
               aria-label="Xoá tìm kiếm"
-              className="btn-feastables p-1 rounded-lg text-xs font-bold bg-[#EFE3CA] dark:bg-white/10 text-[#2B2331] dark:text-white cursor-pointer"
+              className="p-1 rounded text-xs font-bold bg-[var(--bg-elevated)] text-[var(--ink-primary)] border border-[var(--border-color)]/30 hover:bg-[var(--accent-terracotta)] hover:text-white transition-colors cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           ) : (
-            <kbd className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider rounded border border-[#2B2331]/30 dark:border-white/20 bg-white/40 dark:bg-white/5">
+            <kbd className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-mono font-bold tracking-wider rounded border border-[var(--border-color)]/30 bg-[var(--bg-elevated)] text-[var(--ink-muted)]">
               ESC
             </kbd>
           )}
         </div>
 
-        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[#2B2331]/10 dark:border-white/10 bg-[#FBF2E1] dark:bg-[#12161f] overflow-x-auto no-scrollbar text-xs font-bold">
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-[var(--border-color)]/30 bg-[var(--bg-parchment)] overflow-x-auto no-scrollbar text-xs font-bold">
           <button
             type="button"
             onClick={() => { setActiveCategory('all'); setActiveIndex(0); }}
-            className={`px-2.5 py-1 rounded-lg transition-all border cursor-pointer ${
+            className={`px-2.5 py-1 rounded transition-all border cursor-pointer ${
               activeCategory === 'all'
-                ? 'bg-[#2B2331] text-[#FBF2E1] border-[#2B2331] dark:bg-amber-400 dark:text-[#2B2331]'
-                : 'bg-white/30 dark:bg-white/5 text-[#2B2331]/70 dark:text-neutral-400 border-transparent hover:border-[#2B2331]/20'
+                ? 'bg-[var(--accent-terracotta)] text-white border-[var(--border-color)] shadow-[var(--shadow-brutal-sm)]'
+                : 'bg-[var(--bg-paper)] text-[var(--ink-secondary)] border-[var(--border-color)]/30 hover:border-[var(--border-color)]'
             }`}
           >
             Tất cả
@@ -316,10 +316,10 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveCategory('exam'); setActiveIndex(0); }}
-            className={`px-2.5 py-1 rounded-lg transition-all border cursor-pointer ${
+            className={`px-2.5 py-1 rounded transition-all border cursor-pointer ${
               activeCategory === 'exam'
-                ? 'bg-[#2B2331] text-[#FBF2E1] border-[#2B2331] dark:bg-amber-400 dark:text-[#2B2331]'
-                : 'bg-white/30 dark:bg-white/5 text-[#2B2331]/70 dark:text-neutral-400 border-transparent hover:border-[#2B2331]/20'
+                ? 'bg-[var(--accent-terracotta)] text-white border-[var(--border-color)] shadow-[var(--shadow-brutal-sm)]'
+                : 'bg-[var(--bg-paper)] text-[var(--ink-secondary)] border-[var(--border-color)]/30 hover:border-[var(--border-color)]'
             }`}
           >
             Đề thi
@@ -327,10 +327,10 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveCategory('thread'); setActiveIndex(0); }}
-            className={`px-2.5 py-1 rounded-lg transition-all border cursor-pointer ${
+            className={`px-2.5 py-1 rounded transition-all border cursor-pointer ${
               activeCategory === 'thread'
-                ? 'bg-[#2B2331] text-[#FBF2E1] border-[#2B2331] dark:bg-amber-400 dark:text-[#2B2331]'
-                : 'bg-white/30 dark:bg-white/5 text-[#2B2331]/70 dark:text-neutral-400 border-transparent hover:border-[#2B2331]/20'
+                ? 'bg-[var(--accent-terracotta)] text-white border-[var(--border-color)] shadow-[var(--shadow-brutal-sm)]'
+                : 'bg-[var(--bg-paper)] text-[var(--ink-secondary)] border-[var(--border-color)]/30 hover:border-[var(--border-color)]'
             }`}
           >
             Thảo luận
@@ -338,10 +338,10 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveCategory('bounty'); setActiveIndex(0); }}
-            className={`px-2.5 py-1 rounded-lg transition-all border cursor-pointer ${
+            className={`px-2.5 py-1 rounded transition-all border cursor-pointer ${
               activeCategory === 'bounty'
-                ? 'bg-[#2B2331] text-[#FBF2E1] border-[#2B2331] dark:bg-amber-400 dark:text-[#2B2331]'
-                : 'bg-white/30 dark:bg-white/5 text-[#2B2331]/70 dark:text-neutral-400 border-transparent hover:border-[#2B2331]/20'
+                ? 'bg-[var(--accent-terracotta)] text-white border-[var(--border-color)] shadow-[var(--shadow-brutal-sm)]'
+                : 'bg-[var(--bg-paper)] text-[var(--ink-secondary)] border-[var(--border-color)]/30 hover:border-[var(--border-color)]'
             }`}
           >
             Câu hỏi Bounty
@@ -349,10 +349,10 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           <button
             type="button"
             onClick={() => { setActiveCategory('focus'); setActiveIndex(0); }}
-            className={`px-2.5 py-1 rounded-lg transition-all border cursor-pointer ${
+            className={`px-2.5 py-1 rounded transition-all border cursor-pointer ${
               activeCategory === 'focus'
-                ? 'bg-[#2B2331] text-[#FBF2E1] border-[#2B2331] dark:bg-amber-400 dark:text-[#2B2331]'
-                : 'bg-white/30 dark:bg-white/5 text-[#2B2331]/70 dark:text-neutral-400 border-transparent hover:border-[#2B2331]/20'
+                ? 'bg-[var(--accent-terracotta)] text-white border-[var(--border-color)] shadow-[var(--shadow-brutal-sm)]'
+                : 'bg-[var(--bg-paper)] text-[var(--ink-secondary)] border-[var(--border-color)]/30 hover:border-[var(--border-color)]'
             }`}
           >
             Phòng tập trung
@@ -361,22 +361,22 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
 
         <div ref={listRef} className="max-h-[52vh] sm:max-h-[60vh] overflow-y-auto p-2 space-y-3">
           {!query && activeCategory === 'all' && (
-            <div className="mb-4 p-2.5 border-[1.5px] border-[#2C2623] bg-[#FAF7F2] rounded-[6px] shadow-[2px_2px_0px_#2C2623]">
-              <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#2C2623]/20">
-                <span className="font-mono text-[10px] font-bold text-[#D95D39] uppercase">MỤC LỤC CHUYÊN MỤC // 3x3 GRID</span>
-                <span className="font-mono text-[9px] text-[#8C827A]">SWISS NUMERALS</span>
+            <div className="mb-4 p-2.5 border-[1.5px] border-[var(--border-color)] bg-[var(--bg-parchment)] rounded-[var(--radius-soft)] shadow-[var(--shadow-brutal-sm)]">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-[var(--border-color)]/20">
+                <span className="font-mono text-[10px] font-bold text-[var(--accent-terracotta)] uppercase tracking-wider">MỤC LỤC CHUYÊN MỤC • 3x3 GRID</span>
+                <span className="font-mono text-[9px] text-[var(--ink-muted)]">SWISS NUMERALS</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {[
-                  { num: '01', title: 'Kho Đề Thi', cat: 'exam', icon: <BookOpen className="w-3.5 h-3.5 text-[#2B4C7E]" /> },
-                  { num: '02', title: 'Hỏi Đáp', cat: 'bounty', icon: <HelpCircle className="w-3.5 h-3.5 text-[#2E5A44]" /> },
-                  { num: '03', title: 'Thảo Luận', cat: 'thread', icon: <MessageCircleMore className="w-3.5 h-3.5 text-[#D95D39]" /> },
-                  { num: '04', title: 'Tập Trung', cat: 'focus', icon: <Headphones className="w-3.5 h-3.5 text-[#E6AA28]" /> },
-                  { num: '05', title: 'Bảng Vàng', cat: 'all', icon: <Award className="w-3.5 h-3.5 text-[#D95D39]" /> },
-                  { num: '06', title: 'Đấu Trường', cat: 'all', icon: <Swords className="w-3.5 h-3.5 text-[#2E5A44]" /> },
-                  { num: '07', title: 'Câu Lạc Bộ', cat: 'all', icon: <Flame className="w-3.5 h-3.5 text-[#E6AA28]" /> },
-                  { num: '08', title: 'Kỷ Niệm', cat: 'all', icon: <Sparkles className="w-3.5 h-3.5 text-[#2B4C7E]" /> },
-                  { num: '09', title: 'Tra Cứu', cat: 'all', icon: <Search className="w-3.5 h-3.5 text-[#2C2623]" /> },
+                  { num: '01', title: 'Kho Đề Thi', cat: 'exam', icon: <BookOpen className="w-3.5 h-3.5 text-[var(--accent-cobalt)]" /> },
+                  { num: '02', title: 'Hỏi Đáp', cat: 'bounty', icon: <HelpCircle className="w-3.5 h-3.5 text-[var(--accent-forest)]" /> },
+                  { num: '03', title: 'Thảo Luận', cat: 'thread', icon: <MessageCircleMore className="w-3.5 h-3.5 text-[var(--accent-terracotta)]" /> },
+                  { num: '04', title: 'Tập Trung', cat: 'focus', icon: <Headphones className="w-3.5 h-3.5 text-[var(--accent-mustard)]" /> },
+                  { num: '05', title: 'Bảng Vàng', cat: 'all', icon: <Award className="w-3.5 h-3.5 text-[var(--accent-terracotta)]" /> },
+                  { num: '06', title: 'Đấu Trường', cat: 'all', icon: <Swords className="w-3.5 h-3.5 text-[var(--accent-forest)]" /> },
+                  { num: '07', title: 'Câu Lạc Bộ', cat: 'all', icon: <Flame className="w-3.5 h-3.5 text-[var(--accent-mustard)]" /> },
+                  { num: '08', title: 'Kỷ Niệm', cat: 'all', icon: <Sparkles className="w-3.5 h-3.5 text-[var(--accent-cobalt)]" /> },
+                  { num: '09', title: 'Tra Cứu', cat: 'all', icon: <Search className="w-3.5 h-3.5 text-[var(--ink-primary)]" /> },
                 ].map((item) => (
                   <button
                     key={item.num}
@@ -388,13 +388,13 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                         setQuery(item.title);
                       }
                     }}
-                    className="group p-2 border border-[#2C2623] bg-[#F2ECE1] hover:bg-[#EBE3D5] rounded-[4px] text-left transition-colors flex flex-col justify-between h-16 cursor-pointer"
+                    className="group p-2 border border-[var(--border-color)] bg-[var(--bg-paper)] hover:bg-[var(--bg-elevated)] rounded-[4px] text-left transition-colors flex flex-col justify-between h-16 cursor-pointer"
                   >
                     <div className="flex items-center justify-between w-full">
-                      <span className="swiss-numeral text-xl font-bold">{item.num}</span>
+                      <span className="swiss-numeral text-xl font-bold text-[var(--ink-primary)]">{item.num}</span>
                       {item.icon}
                     </div>
-                    <span className="font-mono text-[10px] font-bold text-[#2C2623] truncate">{item.title}</span>
+                    <span className="font-mono text-[10px] font-bold text-[var(--ink-primary)] truncate">{item.title}</span>
                   </button>
                 ))}
               </div>
@@ -402,7 +402,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           )}
 
           {flat.length === 0 ? (
-            <div className="py-12 text-center text-xs font-semibold text-[#2B2331]/60 dark:text-neutral-400">
+            <div className="py-12 text-center text-xs font-semibold text-[var(--ink-muted)]">
               Không tìm thấy lệnh hoặc nội dung nào khớp với từ khoá.
             </div>
           ) : (
@@ -410,7 +410,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               const startIndex = flat.findIndex((cmd) => cmd.id === items[0]?.id);
               return (
                 <div key={groupName} className="space-y-1">
-                  <div className="px-3 pt-2 pb-1 text-[11px] font-black uppercase tracking-wider text-[#2B2331]/60 dark:text-neutral-400">
+                  <div className="px-3 pt-2 pb-1 text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--ink-muted)]">
                     {groupName}
                   </div>
                   {items.map((cmd, idx) => {
@@ -423,24 +423,24 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
                         data-palette-index={itemGlobalIndex}
                         onClick={() => runCommand(cmd)}
                         onMouseEnter={() => setActiveIndex(itemGlobalIndex)}
-                        className={`w-full text-left px-3 py-2.5 rounded-xl transition-all flex items-center justify-between gap-3 cursor-pointer border ${
+                        className={`w-full text-left px-3 py-2.5 rounded-[var(--radius-soft)] transition-all flex items-center justify-between gap-3 cursor-pointer border ${
                           isSelected
-                            ? 'bg-[#EFE3CA] dark:bg-white/10 text-[#2B2331] dark:text-white border-[#2B2331]/40 dark:border-white/20 shadow-sm'
-                            : 'bg-transparent text-[#2B2331]/90 dark:text-neutral-300 border-transparent hover:bg-white/40 dark:hover:bg-white/5'
+                            ? 'bg-[var(--bg-elevated)] text-[var(--ink-primary)] border-[var(--border-color)] shadow-[var(--shadow-brutal-sm)]'
+                            : 'bg-transparent text-[var(--ink-secondary)] border-transparent hover:bg-[var(--bg-elevated)]/40 hover:text-[var(--ink-primary)]'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <span className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${
+                          <span className={`w-8 h-8 rounded border flex items-center justify-center shrink-0 ${
                             isSelected
-                              ? 'bg-amber-300 border-[#2B2331] dark:border-white/20'
-                              : 'bg-white/60 dark:bg-white/5 border-[#2B2331]/10 dark:border-white/10'
+                              ? 'bg-[var(--accent-mustard)]/25 border-[var(--border-color)]'
+                              : 'bg-[var(--bg-parchment)] border-[var(--border-color)]/30'
                           }`}>
                             {cmd.icon}
                           </span>
                           <div className="min-w-0">
-                            <div className="text-sm font-black truncate">{cmd.label}</div>
+                            <div className="text-sm font-bold truncate text-[var(--ink-primary)]">{cmd.label}</div>
                             {cmd.hint && (
-                              <div className="text-xs font-medium text-[#2B2331]/60 dark:text-neutral-400 truncate">
+                              <div className="text-xs font-normal text-[var(--ink-muted)] truncate">
                                 {cmd.hint}
                               </div>
                             )}
@@ -449,11 +449,11 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
 
                         <div className="flex items-center gap-2 shrink-0">
                           {cmd.shortcut && (
-                            <kbd className="px-2 py-0.5 text-[10px] font-mono font-bold rounded border border-[#2B2331]/30 dark:border-white/20 bg-white/60 dark:bg-white/5">
+                            <kbd className="px-2 py-0.5 text-[10px] font-mono font-bold rounded border border-[var(--border-color)]/30 bg-[var(--bg-parchment)] text-[var(--ink-muted)]">
                               {cmd.shortcut}
                             </kbd>
                           )}
-                          <CornerDownLeft className={`w-3.5 h-3.5 ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
+                          <CornerDownLeft className={`w-3.5 h-3.5 text-[var(--accent-terracotta)] ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
                         </div>
                       </button>
                     );
@@ -464,7 +464,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
           )}
         </div>
 
-        <div className="px-4 py-2.5 border-t-2 border-[#2B2331]/15 dark:border-white/10 bg-[#F7EBD3] dark:bg-[#171c27] flex items-center justify-between text-[11px] font-bold text-[#2B2331]/70 dark:text-neutral-400">
+        <div className="px-4 py-2.5 border-t-[1.5px] border-[var(--border-color)] bg-[var(--bg-parchment)] flex items-center justify-between text-[11px] font-bold text-[var(--ink-secondary)]">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <ArrowUp className="w-3 h-3" />
@@ -474,7 +474,7 @@ export const CommandPaletteModal: React.FC<CommandPaletteModalProps> = ({
               <CornerDownLeft className="w-3 h-3" /> Chọn lệnh
             </span>
           </div>
-          <span className="hidden sm:inline font-mono">⌘K / ⌘E học thuật 2027</span>
+          <span className="hidden sm:inline font-mono text-[10px]">⌘K / ⌘E học thuật</span>
         </div>
       </div>
     </div>

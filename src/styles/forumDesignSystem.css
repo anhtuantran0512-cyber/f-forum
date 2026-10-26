@@ -1000,51 +1000,49 @@ html.light .ff-role-mark--club-leader { color: #426c56; }
 }
 
 .ff-chat-bubble-me {
-  border-radius: 1.15rem 1.15rem 0.25rem 1.15rem !important;
-  background: linear-gradient(135deg, #e07a5f 0%, #c85a3e 100%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+  border-radius: 6px !important;
+  background: var(--accent-terracotta) !important;
+  border: var(--border-grid) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 16px rgba(224, 122, 95, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.22);
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 .ff-chat-bubble-peer {
-  border-radius: 1.15rem 1.15rem 1.15rem 0.25rem !important;
-  background: linear-gradient(160deg, rgba(26, 35, 50, 0.88), rgba(18, 24, 36, 0.94)) !important;
-  border: 1px solid rgba(248, 247, 244, 0.12) !important;
-  color: #f8f7f4 !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-  backdrop-filter: blur(12px);
+  border-radius: 6px !important;
+  background: var(--bg-paper) !important;
+  border: var(--border-grid) !important;
+  color: var(--ink-primary) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 .ff-chat-bubble-admin {
-  background: linear-gradient(155deg, rgba(233, 196, 106, 0.14) 0%, rgba(26, 35, 50, 0.92) 100%) !important;
-  border: 1px solid rgba(233, 196, 106, 0.48) !important;
-  border-left: 3.5px solid #e9c46a !important;
-  box-shadow: 0 4px 20px rgba(233, 196, 106, 0.16) !important;
+  background: var(--bg-parchment) !important;
+  border: var(--border-grid) !important;
+  border-left: 4px solid var(--accent-mustard) !important;
+  color: var(--ink-primary) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 html.light .ff-chat-bubble-me {
-  background: linear-gradient(135deg, #e07a5f 0%, #c85a3e 100%) !important;
-  border: 1px solid rgba(200, 90, 62, 0.45) !important;
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(224, 122, 95, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  background: var(--accent-terracotta) !important;
+  border: var(--border-grid) !important;
+  color: #FAF8F5 !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 html.light .ff-chat-bubble-peer {
-  background: #ffffff !important;
-  border: 1px solid rgba(28, 25, 23, 0.12) !important;
-  color: #1c1917 !important;
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.05) !important;
+  background: var(--bg-paper) !important;
+  border: var(--border-grid) !important;
+  color: var(--ink-primary) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 html.light .ff-chat-bubble-admin {
-  background: linear-gradient(155deg, #fffbeb 0%, #fef3c7 100%) !important;
-  border: 1px solid rgba(217, 119, 6, 0.35) !important;
-  border-left: 3.5px solid #d97706 !important;
-  color: #78350f !important;
-  box-shadow: 0 3px 12px rgba(217, 119, 6, 0.08) !important;
+  background: var(--bg-parchment) !important;
+  border: var(--border-grid) !important;
+  border-left: 4px solid var(--accent-mustard) !important;
+  color: var(--ink-primary) !important;
+  box-shadow: var(--shadow-brutal-sm) !important;
 }
 
 /* ========================================================================== */
