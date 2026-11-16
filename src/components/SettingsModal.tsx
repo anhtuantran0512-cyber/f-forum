@@ -4,7 +4,6 @@ import {
   Settings,
   X,
   Volume2,
-
   Timer,
   Zap,
   Move,
@@ -22,7 +21,9 @@ import {
   Info,
   LogOut,
   Rocket,
+  Bell,
 } from 'lucide-react';
+import { playUiTick, playTibetanBowlChime, playMachiMartChime } from '../utils/audio';
 import { Sparkles as GhibliSparkleIcon } from './ui/CozyGhibliIcons';
 import { GODRAY_PRESETS } from '../utils/godrays';
 import { resolveGodrayId, resolvePotatorId } from '../utils/gradients';
@@ -33,16 +34,17 @@ import { AUTH_TOKEN_KEY, clearAuthToken, requestServerLogout } from '../utils/se
 import { usePopoverPosition, type DockPosition } from '../utils/popover';
 import { PasswordChangeForm } from './settings/PasswordChangeForm';
 import { useAdaptiveQuality, type AdaptiveQualityTier } from '../utils/adaptiveQuality';
+import { loadSpiritSettings, saveSpiritSettings, type SpiritSpecies, type SpiritSkin, type SpiritSettings } from '../utils/spiritStorage';
 
 export interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  /** Đã đăng nhập → hiện mục "Phiên đăng nhập". */
+  
   isAuthenticated?: boolean;
   onLogoutEverywhere?: () => Promise<boolean>;
-  /** Đổi mật khẩu (mặc định đăng xuất các thiết bị khác). */
+  
   onChangePassword?: (currentPassword: string, newPassword: string, signOutOthers: boolean) => Promise<{ ok: boolean; message: string }>;
-  /** Super Admin: mật khẩu do secret máy chủ quản lý → chỉ hiện hướng dẫn. */
+  
   passwordManagedByServer?: boolean;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
@@ -132,10 +134,9 @@ const MiniSwitch: React.FC<{ on: boolean; onToggle: () => void; color?: string; 
   </button>
 );
 
-/** Thẻ cao cấp dùng chung cho các mục cài đặt */
 const Card: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className = '' }) => (
   <div
-    className={`ff-set-card rounded-2xl p-3 bg-black/30 border border-white/10 transition-colors hover:border-amber-400/25 ${className}`}
+    className={`ff-set-card rounded-2xl card-hard rounded-[16px] p-3 bg-black/30 border border-white/10 transition-colors hover:border-amber-400/25 ${className}`}
   >
     {children}
   </div>
@@ -217,6 +218,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [resetDone, setResetDone] = useState<string | null>(null);
   const [dataNotice, setDataNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [spiritSettings, setSpiritSettings] = useState<SpiritSettings>(loadSpiritSettings);
+
+  const updateSpirit = (patch: Partial<SpiritSettings>) => {
+    setSpiritSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveSpiritSettings(next);
+      return next;
+    });
+  };
 
   const activePreset = useMemo(
     () => GODRAY_PRESETS.find((p) => p.id === resolveGodrayId(godrayPreset)) || GODRAY_PRESETS[0],
@@ -240,8 +250,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose, confirmReset]);
 
-  /* Xoá các hộp xác nhận khi đóng. Dùng mẫu "điều chỉnh state khi prop đổi" của
-     React thay vì useEffect để tránh một lượt render thừa. */
+  
   const [wasOpenForReset, setWasOpenForReset] = useState(isOpen);
   if (isOpen !== wasOpenForReset) {
     setWasOpenForReset(isOpen);
@@ -252,15 +261,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   }
 
-  /* ============================================================
-     Hiệu ứng hiện ra: giữ panel thêm ~230ms để chạy hoạt ảnh đóng,
-     nhờ vậy panel không còn "bụp" tắt mà tan ra mượt mà.
-     ============================================================ */
+  
   const [isRendered, setIsRendered] = useState(isOpen);
   const [isClosing, setIsClosing] = useState(false);
 
-  /* Phần chuyển trạng thái đồng bộ (mở -> hiện, đóng -> đang đóng) được suy ra
-     lúc render; effect chỉ còn giữ đúng phần hẹn giờ 230ms. */
+  
   const [openDeps, setOpenDeps] = useState({ isOpen, isRendered });
   if (openDeps.isOpen !== isOpen || openDeps.isRendered !== isRendered) {
     setOpenDeps({ isOpen, isRendered });
@@ -281,8 +286,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     return () => window.clearTimeout(t);
   }, [isOpen, isRendered]);
 
-  /* Lưới an toàn: nếu vì lý do nào đó hoạt ảnh đóng bị kẹt, sau 900ms khoá
-     lại trạng thái đóng — không bao giờ để tấm phủ vô hình chặn cả trang. */
+  
   useEffect(() => {
     if (isOpen) return;
     const guard = window.setTimeout(() => {
@@ -294,17 +298,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   const pop = usePopoverPosition(isRendered, anchorRef, activeDockPos, 392, 640);
 
-  /* Neo có đo được không? Nút Cài đặt có thể đang bị ẩn (ví dụ bảng mở từ thanh
-     dưới của điện thoại) → khi đó panel PHẢI chuyển sang dạng giữa màn hình.
-     Tuyệt đối không được để panel vô hình (top:-9999, opacity:0) mà tấm phủ
-     toàn màn hình vẫn bắt chuột — đó chính là lỗi "bấm gì cũng không mở". */
+  
   const hasAnchor = Boolean(anchorRef);
   const isAnchored = hasAnchor && pop.ready;
 
   const [isFloating, setIsFloating] = useState(false);
 
-  /* Phần "tắt ngay" được suy ra lúc render (mẫu điều chỉnh state khi prop đổi);
-     chỉ phần hẹn giờ mới thật sự cần effect. */
+  
   const [floatDeps, setFloatDeps] = useState({ isRendered, isAnchored });
   if (floatDeps.isRendered !== isRendered || floatDeps.isAnchored !== isAnchored) {
     setFloatDeps({ isRendered, isAnchored });
@@ -313,17 +313,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   useEffect(() => {
     if (!isRendered || isAnchored) return undefined;
-    /* Chờ 220ms cho khung hình đầu đo xong neo; quá hạn thì nổi giữa màn hình. */
+    
     const timer = window.setTimeout(() => setIsFloating(true), 220);
     return () => window.clearTimeout(timer);
   }, [isRendered, isAnchored]);
 
-  /* isOnScreen = panel thực sự đang nhìn thấy được. Chỉ khi đó tấm phủ mới
-     được phép tồn tại. */
+  
   const isOnScreen = isAnchored || isFloating;
 
-  /* Bật transition top/left SAU khung hình đầu tiên: panel lướt theo khi nút
-     Cài đặt di chuyển lúc thanh navbar co giãn, thay vì nhảy từng nấc. */
+  
   const [isSettled, setIsSettled] = useState(false);
 
   const [settledDeps, setSettledDeps] = useState({ isRendered, isAnchored });
@@ -360,7 +358,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTimeout(() => window.location.reload(), 700);
   };
 
-  /** Thu hồi mọi phiên của tài khoản trên máy chủ (mọi thiết bị, kể cả máy này). */
+  
   const handleLogoutEverywhere = async () => {
     if (!onLogoutEverywhere) return;
     setLogoutAllState('busy');
@@ -374,7 +372,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleResetFull = () => {
-    /* EPIC 5: phiên cookie HttpOnly chỉ máy chủ xoá được — gửi trước khi xoá token cục bộ. */
+    
     void requestServerLogout();
     safeStorage.removeWithPrefix('fforum_');
     clearAuthToken();
@@ -383,7 +381,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setTimeout(() => window.location.reload(), 700);
   };
 
-  /** Sao lưu toàn bộ dữ liệu F-Forum trên trình duyệt này ra một tệp JSON. */
+  
   const handleExportData = () => {
     try {
       const payload = safeStorage.entriesWithPrefix('fforum_');
@@ -403,7 +401,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  /** Nhập lại tệp sao lưu — chỉ ghi các khóa fforum_ để tránh ô nhiễm localStorage. */
+  
   const handleImportData = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
@@ -434,8 +432,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <>
-      {/* Tấm phủ chỉ được tồn tại khi panel ĐANG NHÌN THẤY. Không bao giờ để một
-          tấm phủ toàn màn hình sống một mình — đó là cách khoá cả trang. */}
+      {}
       {isOnScreen ? (
         <button
           type="button"
@@ -476,7 +473,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           } as React.CSSProperties
         }
       >
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/10">
           <div className="flex items-center gap-2.5 min-w-0">
             <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-400/25 to-fuchsia-500/20 border border-amber-300/30 flex items-center justify-center shrink-0">
@@ -514,7 +511,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
         </div>
 
-        {/* Premium segmented tabs */}
+        {}
         <div className="relative grid grid-cols-3 gap-1 mt-2.5 p-1 rounded-2xl bg-black/40 border border-white/10">
           <span
             aria-hidden="true"
@@ -545,7 +542,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           })}
         </div>
 
-        {/* Body */}
+        {}
         <div className="mt-3 space-y-4 overflow-y-auto ff-scroll pr-0.5">
           {confirmReset && (
             <div className="p-3 rounded-2xl bg-red-500/15 border border-red-400/40">
@@ -578,10 +575,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* ================= TAB 1: GIAO DIỆN ================= */}
+          {}
           {activeTab === 'appearance' && (
             <>
-              {/* 1. THEME */}
+              {}
               <section>
                 <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-amber-300" />}>Theme</SectionTitle>
                 <Card className="flex items-center justify-between gap-3 group">
@@ -594,7 +591,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
                   </div>
 
-                  {/* Cartoon Switch */}
+                  {}
                   <button
                     type="button"
                     role="switch"
@@ -668,7 +665,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       }`}
                       style={{ transitionTimingFunction: 'cubic-bezier(0.34, 1.56, 0.64, 1)' }}
                     >
-                      {/* Moon */}
+                      {}
                       <div
                         className={`absolute inset-0 rounded-full bg-gradient-to-tr from-[#fef08a] via-[#fde047] to-[#fef9c3] border border-amber-200/90 shadow-[0_0_12px_rgba(250,204,21,0.65)] flex items-center justify-center transition-all duration-500 ${
                           theme === 'dark'
@@ -688,7 +685,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </svg>
                       </div>
 
-                      {/* Sun */}
+                      {}
                       <div
                         className={`absolute inset-0 rounded-full bg-gradient-to-tr from-[#f59e0b] via-[#fbbf24] to-[#fde047] border border-yellow-200 shadow-[0_0_18px_rgba(245,158,11,0.85)] flex items-center justify-center transition-all duration-500 ${
                           theme === 'light'
@@ -729,7 +726,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 2. CHẾ ĐỘ TRẢI NGHIỆM: FABULOUS & POTATOR CẠNH NHAU */}
+              {}
               <section aria-label="Chế độ hiệu ứng">
                 <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-violet-300" />}>Chế độ hiệu ứng &amp; hiệu năng</SectionTitle>
                 <div className="grid grid-cols-2 gap-2">
@@ -760,7 +757,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </section>
 
-              {/* 3. CẤU HÌNH NỀN HỢP NHẤT (Gộp Nền tối + Chọn giao diện nền + Nền tĩnh) */}
+              {}
               <section aria-label="Cấu hình nền">
                 <SectionTitle icon={<Palette className="w-3 h-3 text-[#f2cc8f]" />}>Cấu hình nền</SectionTitle>
                 <Card className="space-y-3.5">
@@ -840,12 +837,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 4. HIỂN THỊ & KÍNH MỜ */}
+              {}
               <section>
                 <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-[#f2cc8f]" />}>Chữ &amp; độ trong kính</SectionTitle>
                 <Card className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2 justify-center">
-                    <span className="text-[10px] font-semibold text-white/70">Cỡ chữ hệ thống</span>
+                    <span className="text-[10px] font-semibold text-white/70">Cỡ chữ đọc sách</span>
                     <div className="flex items-center gap-1 bg-black/50 p-0.5 rounded-xl border border-white/10">
                       {(['sm', 'md', 'lg'] as const).map((sz) => (
                         <button
@@ -885,13 +882,205 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </div>
                 </Card>
               </section>
+
+              {}
+              <section>
+                <SectionTitle icon={<GhibliSparkleIcon className="w-3 h-3 text-amber-300" />}>Linh Thú Học Thuật 2.5D</SectionTitle>
+                <Card className="space-y-4">
+                  {}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 pr-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-semibold text-white tracking-wide">Linh vật bám theo chuột</span>
+                        <span className="text-[10px] py-0.5 rounded-md font-mono font-medium bg-amber-500/15 text-amber-300 border border-amber-400/30 px-1.5">
+                          {spiritSettings.enabled ? 'Đang bật' : 'Đang ẩn'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-white/50 mt-0.5 leading-snug">
+                        Lý Ngư Vọng Nguyệt, Cú Tuyết Athena 2.5D tự động nhận diện 38 ngày lễ Việt Nam & Sinh nhật
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={spiritSettings.enabled}
+                      onClick={() => updateSpirit({ enabled: !spiritSettings.enabled })}
+                      className={`relative w-11 h-6 rounded-full transition-colors duration-200 cursor-pointer shrink-0 border border-white/10 ${
+                        spiritSettings.enabled ? 'bg-amber-500' : 'bg-neutral-800'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block w-4 h-4 rounded-full bg-white shadow-md transform transition-transform duration-200 mt-1 ml-1 ${
+                          spiritSettings.enabled ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  {spiritSettings.enabled && (
+                    <div className="pt-2 border-t border-white/10 space-y-3">
+                      {}
+                      <div>
+                        <p className="text-[11px] font-semibold text-white/80 mb-2">Chọn loài linh thú</p>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { id: 'koi' as SpiritSpecies, label: 'Cá Chép Koi', icon: '◈' },
+                            { id: 'owl' as SpiritSpecies, label: 'Cú Tuyết', icon: '✦' },
+                            { id: 'nautilus' as SpiritSpecies, label: 'Ốc Anh Vũ', icon: '◎' },
+                          ].map((item) => (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => updateSpirit({ species: item.id })}
+                              className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                spiritSettings.species === item.id
+                                  ? 'bg-amber-500/20 border-amber-400/60 text-amber-200 shadow-sm'
+                                  : 'bg-black/30 border-white/10 text-white/70 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="text-sm">{item.icon}</div>
+                              <div className="text-[11px] font-bold mt-0.5 truncate">{item.label}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {}
+                      <div>
+                        <p className="text-[11px] font-semibold text-white/80 mb-2">Bảng màu (Skin)</p>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                          {[
+                            { id: 'kintsugi' as SpiritSkin, label: 'Bạch Ngọc Kintsugi', desc: 'Vàng 24K' },
+                            { id: 'sumi' as SpiritSkin, label: 'Thuỷ Mặc Chu Sa', desc: 'Mực tàu & ấn' },
+                            { id: 'solar' as SpiritSkin, label: 'Kim Ô Hoả', desc: 'Trạng nguyên' },
+                            { id: 'astral' as SpiritSkin, label: 'Tinh Hà', desc: 'Nguyệt quang' },
+                            { id: 'jade' as SpiritSkin, label: 'Thanh Ngọc', desc: 'Cổ viện' },
+                          ].map((sk) => (
+                            <button
+                              key={sk.id}
+                              type="button"
+                              onClick={() => updateSpirit({ skin: sk.id })}
+                              className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                spiritSettings.skin === sk.id
+                                  ? 'bg-amber-500/20 border-amber-400/60 text-amber-200 shadow-sm'
+                                  : 'bg-black/30 border-white/10 text-white/70 hover:border-white/20'
+                              }`}
+                            >
+                              <div className="text-[11px] font-bold truncate">{sk.label}</div>
+                              <div className="text-[9.5px] text-white/40">{sk.desc}</div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {}
+                      <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2">
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-white/70">
+                          <input
+                            type="checkbox"
+                            checked={spiritSettings.showLotus}
+                            onChange={(e) => updateSpirit({ showLotus: e.target.checked })}
+                            className="rounded border-white/20 accent-amber-500 cursor-pointer"
+                          />
+                          <span>Lá sen mặt hồ</span>
+                        </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer text-[11px] text-white/70">
+                          <input
+                            type="checkbox"
+                            checked={spiritSettings.showCard}
+                            onChange={(e) => updateSpirit({ showCard: e.target.checked })}
+                            className="rounded border-white/20 accent-amber-500 cursor-pointer"
+                          />
+                          <span>Thẻ thơ đại lễ</span>
+                        </label>
+
+                        <button
+                          type="button"
+                          onClick={() => window.__astralDragonCfg?.triggerPulse?.()}
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/30 text-[10.5px] font-semibold transition cursor-pointer"
+                        >
+                          Long Ngâm
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </Card>
+              </section>
             </>
           )}
 
-          {/* ================= TAB 2: TRẢI NGHIỆM ================= */}
           {activeTab === 'experience' && (
             <>
-              {/* 4. NAVBAR — mockup màn hình mini, không còn hàng nút thô */}
+              <section>
+                <SectionTitle icon={<Volume2 className="w-3 h-3 text-amber-300" />}>Trải nghiệm Âm thanh Xúc giác</SectionTitle>
+                <div className="space-y-2">
+                  <Card className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                        <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[11.5px] font-semibold text-white">Hiệu ứng âm thanh</div>
+                        <div className="text-[10px] text-white/55">Phản hồi âm học khi thao tác và ôn luyện</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (soundEffects) playUiTick();
+                        }}
+                        disabled={!soundEffects}
+                        className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-mono text-white/70 disabled:opacity-30 cursor-pointer"
+                        title="Thử âm thanh"
+                      >
+                        Thử
+                      </button>
+                      <MiniSwitch on={soundEffects} onToggle={onToggleSoundEffects} label="Hiệu ứng âm thanh" />
+                    </div>
+                  </Card>
+
+                  <Card className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-7 h-7 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                        <Bell className="w-3.5 h-3.5 text-amber-300" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[11.5px] font-semibold text-white">Chuông Tây Tạng (432Hz)</div>
+                        <div className="text-[10px] text-white/55">Âm ba thư giãn tâm trí tĩnh tại</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playTibetanBowlChime()}
+                      className="ff-tactile-pop btn-feastables px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/35 border border-amber-400/40 text-[10.5px] font-bold text-amber-200 cursor-pointer shrink-0"
+                    >
+                      Ngân vang
+                    </button>
+                  </Card>
+
+                  <Card className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-7 h-7 rounded-full bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center shrink-0">
+                        <Volume2 className="w-3.5 h-3.5 text-cyan-300" />
+                      </span>
+                      <div className="min-w-0">
+                        <div className="text-[11.5px] font-semibold text-white">Âm lofi Machi Mart</div>
+                        <div className="text-[10px] text-white/55">Chuông cửa tiệm học tập ấm áp</div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => playMachiMartChime()}
+                      className="ff-tactile-pop btn-feastables px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/35 border border-cyan-400/40 text-[10.5px] font-bold text-cyan-200 cursor-pointer shrink-0"
+                    >
+                      Lắng nghe
+                    </button>
+                  </Card>
+                </div>
+              </section>
               <section>
                 <SectionTitle icon={<Move className="w-3 h-3 text-amber-300" />}>Thanh điều hướng</SectionTitle>
                 <Card className="space-y-3">
@@ -906,7 +1095,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                   <div className="ff-dock-mock h-[124px] w-full p-2">
                     <div className="relative h-full w-full rounded-[14px] border border-white/10 bg-black/35 overflow-hidden">
-                      {/* mini nav preview */}
+                      {}
                       <div
                         className={`absolute flex items-center justify-center gap-1 transition-all duration-500 ${
                           navbarPosition === 'top'
@@ -923,10 +1112,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         <span className="flex-1 w-full h-full rounded-full bg-gradient-to-r from-amber-400/70 to-yellow-300/40 shadow-[0_0_12px_rgba(245,158,11,0.45)]" />
                       </div>
 
-                      {/* fake content blocks */}
+                      {}
                       <div className="absolute inset-4 rounded-xl border border-white/5 bg-white/[0.03]" />
 
-                      {/* 4 vùng cạnh mini screen */}
+                      {}
                       {(
                         [
                           { id: 'top' as const, cls: 'top-1 left-1/2 -translate-x-1/2 w-[86px] h-3.5' },
@@ -979,7 +1168,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 5. MOTION & PERFORMANCE */}
+              {}
               <section>
                 <SectionTitle icon={<Zap className="w-3 h-3 text-amber-300" />}>Chuyển động &amp; âm thanh</SectionTitle>
                 <Card className="flex flex-col gap-2">
@@ -1022,7 +1211,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 6. KHÔNG GIAN TẬP TRUNG */}
+              {}
               <section>
                 <SectionTitle icon={<Volume2 className="w-3 h-3 text-emerald-300" />}>Tập trung</SectionTitle>
                 <Card className="space-y-2.5">
@@ -1056,7 +1245,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 7. PHÍM TẮT ẨN */}
+              {}
               <section>
                 <SectionTitle icon={<Keyboard className="w-3 h-3 text-violet-300" />}>Phím tắt</SectionTitle>
                 <Card className="space-y-1.5">
@@ -1080,29 +1269,28 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </>
           )}
 
-          {/* ================= TAB 3: HỆ THỐNG ================= */}
+          {}
           {activeTab === 'system' && (
             <>
-              {/* 8. SAO LƯU & DỮ LIỆU */}
               <section>
-                <SectionTitle icon={<ShieldCheck className="w-3 h-3 text-emerald-300" />}>Sao lưu &amp; dữ liệu</SectionTitle>
+                <SectionTitle icon={<Database className="w-3 h-3 text-amber-300" />}>Sao Lưu Dữ Liệu Ngoại Tuyến</SectionTitle>
                 <Card className="space-y-2.5">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <button
                       type="button"
                       onClick={handleExportData}
-                      className="px-2 py-2 rounded-xl text-[11px] font-semibold text-emerald-200 bg-emerald-500/12 hover:bg-emerald-500/22 border border-emerald-400/30 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
+                      className="ff-tactile-pop btn-feastables px-2.5 py-2 rounded-xl text-[10.5px] font-bold text-[#0b0d12] bg-[#f2cc8f] hover:bg-[#f4f1de] border-2 border-[#0b0d12] transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      Xuất bản sao lưu
+                      <Download className="w-3.5 h-3.5 text-[#0b0d12]" />
+                      <span>Xuất Bản Sao Lưu Dữ Liệu Học Tập JSON</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
-                      className="ff-tactile-btn px-2 py-2 rounded-xl text-[11px] font-semibold text-[#f2cc8f] bg-[#e07a5f]/20 hover:bg-[#e07a5f]/30 border border-[#e07a5f]/45 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
+                      className="ff-tactile-pop btn-feastables px-2.5 py-2 rounded-xl text-[10.5px] font-bold text-[#f4f1de] bg-[#111722] hover:bg-white/10 border-2 border-[#0b0d12] transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5 shadow-sm"
                     >
-                      <Upload className="w-3.5 h-3.5" />
-                      Nhập bản sao lưu
+                      <Upload className="w-3.5 h-3.5 text-[#f2cc8f]" />
+                      <span>Khôi Phục Dữ Liệu</span>
                     </button>
                   </div>
                   <input
@@ -1124,10 +1312,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 9. XÓA DỮ LIỆU CỤC BỘ */}
+              {}
               {isAuthenticated && onLogoutEverywhere && (
                 <section>
-                  <SectionTitle icon={<LogOut className="w-3 h-3 text-rose-300" />}>Phiên đăng nhập</SectionTitle>
+                  <SectionTitle icon={<ShieldCheck className="w-3 h-3 text-emerald-300" />}>Bảo Mật Sĩ Tử</SectionTitle>
                   {onChangePassword && (
                     <Card className="space-y-2 mb-2">
                       <PasswordChangeForm
@@ -1199,7 +1387,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </Card>
               </section>
 
-              {/* 10. THÔNG TIN & BẢN NÂNG CẤP */}
+              {}
               <section>
                 <SectionTitle icon={<Info className="w-3 h-3 text-amber-300" />}>Về F-Forum</SectionTitle>
                 <Card className="space-y-2.5">
@@ -1220,7 +1408,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       className="ff-tactile-btn w-full px-3 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] text-xs font-extrabold inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                     >
                       <Rocket className="w-3.5 h-3.5 text-[#e07a5f]" />
-                      <span>Xem Bản nâng cấp (Update)</span>
+                      <span>Bản nâng cấp</span>
                     </button>
                   )}
                 </Card>

@@ -2956,9 +2956,9 @@ export function useForumStore() {
     const reward = Math.max(0, Number(questionOutcome.data?.reward) || 0);
     playChime(reward > 0 ? 'xp' : 'success');
     setToastMessage({
-      title: reward > 0 ? `Đã đăng câu hỏi · +${reward} XP và Coin` : 'Câu hỏi đã được tiếp nhận',
+      title: 'Đã gửi câu',
       subtitle: reward > 0
-        ? 'Phần thưởng và số dư đã được máy chủ xác nhận.'
+        ? `+${reward} XP và Coin`
         : 'Yêu cầu này đã được ghi nhận trước đó; máy chủ không cấp thưởng lần hai.',
       type: reward > 0 ? 'xp' : 'success',
     });
@@ -3053,11 +3053,9 @@ export function useForumStore() {
     const reward = Math.max(0, Number(solutionOutcome.data?.reward) || 0);
     playChime(reward > 0 ? 'xp' : 'success');
     setToastMessage({
-      title: reward > 0
-        ? `Đã gửi lời giải · +${reward} XP và Coin`
-        : solutionOutcome.data?.duplicate ? 'Lời giải đã được tiếp nhận trước đó' : 'Câu trả lời đã được đăng',
+      title: 'Đã gửi bài',
       subtitle: reward > 0
-        ? 'Phần thưởng đã được máy chủ xác nhận.'
+        ? `+${reward} XP và Coin`
         : 'Bạn đã nhận phần thưởng cho câu hỏi này trước đó; không phát thưởng lặp.',
       type: reward > 0 ? 'xp' : 'success',
     });
@@ -3124,7 +3122,7 @@ export function useForumStore() {
       safeStorage.setItem('fforum_threads', JSON.stringify(threads));
     }
     if (outcome.data?.user) applyServerUser(outcome.data.user as User);
-    setToastMessage({ title: 'Đã đăng thread!', subtitle: 'Nội dung của cậu đang ở đầu feed.', type: 'success' });
+    setToastMessage({ title: 'Đã gửi bài', subtitle: 'Nội dung của cậu đang ở đầu feed.', type: 'success' });
   };
 
   const replyThread = async (parentId: string, content: string) => {
@@ -3148,6 +3146,7 @@ export function useForumStore() {
       setThreads((prev) => [saved, ...prev]);
     }
     if (outcome.data?.user) applyServerUser(outcome.data.user as User);
+    setToastMessage({ title: 'Đã gửi bài', type: 'success' });
   };
 
   const repostThread = async (threadId: string, type: 'simple' | 'quote', content?: string) => {
@@ -3165,7 +3164,7 @@ export function useForumStore() {
     const saved = outcome.data?.thread as Thread | undefined;
     if (saved) setThreads((prev) => [saved, ...prev]);
     if (outcome.data?.user) applyServerUser(outcome.data.user as User);
-    setToastMessage({ title: type === 'quote' ? 'Đã đăng lời trích!' : 'Đã chia sẻ lại!', type: 'success' });
+    setToastMessage({ title: 'Đã gửi bài', type: 'success' });
   };
 
   const reactThread = async (threadId: string, reactionType: ThreadReactionType) => {

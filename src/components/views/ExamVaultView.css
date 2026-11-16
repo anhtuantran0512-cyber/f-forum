@@ -5,54 +5,24 @@
   width: 100%;
   min-height: 100vh;
   padding-bottom: calc(96px + var(--safe-bottom, 0px));
-  color: #f4f1de;
+  color: var(--ink-primary);
   isolation: isolate;
   overflow-x: clip;
   --ff-exam-parallax-a-x: 0px;
   --ff-exam-parallax-a-y: 0px;
   --ff-exam-parallax-b-x: 0px;
   --ff-exam-parallax-b-y: 0px;
-  background:
-    radial-gradient(ellipse at 14% 4%, rgba(217, 119, 87, 0.09), transparent 32rem),
-    radial-gradient(ellipse at 88% 18%, rgba(129, 178, 154, 0.07), transparent 36rem),
-    linear-gradient(180deg, #0b0d12 0%, #11151d 48%, #0b0d12 100%);
+  background: var(--bg-paper);
 }
 
 .ff-exam-vault::before,
 .ff-exam-vault::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  width: min(42rem, 75vw);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  pointer-events: none;
-  filter: blur(52px);
-  opacity: 0.52;
-  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
-}
-
-.ff-exam-vault::before {
-  top: 2rem;
-  left: -18rem;
-  background: radial-gradient(circle, rgba(217, 119, 87, 0.2), rgba(217, 119, 87, 0) 68%);
-  transform: translate3d(var(--ff-exam-parallax-a-x), var(--ff-exam-parallax-a-y), 0);
-}
-
-.ff-exam-vault::after {
-  top: min(54rem, 46vh);
-  right: -20rem;
-  background: radial-gradient(circle, rgba(129, 178, 154, 0.16), rgba(129, 178, 154, 0) 70%);
-  transform: translate3d(var(--ff-exam-parallax-b-x), var(--ff-exam-parallax-b-y), 0);
+  display: none !important;
 }
 
 html.light .ff-exam-vault {
-  background:
-    radial-gradient(ellipse at 12% 4%, rgba(217, 119, 87, 0.09), transparent 32rem),
-    radial-gradient(ellipse at 88% 18%, rgba(129, 178, 154, 0.11), transparent 36rem),
-    linear-gradient(180deg, #fbfaf5 0%, #f8f5ec 52%, #f4f0e6 100%);
-  color: #1c1917;
+  background: var(--bg-paper);
+  color: var(--ink-primary);
 }
 
 html.light .ff-exam-vault::before,
@@ -107,32 +77,30 @@ html.light .ff-exam-filter-label {
 
 /* Header surface */
 .ff-exam-header-bar {
-  background: rgba(14, 17, 24, 0.9);
-  border-color: rgba(233, 196, 106, 0.16);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(248, 247, 244, 0.08);
-  backdrop-filter: blur(16px) saturate(1.2);
-  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  background: var(--bg-paper);
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
+  border-radius: 6px;
 }
 
 html.light .ff-exam-header-bar {
-  background: rgba(250, 248, 241, 0.92);
-  border-color: rgba(28, 25, 23, 0.12);
-  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: var(--bg-paper);
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
 }
 
 /* Hero Search Pod */
 .ff-exam-hero-search {
-  background: linear-gradient(145deg, rgba(24, 29, 40, 0.94), rgba(14, 17, 24, 0.92));
-  border: 1px solid rgba(233, 196, 106, 0.24);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(248, 247, 244, 0.08);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--bg-parchment);
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
+  border-radius: 6px;
 }
 
 html.light .ff-exam-hero-search {
-  background: linear-gradient(145deg, rgba(255, 253, 248, 0.98), rgba(247, 244, 236, 0.94));
-  border-color: rgba(28, 25, 23, 0.14);
-  box-shadow: 0 10px 28px rgba(28, 25, 23, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  background: var(--bg-parchment);
+  border: var(--border-grid);
+  box-shadow: var(--shadow-brutal);
 }
 
 /* Exam Card */
@@ -285,23 +253,17 @@ html.light .ff-diff-badge--van-dung-cao {
 
 /* Modal Surface */
 .ff-exam-modal {
-  background: linear-gradient(170deg, rgba(17, 24, 39, 0.96) 0%, rgba(10, 14, 23, 0.98) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow:
-    0 30px 80px -15px rgba(0, 0, 0, 0.8),
-    0 0 50px -10px rgba(251, 191, 36, 0.12),
-    0 1px 0 rgba(255, 255, 255, 0.2) inset;
-  backdrop-filter: blur(28px);
-  -webkit-backdrop-filter: blur(28px);
+  background: var(--bg-paper);
+  border: var(--border-double);
+  box-shadow: var(--shadow-brutal-hover);
+  border-radius: 6px;
 }
 
 html.light .ff-exam-modal {
-  background: linear-gradient(170deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%);
-  border: 1px solid rgba(15, 23, 42, 0.14);
-  box-shadow:
-    0 30px 80px -15px rgba(15, 23, 42, 0.25),
-    0 0 45px -8px rgba(245, 158, 11, 0.15),
-    0 1px 0 rgba(255, 255, 255, 1) inset;
+  background: var(--bg-paper);
+  border: var(--border-double);
+  box-shadow: var(--shadow-brutal-hover);
+  border-radius: 6px;
 }
 
 /* Safe viewport-bound dialog geometry shared by every Exam Vault overlay. */

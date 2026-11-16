@@ -22,7 +22,7 @@ export const QUESTION_SORT_OPTIONS: {
   { id: 'newest', label: 'Mới nhất', hint: 'Câu hỏi vừa đăng lên trước' },
   { id: 'bounty', label: 'Thưởng cao', hint: 'Câu hỏi treo nhiều Coin nhất' },
   { id: 'active', label: 'Sôi nổi', hint: 'Nhiều lời giải nhất' },
-  { id: 'unsolved', label: 'Chưa có lời giải', hint: 'Ưu tiên câu hỏi đang cần người giúp' },
+  { id: 'unsolved', label: 'Chưa giải', hint: 'Ưu tiên câu hỏi đang cần người giúp' },
 ];
 
 export const DEFAULT_QUESTION_SORT: QuestionSortMode = 'newest';

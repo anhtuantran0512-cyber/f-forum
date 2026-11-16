@@ -1,37 +1,34 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   X,
-  Edit3,
-  Upload,
-  MapPin,
   Settings,
-  Compass,
   ArrowRight,
-  Image as ImageIcon,
-  RotateCcw,
+  Trophy,
+  Crown,
+  Sparkles,
+  BookOpen,
+  Clock,
+  Sun,
+  Moon,
+  Search,
+  GraduationCap,
+  Flame,
+  Swords,
+  ChevronLeft,
+  ChevronRight,
+  LayoutGrid,
+  Film,
 } from 'lucide-react';
 import type { User, DimensionView } from '../../types';
-import { AdminVerifiedBadge } from '../Badges10Tier';
 import { ADMIN_AVATAR_URL, isLegacyAdminAvatar, normalizeAdminAvatar } from '../../config/admin';
 import { safeStorage } from '../../utils/storage';
+import { DUELISTS_STORAGE_KEY, type DuelistRecord } from '../exam/PeerBattleModal';
 import {
-  getSavedAboutData,
   fetchAboutDataFromServer,
-  saveAboutDataToServer,
-  type MilestoneItem,
   type AboutData,
 } from '../../store/adminStore';
-import { DEFAULT_CLUB_COVER, DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
-import { MASTER_ADMIN_EMAIL, isMasterAdmin } from '../../config/admin';
-import { rafThrottle } from '../../utils/rafThrottle';
-import { uploadImageToServer } from '../../utils/imagePipeline';
-import {
-  SphereCardBatchUpdater,
-  getRendererInfo,
-  recordRenderFrameMetrics,
-  registerDisposableResource,
-} from '../../utils/gpuRenderEngine';
+import { DEFAULT_CLUB_COVER, handleImageError } from '../../utils/mediaFallback';
+import { isMasterAdmin } from '../../config/admin';
 
 export interface VinhDanhRecord {
   id: string;
@@ -57,7 +54,6 @@ export interface KhuVinhDanhViewProps {
 }
 
 const CDN_BASE = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/';
-const INTRO_FILM_URL = `${CDN_BASE}hf_20260922_195107_ed3f055a-3a13-4a71-b743-e10310454246.mp4`;
 const FOUNDER_AVATAR_ID = 'hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c';
 
 const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
@@ -213,37 +209,30 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
 ];
 
 const N = 21;
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 
-interface FibonacciPoint {
-  index: number;
-  x: number;
-  y: number;
-  z: number;
-  lat: number;
-  lon: number;
-}
-
-const FIBONACCI_POINTS: FibonacciPoint[] = Array.from({ length: N }, (_, i) => {
-  const y = 1 - (i / (N - 1)) * 2;
-  const rad = Math.sqrt(Math.max(0, 1 - y * y));
-  const theta = i * GOLDEN_ANGLE;
-  const x = Math.cos(theta) * rad;
-  const z = Math.sin(theta) * rad;
-  const lat = Math.asin(y) * (180 / Math.PI);
-  const lon = Math.atan2(x, z) * (180 / Math.PI);
-  return { index: i, x, y, z, lat, lon };
-});
-
-function computeRadiusAndCardWidth(width: number, height: number) {
-  const hr = width <= 380 ? 0.38 : width <= 640 ? 0.42 : 0.46;
-  const wr = width <= 380 ? 0.48 : width <= 640 ? 0.52 : 0.58;
-  const floor = width <= 380 ? 108 : width <= 640 ? 120 : 155;
-  const R = Math.max(floor, Math.min(480, height * hr, width * wr));
-  const scale = width <= 380 ? 0.44 : width <= 640 ? 0.46 : 0.47;
-  const cw = Math.round(Math.max(72, R * scale));
-  return { R, cw };
-}
+const POLAROID_ANGLES = [
+  'rotate-[-6deg]',
+  'rotate-[4deg]',
+  'rotate-[-3deg]',
+  'rotate-[5deg]',
+  'rotate-[-5deg]',
+  'rotate-[3.5deg]',
+  'rotate-[-4.5deg]',
+  'rotate-[2deg]',
+  'rotate-[-2.5deg]',
+  'rotate-[4deg]',
+  'rotate-[-3.5deg]',
+  'rotate-[5.5deg]',
+  'rotate-[-5deg]',
+  'rotate-[3deg]',
+  'rotate-[-2deg]',
+  'rotate-[4.5deg]',
+  'rotate-[-4deg]',
+  'rotate-[2.5deg]',
+  'rotate-[-3deg]',
+  'rotate-[3.5deg]',
+  'rotate-[-1.5deg]',
+];
 
 function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
   if (!Array.isArray(raw) || raw.length === 0) return INITIAL_VINHDANH_RECORDS;
@@ -283,13 +272,87 @@ function normalizeVinhDanhRecords(raw: unknown): VinhDanhRecord[] {
   });
 }
 
-const DEFAULT_HEADLINE_WORDS = ['BroAmStuck', 'Studio', '•', 'Trần', 'Tuấn'];
-const DEFAULT_COLOPHON = 'F-Forum • 2026';
+interface TopScholar {
+  rank: 1 | 2 | 3;
+  name: string;
+  title: string;
+  school: string;
+  points: number;
+  studyHours: number;
+  acceptedAnswers: number;
+  mascotName: string;
+  mascotType: 'owl' | 'fox' | 'tortoise';
+  auraColor: string;
+  avatarUrl: string;
+}
 
-/* vd-21 mặc định dùng avatar admin mới: ẩn nút "khôi phục" khi đang đúng ảnh đó,
-   chỉ hiện lại khi admin đã đặt ảnh khác — tránh quay về asset CDN 10,4MB. */
-const canRestoreRecordImage = (record: { imgId: string; customImgUrl?: string }): boolean =>
-  Boolean(record.customImgUrl) && !(record.imgId === FOUNDER_AVATAR_ID && record.customImgUrl === ADMIN_AVATAR_URL);
+const TOP_3_SCHOLARS: TopScholar[] = [
+  {
+    rank: 1,
+    name: 'Nguyễn Đăng Khoa',
+    title: 'Thủ Khoa Toàn Năng',
+    school: 'THPT Chuyên Lê Quý Đôn · Đà Nẵng',
+    points: 15420,
+    studyHours: 540,
+    acceptedAnswers: 1280,
+    mascotName: 'Cú Bông Thông Thái',
+    mascotType: 'owl',
+    auraColor: '#f59e0b',
+    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    rank: 2,
+    name: 'Trần Minh Hoàng',
+    title: 'Á Khoa Học Thuật 1',
+    school: 'THPT Chuyên Hà Nội - Amsterdam',
+    points: 13950,
+    studyHours: 495,
+    acceptedAnswers: 1110,
+    mascotName: 'Cáo Bạc Nhanh Trí',
+    mascotType: 'fox',
+    auraColor: '#cbd5e1',
+    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=240&auto=format&fit=crop&q=80',
+  },
+  {
+    rank: 3,
+    name: 'Lê Thảo Nguyên',
+    title: 'Á Khoa Học Thuật 2',
+    school: 'THPT Chuyên Năng Khiếu · TP.HCM',
+    points: 12800,
+    studyHours: 462,
+    acceptedAnswers: 980,
+    mascotName: 'Rùa Đồng Bền Bỉ',
+    mascotType: 'tortoise',
+    auraColor: '#e07a5f',
+    avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=240&auto=format&fit=crop&q=80',
+  },
+];
+
+interface HistoricalSubjectRecord {
+  id: string;
+  name: string;
+  category: 'natural' | 'social' | 'specialized';
+  solvedQuestions: number;
+  acceptanceRate: number;
+  valedictorian: string;
+  valedictorianSchool: string;
+  accentColor: string;
+}
+
+const HISTORICAL_12_SUBJECTS: HistoricalSubjectRecord[] = [
+  { id: 'sub-1', name: 'Toán học', category: 'natural', solvedQuestions: 384120, acceptanceRate: 99.2, valedictorian: 'Nguyễn Hoàng Long', valedictorianSchool: 'Chuyên KHTN Hà Nội', accentColor: '#3b82f6' },
+  { id: 'sub-2', name: 'Vật lý', category: 'natural', solvedQuestions: 245890, acceptanceRate: 98.7, valedictorian: 'Trần Minh Đức', valedictorianSchool: 'Chuyên Lam Sơn', accentColor: '#06b6d4' },
+  { id: 'sub-3', name: 'Hóa học', category: 'natural', solvedQuestions: 218440, acceptanceRate: 98.5, valedictorian: 'Lê Bảo Trâm', valedictorianSchool: 'Chuyên Quốc Học Huế', accentColor: '#10b981' },
+  { id: 'sub-4', name: 'Sinh học', category: 'natural', solvedQuestions: 167900, acceptanceRate: 97.9, valedictorian: 'Phạm Thuỳ Linh', valedictorianSchool: 'Chuyên Phan Bội Châu', accentColor: '#84cc16' },
+  { id: 'sub-5', name: 'Lịch sử', category: 'social', solvedQuestions: 142300, acceptanceRate: 99.1, valedictorian: 'Vũ Duy Khang', valedictorianSchool: 'Chuyên Chu Văn An', accentColor: '#eab308' },
+  { id: 'sub-6', name: 'Địa lý', category: 'social', solvedQuestions: 118750, acceptanceRate: 98.4, valedictorian: 'Đỗ Mai Anh', valedictorianSchool: 'Chuyên Lương Thế Vinh', accentColor: '#f97316' },
+  { id: 'sub-7', name: 'Ngữ văn', category: 'social', solvedQuestions: 289600, acceptanceRate: 98.8, valedictorian: 'Hoàng Lan Hương', valedictorianSchool: 'Chuyên Trần Phú', accentColor: '#ec4899' },
+  { id: 'sub-8', name: 'Tiếng Anh', category: 'social', solvedQuestions: 324500, acceptanceRate: 99.4, valedictorian: 'Đặng Quốc Tuấn', valedictorianSchool: 'Chuyên Ngoại Ngữ', accentColor: '#8b5cf6' },
+  { id: 'sub-9', name: 'Tin học', category: 'specialized', solvedQuestions: 198200, acceptanceRate: 99.6, valedictorian: 'Bùi Thế Vinh', valedictorianSchool: 'Chuyên Sư Phạm Hà Nội', accentColor: '#14b8a6' },
+  { id: 'sub-10', name: 'Triết học', category: 'specialized', solvedQuestions: 84600, acceptanceRate: 97.6, valedictorian: 'Lâm Hoài Nam', valedictorianSchool: 'ĐH KHXH&NV TP.HCM', accentColor: '#a855f7' },
+  { id: 'sub-11', name: 'Thiên văn', category: 'specialized', solvedQuestions: 62400, acceptanceRate: 98.2, valedictorian: 'Trương Gia Bảo', valedictorianSchool: 'ĐH Bách Khoa Đà Nẵng', accentColor: '#6366f1' },
+  { id: 'sub-12', name: 'Nghệ thuật', category: 'specialized', solvedQuestions: 54300, acceptanceRate: 98.9, valedictorian: 'Nguyễn Mai Chi', valedictorianSchool: 'ĐH Mỹ Thuật TP.HCM', accentColor: '#f43f5e' },
+];
 
 export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   onExit,
@@ -297,6 +360,29 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
   currentUser,
 }) => {
   const isSuperAdmin = isMasterAdmin(currentUser?.email);
+
+  
+  useEffect(() => {
+    let animId: number | null = null;
+    const isGridView = true;
+    const shouldRunAnimation = () =>
+      !document.hidden && !isGridView;
+    const scheduleTick = () => {};
+    const onVisibilityChange = () => {
+      if (!shouldRunAnimation()) return;
+      if (animId || !shouldRunAnimation()) return;
+      scheduleTick();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      if (animId) cancelAnimationFrame(animId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
+  const [activeTabMode, setActiveTabMode] = useState<'hall' | 'archive'>('hall');
+  const [subjectFilter, setSubjectFilter] = useState<'all' | 'natural' | 'social' | 'specialized'>('all');
+  const [subjectSearchQuery, setSubjectSearchQuery] = useState('');
 
   const [founderProfile, setFounderProfile] = useState<FounderProfileState>(() => {
     const saved = safeStorage.getItem('fforum_vinhdanh_founder');
@@ -310,7 +396,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           };
         }
       } catch {
-        /* ignore */
       }
     }
     return {
@@ -328,107 +413,70 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length === N) return normalizeVinhDanhRecords(parsed);
       } catch {
-        /* ignore */
       }
     }
     return INITIAL_VINHDANH_RECORDS;
   });
 
-  const [headlineWords, setHeadlineWords] = useState<string[]>(() => {
-    const about = getSavedAboutData();
-    return Array.isArray(about.headlineWords) && about.headlineWords.length === 5
-      ? about.headlineWords
-      : DEFAULT_HEADLINE_WORDS;
-  });
-  const [colophonText, setColophonText] = useState<string>(() => {
-    const about = getSavedAboutData();
-    return about.colophon || DEFAULT_COLOPHON;
-  });
-  const [introFilmUrl, setIntroFilmUrl] = useState<string>(() => {
-    const about = getSavedAboutData();
-    return about.introFilmUrl || INTRO_FILM_URL;
-  });
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
-
-  const [isRevealed, setIsRevealed] = useState(false);
-  const [isSplashDone, setIsSplashDone] = useState(false);
-  const [isIntroFilmPlaying, setIsIntroFilmPlaying] = useState(false);
-  const [isIntroFading, setIsIntroFading] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isGridView, setIsGridView] = useState(false);
   const [activeLitRecord, setActiveLitRecord] = useState<VinhDanhRecord | null>(null);
-  const [fullImgLoaded, setFullImgLoaded] = useState(false);
-  const [sphereRadius, setSphereRadius] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return computeRadiusAndCardWidth(window.innerWidth, window.innerHeight).R;
+
+  const [duelists, setDuelists] = useState<DuelistRecord[]>(() => {
+    try {
+      const raw = safeStorage.getItem(DUELISTS_STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch {
     }
-    return 360;
+    return [
+      {
+        id: 'duelist-1',
+        name: 'Nguyễn Đăng Khoa',
+        school: 'THPT Chuyên Lê Hồng Phong, TP.HCM',
+        avatar: '',
+        victories: 24,
+        winRate: 88,
+        bountyScore: 3200,
+        title: 'Đấu Sĩ Tri Thức',
+        recentTimestamp: Date.now() - 3600000,
+      },
+      {
+        id: 'duelist-2',
+        name: 'Trần Minh Hoàng',
+        school: 'THPT Chuyên Hà Nội - Amsterdam',
+        avatar: '',
+        victories: 19,
+        winRate: 84,
+        bountyScore: 2650,
+        title: 'Đấu Sĩ Tri Thức',
+        recentTimestamp: Date.now() - 7200000,
+      },
+      {
+        id: 'duelist-3',
+        name: 'Lê Thảo Vy',
+        school: 'THPT Chuyên Quốc Học Huế',
+        avatar: '',
+        victories: 15,
+        winRate: 79,
+        bountyScore: 2100,
+        title: 'Đấu Sĩ Tri Thức',
+        recentTimestamp: Date.now() - 10800000,
+      },
+    ];
   });
 
-  const setCardRef = (el: HTMLDivElement | null, idx: number) => {
-    cardsRef.current[idx] = el;
-  };
-
   useEffect(() => {
-    const splashTimer = setTimeout(() => {
-      setIsSplashDone(true);
-      setIsIntroFilmPlaying(true);
-    }, 1200);
-    return () => clearTimeout(splashTimer);
-  }, []);
-
-  /* P3: Nạp trước thumbnail theo từng lô nhỏ khi rảnh (6 ảnh/lượt) thay vì giải mã đồng loạt 48 ảnh,
-     đồng thời đăng ký .dispose() giải phóng bộ nhớ khi rời trang. */
-  useEffect(() => {
-    const preloadedImages: HTMLImageElement[] = [];
-    let cancelled = false;
-    let cursor = 0;
-
-    const loadBatch = () => {
-      if (cancelled || cursor >= INITIAL_VINHDANH_RECORDS.length) return;
-      const slice = INITIAL_VINHDANH_RECORDS.slice(cursor, cursor + 6);
-      cursor += 6;
-      slice.forEach((rec) => {
-        const thumb = new Image();
-        thumb.decoding = 'async';
-        thumb.src = `${CDN_BASE}${rec.imgId}_min.webp`;
-        preloadedImages.push(thumb);
-      });
-      if (cursor < INITIAL_VINHDANH_RECORDS.length) {
-        window.setTimeout(loadBatch, 90);
+    const handleUpdate = () => {
+      try {
+        const raw = safeStorage.getItem(DUELISTS_STORAGE_KEY);
+        if (raw) setDuelists(JSON.parse(raw));
+      } catch {
       }
     };
-
-    const timer = window.setTimeout(loadBatch, 180);
-    const disposeTextures = registerDisposableResource('vinhdanh-sphere-thumbs', 'texture', () => {
-      preloadedImages.forEach((img) => {
-        img.src = '';
-      });
-      preloadedImages.length = 0;
-    });
-
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-      disposeTextures();
-    };
+    window.addEventListener('fforum_duelist_updated', handleUpdate);
+    return () => window.removeEventListener('fforum_duelist_updated', handleUpdate);
   }, []);
 
-  useEffect(() => {
-    if (isIntroFilmPlaying && filmVideoRef.current) {
-      filmVideoRef.current.currentTime = 0;
-      filmVideoRef.current.playbackRate = 2;
-      filmVideoRef.current.play().catch(() => {});
-    }
-  }, [isIntroFilmPlaying]);
-
-  const [isEditRecordModalOpen, setIsEditRecordModalOpen] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<VinhDanhRecord | null>(null);
   const [isEditBioModalOpen, setIsEditBioModalOpen] = useState(false);
   const [editBioForm, setEditBioForm] = useState(founderProfile);
-  const [adminModalTab, setAdminModalTab] = useState<'bio' | 'milestones' | 'scene'>('bio');
-  const [adminSelectedMilestoneIdx, setAdminSelectedMilestoneIdx] = useState(0);
-  const milestoneFileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -446,15 +494,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       }
       if (Array.isArray(payload.milestones) && payload.milestones.length > 0) {
         setRecords(normalizeVinhDanhRecords(payload.milestones));
-      }
-      if (Array.isArray(payload.headlineWords) && payload.headlineWords.length === 5) {
-        setHeadlineWords(payload.headlineWords);
-      }
-      if (typeof payload.colophon === 'string' && payload.colophon.trim()) {
-        setColophonText(payload.colophon);
-      }
-      if (typeof payload.introFilmUrl === 'string' && payload.introFilmUrl.trim()) {
-        setIntroFilmUrl(payload.introFilmUrl);
       }
     };
 
@@ -480,7 +519,6 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
           }
         };
       } catch {
-        /* ignore */
       }
     }
     return () => {
@@ -490,1727 +528,1041 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
     };
   }, []);
 
-  const stageRef = useRef<HTMLDivElement>(null);
-  const worldRef = useRef<HTMLDivElement>(null);
-  const headlineRef = useRef<HTMLHeadingElement>(null);
-  const cardsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const dotRef = useRef<HTMLDivElement>(null);
-  const filmVideoRef = useRef<HTMLVideoElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const engineState = useRef({
-    spin: 0,
-    tilt: -4,
-    camZ: 0,
-    wheelCamZ: 0,
-    velX: 0,
-    velY: 0,
-    isDragging: false,
-    lastPointerX: 0,
-    lastPointerY: 0,
-    pointerStartX: 0,
-    pointerStartY: 0,
-    mousePos: { x: -100, y: -100 },
-    dotPos: { x: -100, y: -100 },
-    R: 360,
-    cw: 140,
-    hasFinePointer: true,
-  });
 
-  const finishIntroFilm = useCallback(() => {
-    setIsIntroFading(true);
-    setTimeout(() => {
-      setIsIntroFilmPlaying(false);
-      setIsRevealed(true);
-    }, 700);
-  }, []);
+  const [archiveSearchQuery, setArchiveSearchQuery] = useState('');
+  const [archiveCategory, setArchiveCategory] = useState<'all' | 'origin' | 'academic' | 'community'>('all');
+  const [archiveViewMode, setArchiveViewMode] = useState<'polaroid' | 'grid'>('polaroid');
 
-  const handleSetVideoSpeed = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
-    e.currentTarget.playbackRate = 2;
-  }, []);
-
-  const applyCardLayout = useCallback((R: number, cw: number) => {
-    engineState.current.R = R;
-    engineState.current.cw = cw;
-
-    FIBONACCI_POINTS.forEach((pt, i) => {
-      const cardEl = cardsRef.current[i];
-      if (!cardEl) return;
-      const rec = records[i] || INITIAL_VINHDANH_RECORDS[i];
-      const isTall = Boolean(rec.isTall);
-
-      const cardW = cw;
-      const cardH = isTall ? Math.round(cw * 1.25) : Math.round(cw / 1.5);
-      const marginX = -Math.round(cardW / 2);
-      const marginY = isTall ? -Math.round(cw * 0.625) : -Math.round(cw / 3);
-
-      cardEl.style.width = `${cardW}px`;
-      cardEl.style.height = `${cardH}px`;
-      cardEl.style.marginLeft = `${marginX}px`;
-      cardEl.style.marginTop = `${marginY}px`;
-      cardEl.style.transform = `rotateY(${pt.lon}deg) rotateX(${-pt.lat}deg) translateZ(${R}px)`;
+  const filteredArchiveRecords = useMemo(() => {
+    const q = archiveSearchQuery.trim().toLowerCase();
+    return records.filter((r) => {
+      let matchCat = true;
+      if (archiveCategory === 'origin') {
+        matchCat = ['vd-1', 'vd-2', 'vd-3', 'vd-21'].includes(r.id);
+      } else if (archiveCategory === 'academic') {
+        matchCat = ['vd-4', 'vd-6', 'vd-9', 'vd-12', 'vd-15'].includes(r.id);
+      } else if (archiveCategory === 'community') {
+        matchCat = ['vd-5', 'vd-7', 'vd-8', 'vd-10', 'vd-11', 'vd-13', 'vd-14', 'vd-16', 'vd-17', 'vd-18', 'vd-19', 'vd-20'].includes(r.id);
+      }
+      if (!matchCat) return false;
+      if (!q) return true;
+      return (
+        r.title.toLowerCase().includes(q) ||
+        r.place.toLowerCase().includes(q) ||
+        r.note.toLowerCase().includes(q)
+      );
     });
-  }, [records]);
+  }, [records, archiveSearchQuery, archiveCategory]);
+
+  const activeLitIndex = useMemo(() => {
+    if (!activeLitRecord) return -1;
+    return records.findIndex((r) => r.id === activeLitRecord.id);
+  }, [activeLitRecord, records]);
+
+  const goToPrevLit = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (records.length === 0) return;
+      const curIdx = activeLitIndex >= 0 ? activeLitIndex : 0;
+      const nextIdx = (curIdx - 1 + records.length) % records.length;
+      setActiveLitRecord(records[nextIdx]);
+    },
+    [activeLitIndex, records]
+  );
+
+  const goToNextLit = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (records.length === 0) return;
+      const curIdx = activeLitIndex >= 0 ? activeLitIndex : 0;
+      const nextIdx = (curIdx + 1) % records.length;
+      setActiveLitRecord(records[nextIdx]);
+    },
+    [activeLitIndex, records]
+  );
 
   useEffect(() => {
-    let animId = 0;
-
-    const checkFinePointer = () => {
-      engineState.current.hasFinePointer = window.matchMedia('(pointer: fine)').matches;
-    };
-    checkFinePointer();
-
-    const dims = computeRadiusAndCardWidth(window.innerWidth, window.innerHeight);
-    applyCardLayout(dims.R, dims.cw);
-
-    const handleResize = () => {
-      const nextDims = computeRadiusAndCardWidth(window.innerWidth, window.innerHeight);
-      setSphereRadius(nextDims.R);
-      applyCardLayout(nextDims.R, nextDims.cw);
-    };
-
-    /* R4: gộp resize về 1 lần/khung hình */
-    let cachedScrollY = window.scrollY || 0;
-    let cachedInnerHeight = Math.max(1, window.innerHeight || 800);
-    const onPassiveScroll = () => {
-      cachedScrollY = window.scrollY || 0;
-    };
-    const handleResizeWithCache = () => {
-      cachedInnerHeight = Math.max(1, window.innerHeight || 800);
-      handleResize();
-    };
-    const handleResizeFrame = rafThrottle(handleResizeWithCache);
-    window.addEventListener('resize', handleResizeFrame, { passive: true });
-    window.addEventListener('scroll', onPassiveScroll, { passive: true });
-
-    /* P1 + P4: Bộ cập nhật theo lô (dirty-checking) + Back-Hemisphere Culling */
-    const cardBatcher = new SphereCardBatchUpdater(FIBONACCI_POINTS.length);
-    const disposeSphereGeo = registerDisposableResource('vinhdanh-sphere-geo', 'geometry', () => {
-      cardBatcher.reset();
-    });
-    let lastFrameTs = performance.now();
-    const shouldRunAnimation = () =>
-      !document.hidden && !isGridView && !isMenuOpen && !isIntroFilmPlaying;
-    let scheduleTick = () => {};
-
-    const tick = (now: number) => {
-      animId = 0;
-      if (!shouldRunAnimation()) return;
-
-      const dtMs = Math.min(64, Math.max(4, now - lastFrameTs));
-      lastFrameTs = now;
-      const state = engineState.current;
-      const { R } = state;
-
-      if (!state.isDragging && !activeLitRecord) {
-        if (Math.abs(state.velX) > 0.002 || Math.abs(state.velY) > 0.002) {
-          state.spin += state.velX;
-          state.tilt = Math.max(-32, Math.min(32, state.tilt + state.velY));
-          state.velX *= 0.94;
-          state.velY *= 0.94;
-        } else {
-          state.spin += 0.06;
-        }
+    if (!activeLitRecord) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setActiveLitRecord(null);
+      } else if (e.key === 'ArrowLeft') {
+        goToPrevLit();
+      } else if (e.key === 'ArrowRight') {
+        goToNextLit();
       }
-
-      const p = Math.max(0, Math.min(1, cachedScrollY / (cachedInnerHeight * 0.16)));
-      const camZTarget = p * Math.min(64, R * 0.12);
-      state.camZ += (camZTarget + state.wheelCamZ - state.camZ) * 0.075;
-
-      const sx = state.tilt;
-      const sy = state.spin;
-      const camZ = state.camZ;
-
-      if (worldRef.current) {
-        worldRef.current.style.transform = `translateZ(${camZ.toFixed(1)}px) rotateY(${sy.toFixed(2)}deg) rotateX(${sx.toFixed(2)}deg)`;
-      }
-
-      if (headlineRef.current) {
-        headlineRef.current.style.transform = `rotateX(${-sx.toFixed(2)}deg) rotateY(${-sy.toFixed(2)}deg) translateZ(${(R * 0.62).toFixed(1)}px)`;
-        headlineRef.current.style.opacity = Math.max(0, 1 - p * 0.55).toFixed(2);
-      }
-
-      const sxRad = (sx * Math.PI) / 180;
-      const syRad = (sy * Math.PI) / 180;
-      const cosX = Math.cos(sxRad);
-      const sinX = Math.sin(sxRad);
-      const cosY = Math.cos(syRad);
-      const sinY = Math.sin(syRad);
-
-      const lowPolyStep = getRendererInfo().pipeline.qualityMode === 'low-poly' ? 2 : 1;
-      let visibleCount = 0;
-      let culledCount = 0;
-      let domCalls = 0;
-
-      FIBONACCI_POINTS.forEach((pt, i) => {
-        const cardEl = cardsRef.current[i];
-        if (!cardEl) return;
-
-        const z1 = -pt.y * sinX + pt.z * cosX;
-        const x1 = pt.x;
-        const zf = -x1 * sinY + z1 * cosY;
-
-        const base = 0.14 + 0.86 * Math.pow((zf + 1) / 2, 0.85);
-        const shade = 1 - Math.min(1, p * 1.6);
-        let dim = shade * (1 - base);
-
-        if (activeLitRecord) {
-          dim = Math.min(1, dim + 0.78);
-        }
-
-        const res = cardBatcher.updateCard(i, cardEl, zf, dim, -0.42, lowPolyStep);
-        if (res.visible) visibleCount += 1;
-        else culledCount += 1;
-        if (res.mutated) domCalls += 1;
-      });
-
-      recordRenderFrameMetrics({
-        calls: domCalls,
-        triangles: visibleCount * 2,
-        visibleObjects: visibleCount,
-        culledObjects: culledCount,
-        frameTimeMs: dtMs,
-      });
-
-      if (dotRef.current && state.hasFinePointer) {
-        const { mousePos, dotPos } = state;
-        const dx = mousePos.x - dotPos.x;
-        const dy = mousePos.y - dotPos.y;
-        if (Math.abs(dx) > 0.2 || Math.abs(dy) > 0.2) {
-          dotPos.x += dx * 0.2;
-          dotPos.y += dy * 0.2;
-          dotRef.current.style.transform = `translate3d(${dotPos.x.toFixed(1)}px, ${dotPos.y.toFixed(1)}px, 0)`;
-        }
-      }
-
-      scheduleTick();
     };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [activeLitRecord, goToPrevLit, goToNextLit]);
 
-    scheduleTick = () => {
-      if (animId || !shouldRunAnimation()) return;
-      animId = requestAnimationFrame(tick);
-    };
-
-    const onVisibilityChange = () => {
-      if (document.hidden) {
-        if (animId) cancelAnimationFrame(animId);
-        animId = 0;
-        return;
-      }
-      lastFrameTs = performance.now();
-      scheduleTick();
-    };
-
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    scheduleTick();
-
-    return () => {
-      if (animId) cancelAnimationFrame(animId);
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      disposeSphereGeo();
-      window.removeEventListener('scroll', onPassiveScroll);
-      { window.removeEventListener('resize', handleResizeFrame); handleResizeFrame.cancel(); }
-    };
-  }, [applyCardLayout, activeLitRecord, isGridView, isMenuOpen, isIntroFilmPlaying]);
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (activeLitRecord) return;
-    if (e.button !== 0) return;
-
-    engineState.current.isDragging = true;
-    engineState.current.lastPointerX = e.clientX;
-    engineState.current.lastPointerY = e.clientY;
-    engineState.current.pointerStartX = e.clientX;
-    engineState.current.pointerStartY = e.clientY;
-
-    try {
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const state = engineState.current;
-    state.mousePos.x = e.clientX;
-    state.mousePos.y = e.clientY;
-
-    if (!state.isDragging) return;
-
-    const dx = e.clientX - state.lastPointerX;
-    const dy = e.clientY - state.lastPointerY;
-    state.lastPointerX = e.clientX;
-    state.lastPointerY = e.clientY;
-
-    state.velX = dx * 0.13;
-    state.velY = -dy * 0.13;
-
-    state.spin += state.velX;
-    state.tilt = Math.max(-32, Math.min(32, state.tilt + state.velY));
-  };
-
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    engineState.current.isDragging = false;
-    try {
-      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      /* ignore */
-    }
-  };
-
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    const state = engineState.current;
-    const { R } = state;
-    state.wheelCamZ = Math.max(-R * 0.35, Math.min(R * 0.5, state.wheelCamZ - e.deltaY * 0.2));
-  };
-
-  const openLightbox = (record: VinhDanhRecord, e: React.MouseEvent<HTMLElement>) => {
-    const state = engineState.current;
-    const slop = Math.hypot(e.clientX - state.pointerStartX, e.clientY - state.pointerStartY);
-    if (slop > 10) return;
-
-    e.stopPropagation();
+  const openLightbox = (record: VinhDanhRecord, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setActiveLitRecord(record);
-    setFullImgLoaded(false);
-
-    const fullImg = new Image();
-    fullImg.src = record.customImgUrl || `${CDN_BASE}${record.imgId}.png`;
-    fullImg.onload = () => setFullImgLoaded(true);
-    fullImg.onerror = () => setFullImgLoaded(true);
-    if ('decode' in fullImg && typeof fullImg.decode === 'function') {
-      fullImg.decode().then(() => {
-        setFullImgLoaded(true);
-      }).catch(() => {
-        /* handled by onload fallback */
-      });
-    }
   };
 
   const closeLightbox = () => {
     setActiveLitRecord(null);
   };
 
-  const handleOpenEditRecord = (rec: VinhDanhRecord) => {
-    setEditingRecord({ ...rec });
-    setIsEditRecordModalOpen(true);
-  };
+  const filteredSubjects = useMemo(() => {
+    return HISTORICAL_12_SUBJECTS.filter((sub) => {
+      const matchCat = subjectFilter === 'all' || sub.category === subjectFilter;
+      const matchSearch =
+        sub.name.toLowerCase().includes(subjectSearchQuery.toLowerCase()) ||
+        sub.valedictorian.toLowerCase().includes(subjectSearchQuery.toLowerCase()) ||
+        sub.valedictorianSchool.toLowerCase().includes(subjectSearchQuery.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [subjectFilter, subjectSearchQuery]);
 
-  const syncToServer = useCallback((
-    updatedFounder: typeof founderProfile,
-    updatedRecords: VinhDanhRecord[],
-    extra?: { headlineWords?: string[]; colophon?: string; introFilmUrl?: string },
-  ) => {
-    if (!currentUser || !isSuperAdmin) return;
-    const currentAbout = getSavedAboutData();
-    const milestones: MilestoneItem[] = updatedRecords.map((r, idx) => ({
-      id: `ms-${idx + 1}`,
-      imgId: r.imgId,
-      title: r.title,
-      category: r.place,
-      place: r.place,
-      imageUrl: r.customImgUrl || `${CDN_BASE}${r.imgId}.png`,
-      customImgUrl: r.customImgUrl || undefined,
-      notes: r.note,
-      note: r.note,
-      isTall: Boolean(r.isTall),
-    }));
-
-    const nextHeadlineWords = extra?.headlineWords || headlineWords;
-    const nextColophon = extra?.colophon ?? colophonText;
-    const nextIntroFilmUrl = extra?.introFilmUrl ?? introFilmUrl;
-
-    saveAboutDataToServer({
-      ...currentAbout,
-      headline: nextHeadlineWords.join(' '),
-      subtitle: 'Khu Vinh Danh • Kỷ vật & lưu bút học đường',
-      headlineWords: nextHeadlineWords,
-      colophon: nextColophon,
-      introFilmUrl: nextIntroFilmUrl,
-      founder: {
-        name: updatedFounder.name,
-        role: updatedFounder.role,
-        avatarUrl: updatedFounder.avatarUrl,
-        bio: updatedFounder.bio,
-        email: MASTER_ADMIN_EMAIL,
-      },
-      milestones,
-    }, currentUser.email).catch(() => {});
-  }, [currentUser, isSuperAdmin, headlineWords, colophonText, introFilmUrl]);
-
-  const handleSaveRecord = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingRecord) return;
-
-    const nextRecords = records.map((r) => (r.id === editingRecord.id ? editingRecord : r));
-    setRecords(nextRecords);
-    safeStorage.setItem('fforum_vinhdanh_records', JSON.stringify(nextRecords));
-    if (activeLitRecord?.id === editingRecord.id) {
-      setActiveLitRecord(editingRecord);
+  const renderMiniMascot = (type: 'owl' | 'fox' | 'tortoise') => {
+    if (type === 'owl') {
+      return (
+        <div className="w-14 h-14 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(245,158,11,0.3)]">
+          <svg viewBox="0 0 48 48" className="w-9 h-9">
+            <circle cx="24" cy="24" r="18" fill="#f59e0b" fillOpacity="0.85" />
+            <circle cx="18" cy="22" r="5" fill="#ffffff" />
+            <circle cx="30" cy="22" r="5" fill="#ffffff" />
+            <circle cx="18" cy="22" r="2.5" fill="#0b0d12" />
+            <circle cx="30" cy="22" r="2.5" fill="#0b0d12" />
+            <polygon points="24,25 21,30 27,30" fill="#e07a5f" />
+            <polygon points="24,6 10,14 24,18 38,14" fill="#0b0d12" />
+            <line x1="38" y1="14" x2="39" y2="22" stroke="#f2cc8f" strokeWidth="2" />
+            <circle cx="39" cy="22" r="2" fill="#f2cc8f" />
+          </svg>
+        </div>
+      );
     }
-    syncToServer(founderProfile, nextRecords);
-    setIsEditRecordModalOpen(false);
-  };
-
-  const handleSaveBio = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFounderProfile(editBioForm);
-    safeStorage.setItem('fforum_vinhdanh_founder', JSON.stringify(editBioForm));
-    syncToServer(editBioForm, records);
-    setIsEditBioModalOpen(false);
-  };
-
-  const handleFileUpload = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    mode: 'avatar' | 'record' | 'milestone-tab' = 'record',
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith('image/')) return;
-    e.target.value = '';
-
-    const applyUrl = (url: string) => {
-      if (mode === 'avatar') {
-        setEditBioForm((prev: FounderProfileState) => ({ ...prev, avatarUrl: url }));
-      } else if (mode === 'milestone-tab') {
-        setRecords((prev) =>
-          prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, customImgUrl: url } : r)),
-        );
-      } else {
-        setEditingRecord((prev: VinhDanhRecord | null) => (prev ? { ...prev, customImgUrl: url } : null));
-      }
-    };
-
-    /* Hiển thị xem trước ngay lập tức, đồng thời tải lên máy chủ để lưu bền vững (.webp) */
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const dataUrl = evt.target?.result as string;
-      if (dataUrl) applyUrl(dataUrl);
-    };
-    reader.readAsDataURL(file);
-
-    setIsUploadingMedia(true);
-    uploadImageToServer(file, 'post')
-      .then((uploaded) => {
-        if (uploaded.url) applyUrl(uploaded.url);
-      })
-      .catch(() => {})
-      .finally(() => setIsUploadingMedia(false));
+    if (type === 'fox') {
+      return (
+        <div className="w-14 h-14 rounded-2xl bg-slate-400/20 border border-slate-300/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(203,213,225,0.3)]">
+          <svg viewBox="0 0 48 48" className="w-9 h-9">
+            <polygon points="12,12 24,28 36,12" fill="#e2e8f0" />
+            <polygon points="14,14 18,22 10,22" fill="#94a3b8" />
+            <polygon points="34,14 30,22 38,22" fill="#94a3b8" />
+            <circle cx="18" cy="22" r="2" fill="#0b0d12" />
+            <circle cx="30" cy="22" r="2" fill="#0b0d12" />
+            <circle cx="24" cy="28" r="2.5" fill="#0b0d12" />
+            <line x1="24" y1="18" x2="32" y2="8" stroke="#38bdf8" strokeWidth="2" />
+            <circle cx="32" cy="8" r="2" fill="#38bdf8" />
+          </svg>
+        </div>
+      );
+    }
+    return (
+      <div className="w-14 h-14 rounded-2xl bg-orange-400/20 border border-orange-400/40 flex items-center justify-center relative shadow-[0_0_15px_rgba(224,122,95,0.3)]">
+        <svg viewBox="0 0 48 48" className="w-9 h-9">
+          <ellipse cx="24" cy="26" rx="14" ry="11" fill="#e07a5f" />
+          <circle cx="38" cy="26" r="5" fill="#f2cc8f" />
+          <circle cx="39" cy="25" r="1.5" fill="#0b0d12" />
+          <circle cx="14" cy="18" r="3.5" fill="#f2cc8f" />
+          <circle cx="14" cy="34" r="3.5" fill="#f2cc8f" />
+          <circle cx="34" cy="18" r="3.5" fill="#f2cc8f" />
+          <circle cx="34" cy="34" r="3.5" fill="#f2cc8f" />
+          <line x1="20" y1="21" x2="28" y2="21" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.5" />
+          <line x1="18" y1="26" x2="30" y2="26" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.5" />
+          <line x1="20" y1="31" x2="28" y2="31" stroke="#fff" strokeWidth="1.5" strokeOpacity="0.5" />
+        </svg>
+      </div>
+    );
   };
 
   return (
-    <div
-      className={`khu-vinh-danh-standalone relative w-full min-h-[116vh] bg-[#000000] text-[#f4f2ef] overflow-x-hidden ${
-        isRevealed ? 'revealed' : ''
-      }`}
-      style={{
-        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-      }}
-      onWheel={handleWheel}
-    >
-      {/* 1. Scoped CSS Tokens & Breakpoints verbatim from spec */}
-      <style>{`
-        .khu-vinh-danh-standalone {
-          --bg: #000000;
-          --ink: #f4f2ef;
-          --dim: #8c8783;
-          --line: rgba(244, 242, 239, 0.28);
-          --pad: clamp(14px, 2.6vw, 34px);
-          --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
-          --hw: min(56vw, 640px);
-          --persp: 1150px;
-        }
-
-        #headline {
-          font-family: "Playfair Display", "Times New Roman", serif;
-          font-weight: 400;
-          font-size: clamp(25px, 3.7vw, 55px);
-          line-height: 1.06;
-          letter-spacing: -0.005em;
-          color: #fff;
-          text-shadow: 0 2px 34px rgba(0, 0, 0, 0.55);
-        }
-
-        #headline .inner {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          transform: translateY(-50%);
-        }
-
-        #headline .inner span {
-          display: inline-block;
-          opacity: 0;
-          transform: translateY(0.42em);
-          filter: blur(7px);
-          transition: opacity 1.05s, transform 1.15s, filter 1.05s;
-          transition-delay: calc(0.9s + var(--i, 0) * 0.085s);
-        }
-
-        .revealed #headline .inner span {
-          opacity: 1;
-          transform: none;
-          filter: blur(0);
-        }
-
-        .transform-style-3d {
-          transform-style: preserve-3d;
-        }
-
-        .card-figure::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background: rgba(0, 0, 0, var(--d, 0));
-          border-radius: 3px;
-          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
-          transition: background 0.08s linear;
-        }
-
-        /* Menu Bars */
-        .menu-btn .bar-top {
-          transform: translateY(-5px);
-          transition: transform 0.35s var(--ease), width 0.35s var(--ease);
-        }
-        .menu-btn .bar-bot {
-          transform: translateY(5px);
-          width: clamp(34px, 3.6vw, 50px);
-          transition: transform 0.35s var(--ease), width 0.35s var(--ease);
-        }
-        .menu-btn:hover .bar-bot {
-          transform: translateY(5px) translateX(-8px);
-        }
-        .menu-btn.open .bar-top {
-          transform: translateY(0) rotate(45deg);
-          width: 100%;
-        }
-        .menu-btn.open .bar-bot {
-          transform: translateY(0) rotate(-45deg);
-          width: 100%;
-        }
-
-        /* Grid Button */
-        .gridbtn b {
-          display: block;
-          background: #f4f2ef;
-          border-radius: 2px;
-          transition: transform 0.3s var(--ease), background 0.2s;
-        }
-        .gridbtn:hover b {
-          background: #fff;
-          transform: scale(0.86);
-        }
-        .gridbtn.is-grid b:nth-child(1) { transform: translate(3px, 3px); }
-        .gridbtn.is-grid b:nth-child(4) { transform: translate(-3px, -3px); }
-
-        /* Scroll Cue Line sweep */
-        @keyframes cueSweep {
-          0% { transform: translateX(-100%); }
-          55% { transform: translateX(0); }
-          100% { transform: translateX(100%); }
-        }
-        .cue-line::after {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: #f4f2ef;
-          animation: cueSweep 2.6s var(--ease) infinite;
-        }
-
-        /* Responsive Breakpoints verbatim */
-        @media (max-width: 900px) {
-          .khu-vinh-danh-standalone { --persp: 920px; }
-          .bio-card { max-width: min(420px, calc(100vw - var(--pad) * 2)); }
-          .colophon-card { font-size: 11px; }
-          .lit-meta { grid-template-columns: 1fr !important; gap: 10px !important; padding-top: 14px !important; }
-          .grid-rows { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; }
-        }
-
-        @media (max-width: 768px) {
-          .colophon-card { display: none !important; }
-          .bio-card { max-width: calc(100vw - var(--pad) * 2); }
-          #headline {
-            font-size: clamp(22px, 6.4vw, 34px);
-            margin-left: calc(var(--hw) / -2);
-          }
-          .menu-link { font-size: clamp(28px, 9vw, 54px) !important; }
-        }
-
-        @media (max-width: 640px) {
-          .khu-vinh-danh-standalone {
-            --hw: min(84vw, 360px);
-            --pad: clamp(12px, 4vw, 18px);
-            --persp: 760px;
-          }
-          .bio-avatar { width: 42px !important; height: 42px !important; }
-          .cue-card { display: none !important; }
-          .lit-dialog { max-width: 560px !important; }
-          .grid-rows { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
-        }
-
-        @media (max-width: 380px) {
-          .khu-vinh-danh-standalone {
-            --hw: min(88vw, 320px);
-            --persp: 620px;
-          }
-          .bio-p { display: none !important; }
-          .grid-rows { grid-template-columns: 1fr !important; }
-        }
-
-        @media (max-height: 520px) and (orientation: landscape) {
-          .bio-card, .colophon-card, .cue-card { display: none !important; }
-          #headline { font-size: clamp(18px, 4.8vh, 28px); }
-        }
-      `}</style>
-
-      {/* Layer 1: #scrolltrack — height 116vh for 16vh zoom dolly */}
-      <div id="scrolltrack" className="h-[116vh] w-full pointer-events-none" />
-
-      {/* Layer 2: #stage — fixed inset-0, z-10 */}
-      <div
-        id="stage"
-        ref={stageRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        className="fixed inset-0 z-10 overflow-hidden cursor-grab active:cursor-grabbing select-none"
-        style={{ perspective: 'var(--persp)', touchAction: 'pan-y' }}
-      >
-        <div
-          id="world"
-          ref={worldRef}
-          className="absolute top-1/2 left-1/2 w-0 h-0 transform-style-3d will-change-transform"
-        >
-          {/* #orb: 21 milestone cards mapped on Fibonacci sphere */}
-          <div id="orb" className="absolute top-0 left-0 w-0 h-0 transform-style-3d opacity-100">
-            {records.map((rec, i) => {
-              const pt = FIBONACCI_POINTS[i];
-              const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
-              return (
-                <div
-                  key={rec.id}
-                  ref={(el) => setCardRef(el, i)}
-                  data-idx={i}
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => openLightbox(rec, e)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      openLightbox(rec, e as any);
-                    }
-                  }}
-                  aria-label={`Xem ảnh vinh danh: ${rec.title}`}
-                  className={`card absolute top-0 left-0 cursor-pointer transform-style-3d transition-transform duration-300 hover:scale-105 ${
-                    rec.isTall ? 'tall' : ''
-                  }`}
-                  style={{
-                    transform: `rotateY(${pt.lon}deg) rotateX(${-pt.lat}deg) translateZ(${sphereRadius}px)`,
-                  }}
-                >
-                  <figure className="card-figure relative w-full h-full rounded-[3px] overflow-hidden bg-[#0a0a0a]">
-                    <img
-                      src={thumbUrl}
-                      alt={rec.title}
-                      onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                      className="w-full h-full object-cover transition-opacity duration-700"
-                      loading="eager"
-                      decoding="async"
-                      width={280}
-                      height={180}
-                    />
-                  </figure>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* h1#headline: Exactly 5 spans, optical lock at sphere center */}
-          <h1
-            id="headline"
-            ref={headlineRef}
-            className="absolute top-0 left-0 w-[var(--hw)] -ml-[calc(var(--hw)/2)] text-center font-['Playfair_Display'] text-white select-none pointer-events-none font-playfair tracking-tight"
-          >
-            <span className="inner absolute top-0 left-0 w-full -translate-y-1/2">
-              <span style={{ '--i': 0 } as React.CSSProperties}>{headlineWords[0] ?? 'BroAmStuck'}</span>{' '}
-              <span style={{ '--i': 1 } as React.CSSProperties}>{headlineWords[1] ?? 'Studio'}</span>{' '}
-              <span style={{ '--i': 2 } as React.CSSProperties}>{headlineWords[2] ?? '•'}</span>{' '}
-              <span style={{ '--i': 3 } as React.CSSProperties}>{headlineWords[3] ?? 'Trần'}</span>{' '}
-              <span style={{ '--i': 4 } as React.CSSProperties}>{headlineWords[4] ?? 'Tuấn'}</span>
-            </span>
-          </h1>
-        </div>
-      </div>
-
-      {/* Layer 3: .vig — fixed inset-0 z-12 radial vignette */}
-      <div
-        className={`vig fixed inset-0 z-12 pointer-events-none transition-opacity duration-500 ${
-          isGridView || activeLitRecord ? 'opacity-0' : 'opacity-100'
-        }`}
-        style={{
-          background:
-            'radial-gradient(ellipse 88% 92% at 50% 50%, transparent 48%, rgba(0,0,0,.26) 80%, rgba(0,0,0,.72) 100%)',
-        }}
-      />
-
-      {/* Layer 4: #grid — fixed inset-0 z-20 flat archive */}
-      <div
-        id="grid"
-        className={`fixed inset-0 z-20 overflow-y-auto bg-black transition-opacity duration-500 pt-24 px-[var(--pad)] pb-24 ${
-          isGridView ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <div className="grid-rows grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 max-w-[1680px] mx-auto">
-          {records.map((rec, idx) => {
-            const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
-            return (
-              <figure
-                key={rec.id}
-                className="group relative aspect-[3/2] rounded-xl overflow-hidden bg-[#0b0b0b] border border-white/10"
-              >
-                <button
-                  type="button"
-                  onClick={(e) => openLightbox(rec, e)}
-                  aria-label={`Xem ảnh: ${rec.title} - ${rec.place}`}
-                  className="w-full h-full text-left p-0 border-0 bg-transparent block relative cursor-pointer"
-                >
-                  <img
-                    src={thumbUrl}
-                    alt={rec.title}
-                    onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                    className="w-full h-full object-cover opacity-85 group-hover:scale-105 group-hover:opacity-100 transition-all duration-700"
-                    loading="lazy"
-                    decoding="async"
-                    width={360}
-                    height={240}
-                  />
-                  <figcaption className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-black/95 via-black/60 to-transparent flex flex-col justify-end pointer-events-none">
-                    <span className="text-[10px] font-mono text-amber-300/90">#{String(idx + 1).padStart(2, '0')} · {rec.place}</span>
-                    <span className="font-['Playfair_Display'] text-sm sm:text-base text-white font-semibold">{rec.title}</span>
-                  </figcaption>
-                </button>
-                {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenEditRecord(rec);
-                    }}
-                    className="ff-tactile-btn absolute top-2.5 right-2.5 z-10 px-3 py-1.5 rounded-lg bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-[#e07a5f]" />
-                    <span>Sửa</span>
-                  </button>
-                )}
-              </figure>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Layer 5: Chrome Elements */}
-      {/* Header.chrome — Anchored cleanly at top-0 since Global Navbar is hidden in Khu Vinh Danh */}
-      <header className="chrome fixed top-0 inset-x-0 z-40 flex items-center justify-between gap-3 py-3.5 px-[var(--pad)] bg-gradient-to-b from-black/85 via-black/40 to-transparent pointer-events-none">
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            onExit();
-          }}
-          className="wordmark font-['Playfair_Display'] text-[clamp(18px,2vw,24px)] tracking-[0.005em] text-[#f4f1de] no-underline pointer-events-auto cursor-pointer flex items-center gap-2"
-          aria-label="Quay lại F-Forum"
-        >
-          <span>
-            <span className="ff-swash-cap text-2xl">K</span>hu Vinh Danh
-          </span>
-        </a>
-
-        {/* Minimalist Top Social Links, Grid Toggle, Admin Trigger & Vào Forum Button */}
-        <div className="flex items-center gap-2 flex-wrap justify-end pointer-events-auto">
-          {/* Grid Toggle Button button#gridBtn */}
+    <div className="khu-vinh-danh-standalone relative w-full min-h-screen bg-[#07090e] text-[#f4f2ef] overflow-x-hidden selection:bg-amber-400/30">
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-[#07090e]/85 border-b border-white/10 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
           <button
-            id="gridBtn"
-            className={`gridbtn w-9 h-9 p-2 grid grid-cols-2 gap-1 rounded-xl bg-black/65 hover:bg-black/85 border border-white/15 backdrop-blur-md cursor-pointer transition-colors ${
-              isGridView ? 'is-grid border-[#f2cc8f]/50' : ''
-            }`}
-            onClick={() => setIsGridView(!isGridView)}
-            aria-label="Toggle grid view"
-            title={isGridView ? 'Quay lại không gian kỷ niệm 3D' : 'Xem dạng danh sách phẳng'}
+            type="button"
+            onClick={onExit}
+            className="btn-feastables ff-tactile-pop px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-bold text-white flex items-center gap-1.5 cursor-pointer"
+            aria-label="Rời sảnh vinh danh"
           >
-            <b className="h-full w-full" />
-            <b className="h-full w-full" />
-            <b className="h-full w-full" />
-            <b className="h-full w-full" />
+            <X className="w-4 h-4" />
+            <span>Quay lại</span>
           </button>
 
+          <div className="h-5 w-[1px] bg-white/15 hidden sm:block" />
+
+          <div className="flex items-center gap-1.5">
+            <Trophy className="w-4 h-4 text-amber-400" />
+            <span className="text-xs font-bold font-mono uppercase tracking-wider text-amber-300 hidden md:inline">
+              Phòng Truyền Thống
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-white/5 border border-white/10">
+          <button
+            type="button"
+            onClick={() => setActiveTabMode('hall')}
+            className={`btn-feastables ff-tactile-pop px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTabMode === 'hall'
+                ? 'bg-amber-400 text-[#0b0d12] shadow-sm'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Bảng Vàng Sĩ Tử
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTabMode('archive')}
+            className={`btn-feastables ff-tactile-pop px-3 sm:px-4 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTabMode === 'archive'
+                ? 'bg-amber-400 text-[#0b0d12] shadow-sm'
+                : 'text-white/70 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            Kho Kỷ Niệm Cột Mốc
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2">
           {isSuperAdmin && (
             <button
               type="button"
-              onClick={() => {
-                setEditBioForm(founderProfile);
-                setAdminModalTab('milestones');
-                setIsEditBioModalOpen(true);
-              }}
-              className="ff-tactile-btn flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#f2cc8f] hover:bg-[#f4f1de] text-[#0b0d12] border border-[#0b0d12] text-xs font-extrabold cursor-pointer"
-              title="Quản trị nội dung Vinh Danh"
+              onClick={() => setIsEditBioModalOpen(true)}
+              className="btn-feastables ff-tactile-pop p-2 rounded-xl bg-white/10 hover:bg-white/15 text-white/80 hover:text-white cursor-pointer"
+              title="Quản trị nội dung Đại Sảnh"
             >
-              <Settings className="w-3.5 h-3.5 text-[#0b0d12]" />
-              <span className="hidden sm:inline">Quản trị</span>
+              <Settings className="w-4 h-4 text-amber-300" />
             </button>
           )}
-
-          {/* Facebook Link */}
-          <a
-            href="https://www.facebook.com/TuanNotTun/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-8 h-8 rounded-full bg-blue-600/25 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
-            title="Facebook Admin"
-            aria-label="Facebook Admin"
-          >
-            <svg className="w-3.5 h-3.5 fill-[#1877F2]" viewBox="0 0 24 24">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-          </a>
-
-          {/* Discord Link */}
-          <a
-            href="https://discord.gg/GMDCnxxJwX"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-8 h-8 rounded-full bg-[#5865F2]/25 hover:bg-[#5865F2]/40 border border-[#5865F2]/50 text-indigo-200 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
-            title="Discord F-Forum"
-            aria-label="Discord F-Forum"
-          >
-            <svg className="w-3.5 h-3.5 fill-[#5865F2]" viewBox="0 0 24 24">
-              <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994.021-.041.001-.09-.041-.106a13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
-            </svg>
-          </a>
-
-          {/* Vào Forum Button */}
-          <button
-            type="button"
-            onClick={() => {
-              if (onNavigate) {
-                onNavigate('qa');
-              } else {
-                onExit();
-              }
-            }}
-            className="ff-enter-forum-btn ff-tactile-btn flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-extrabold text-[#0b0d12] bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] transition-all cursor-pointer"
-            title="Chuyển đến Diễn đàn F-Forum Q&A"
-          >
-            <Compass className="w-3.5 h-3.5 text-[#e07a5f]" />
-            <span>Vào Forum</span>
-            <ArrowRight className="w-3 h-3 text-[#0b0d12]" />
-          </button>
-
-          <button
-            id="menuBtn"
-            className={`menu-btn flex flex-col items-end gap-1.5 p-2 pointer-events-auto cursor-pointer ${
-              isMenuOpen ? 'open' : ''
-            }`}
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            aria-expanded={isMenuOpen}
-            aria-label="Toggle menu"
-          >
-            <span className={`menu-label text-[clamp(12px,1.25vw,15px)] text-white tracking-[0.01em] transition-opacity ${
-              isMenuOpen ? 'opacity-0' : 'opacity-100'
-            }`}>
-              Menu
-            </span>
-            <span className="bars relative w-[clamp(36px,3.8vw,52px)] h-[clamp(16px,2vw,22px)] flex items-center">
-              <i className="bar-top absolute left-0 right-0 top-1/2 h-[1px] bg-white block" />
-              <i className="bar-bot absolute left-0 right-0 top-1/2 h-[1px] bg-white block" />
-            </span>
-          </button>
         </div>
       </header>
 
-      {/* Photographer Card .bio — anchored cleanly at bottom-left */}
-      <div
-        className={`bio-card bio chrome fixed left-[var(--pad)] bottom-6 z-30 max-w-[min(340px,46vw)] p-3.5 rounded-2xl bg-[#0b0d12]/85 border border-white/15 backdrop-blur-md shadow-xl transition-opacity duration-300 ${
-          isGridView || activeLitRecord ? 'opacity-0 pointer-events-none' : 'opacity-100'
-        }`}
-      >
-        <div className="who flex items-center gap-3 mb-2">
-          <div className="relative group shrink-0">
-            <img
-              src={founderProfile.avatarUrl}
-              alt={founderProfile.name}
-              onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-              loading="lazy"
-              decoding="async"
-              width={44}
-              height={44}
-              className="bio-avatar w-11 h-11 rounded-full object-cover border border-[#f2cc8f]/50"
-            />
-            {isSuperAdmin && (
+      {activeTabMode === 'hall' && (
+        <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-16 sm:space-y-24">
+          <section className="text-center space-y-4 max-w-3xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/25 text-amber-300 text-xs font-bold font-mono uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Academic Hall of Fame · F-Forum 2027</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-normal tracking-tight text-white font-['Fraunces','Playfair_Display',Georgia,serif]">
+              <span className="ff-swash-flourish text-amber-300 mr-1.5 text-4xl sm:text-6xl lg:text-7xl">Đ</span>
+              ại Sảnh Vinh Danh Tri Thức
+            </h1>
+
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-2xl mx-auto">
+              Không gian triển lãm danh giá tôn vinh những dấu ấn học thuật kiệt xuất, tinh thần học tập bền bỉ không ngừng nghỉ và những đóng góp tri thức vô giá cho cộng đồng học sinh - sinh viên.
+            </p>
+          </section>
+
+          <section className="space-y-8">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2.5 font-['Fraunces','Playfair_Display',Georgia,serif]">
+                  <Crown className="w-6 h-6 text-amber-400 shrink-0" />
+                  <span>Bục Vinh Danh Top 3 Thủ Khoa</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Xếp hạng theo điểm cống hiến giải đáp, thời gian học sâu và sự chấp thuận từ cộng đồng
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-mono text-amber-300/80 bg-amber-400/10 border border-amber-400/20 px-3 py-1.5 rounded-xl">
+                <Flame className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                <span>Cập nhật bảng vàng: Kỳ thi 2026 - 2027</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end pt-8 pb-4">
+              <div className="order-2 md:order-1 flex flex-col items-center">
+                <div className="card-hard w-full p-6 bg-gradient-to-b from-[#141824] to-[#0e121a] border-slate-400/25 rounded-t-2xl flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_8px_28px_rgba(203,213,225,0.1)]">
+                  <div className="absolute -top-7">{renderMiniMascot('fox')}</div>
+                  <div className="mt-8 relative mb-3">
+                    <img
+                      src={TOP_3_SCHOLARS[1].avatarUrl}
+                      alt={TOP_3_SCHOLARS[1].name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-slate-300 shadow-lg"
+                    />
+                    <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl bg-slate-300 text-[#0b0d12] font-black text-xs flex items-center justify-center shadow-md">
+                      2
+                    </span>
+                  </div>
+
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-300 font-bold px-2 py-0.5 rounded bg-slate-400/10 border border-slate-400/20 mb-1">
+                    {TOP_3_SCHOLARS[1].title}
+                  </span>
+                  <h3 className="text-lg font-extrabold text-white">{TOP_3_SCHOLARS[1].name}</h3>
+                  <p className="text-xs text-slate-400 mb-4">{TOP_3_SCHOLARS[1].school}</p>
+
+                  <div className="w-full grid grid-cols-2 gap-2 pt-3 border-t border-white/10 text-xs">
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Giờ học sâu</span>
+                      <strong className="font-mono text-white text-sm">{TOP_3_SCHOLARS[1].studyHours}h</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Lời giải chuẩn</span>
+                      <strong className="font-mono text-white text-sm">{TOP_3_SCHOLARS[1].acceptedAnswers}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-36 bg-gradient-to-t from-[#0e131d] via-[#141b27] to-[#1a2333] rounded-b-2xl border-x border-b border-slate-400/30 flex flex-col items-center justify-center text-slate-200 shadow-xl">
+                  <span className="text-4xl font-black font-mono tracking-wider opacity-60">II</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest mt-1 text-slate-300">Á Khoa 1</span>
+                </div>
+              </div>
+
+              <div className="order-1 md:order-2 flex flex-col items-center">
+                <div className="card-hard w-full p-7 bg-gradient-to-b from-[#181d2a] to-[#121620] border-amber-400/40 rounded-t-2xl flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_12px_40px_rgba(245,158,11,0.18)] ring-1 ring-amber-400/30">
+                  <div className="absolute -top-8">{renderMiniMascot('owl')}</div>
+                  <div className="mt-8 relative mb-3">
+                    <img
+                      src={TOP_3_SCHOLARS[0].avatarUrl}
+                      alt={TOP_3_SCHOLARS[0].name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-24 h-24 rounded-2xl object-cover border-2 border-amber-400 shadow-xl"
+                    />
+                    <span className="absolute -bottom-2.5 -right-2.5 w-8 h-8 rounded-xl bg-amber-400 text-[#0b0d12] font-black text-sm flex items-center justify-center shadow-md">
+                      1
+                    </span>
+                  </div>
+
+                  <span className="text-xs font-mono uppercase tracking-wider text-amber-300 font-extrabold px-2.5 py-0.5 rounded bg-amber-400/20 border border-amber-400/30 mb-1">
+                    {TOP_3_SCHOLARS[0].title}
+                  </span>
+                  <h3 className="text-xl font-black text-white">{TOP_3_SCHOLARS[0].name}</h3>
+                  <p className="text-xs text-amber-200/80 mb-4">{TOP_3_SCHOLARS[0].school}</p>
+
+                  <div className="w-full grid grid-cols-2 gap-2 pt-3 border-t border-white/10 text-xs">
+                    <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20">
+                      <span className="block text-[10px] text-amber-200/80">Giờ học sâu</span>
+                      <strong className="font-mono text-amber-300 text-base">{TOP_3_SCHOLARS[0].studyHours}h</strong>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20">
+                      <span className="block text-[10px] text-amber-200/80">Lời giải chuẩn</span>
+                      <strong className="font-mono text-amber-300 text-base">{TOP_3_SCHOLARS[0].acceptedAnswers}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-48 bg-gradient-to-t from-[#151208] via-[#1c180b] to-[#2a220e] rounded-b-2xl border-x border-b border-amber-400/40 flex flex-col items-center justify-center text-amber-100 shadow-[0_16px_32px_rgba(245,158,11,0.15)]">
+                  <span className="text-5xl font-black font-mono tracking-wider text-amber-300">I</span>
+                  <span className="text-xs font-extrabold uppercase tracking-widest mt-1 text-amber-200">Thủ Khoa</span>
+                </div>
+              </div>
+
+              <div className="order-3 flex flex-col items-center">
+                <div className="card-hard w-full p-6 bg-gradient-to-b from-[#16141a] to-[#0e1014] border-[#e07a5f]/25 rounded-t-2xl flex flex-col items-center text-center relative group hover:-translate-y-1 transition-all shadow-[0_8px_28px_rgba(224,122,95,0.1)]">
+                  <div className="absolute -top-7">{renderMiniMascot('tortoise')}</div>
+                  <div className="mt-8 relative mb-3">
+                    <img
+                      src={TOP_3_SCHOLARS[2].avatarUrl}
+                      alt={TOP_3_SCHOLARS[2].name}
+                      loading="lazy"
+                      decoding="async"
+                      className="w-20 h-20 rounded-2xl object-cover border-2 border-[#e07a5f] shadow-lg"
+                    />
+                    <span className="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl bg-[#e07a5f] text-[#0b0d12] font-black text-xs flex items-center justify-center shadow-md">
+                      3
+                    </span>
+                  </div>
+
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-[#f2cc8f] font-bold px-2 py-0.5 rounded bg-[#e07a5f]/15 border border-[#e07a5f]/25 mb-1">
+                    {TOP_3_SCHOLARS[2].title}
+                  </span>
+                  <h3 className="text-lg font-extrabold text-white">{TOP_3_SCHOLARS[2].name}</h3>
+                  <p className="text-xs text-slate-400 mb-4">{TOP_3_SCHOLARS[2].school}</p>
+
+                  <div className="w-full grid grid-cols-2 gap-2 pt-3 border-t border-white/10 text-xs">
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Giờ học sâu</span>
+                      <strong className="font-mono text-white text-sm">{TOP_3_SCHOLARS[2].studyHours}h</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Lời giải chuẩn</span>
+                      <strong className="font-mono text-white text-sm">{TOP_3_SCHOLARS[2].acceptedAnswers}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-28 bg-gradient-to-t from-[#170e0a] via-[#1f130e] to-[#2b1a13] rounded-b-2xl border-x border-b border-[#e07a5f]/30 flex flex-col items-center justify-center text-orange-200 shadow-xl">
+                  <span className="text-4xl font-black font-mono tracking-wider opacity-60">III</span>
+                  <span className="text-[11px] font-bold uppercase tracking-widest mt-1 text-orange-200">Á Khoa 2</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="card-hard p-6 sm:p-10 bg-[#0d121c] border-white/15 space-y-8">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-6">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2.5 font-['Fraunces','Playfair_Display',Georgia,serif]">
+                  <Clock className="w-6 h-6 text-amber-400 shrink-0" />
+                  <span>Đồng Hồ Thời Gian Học Tập Trọn Đời</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Biểu đồ phân bổ nhịp học sâu ban ngày (Thần Quang) và ban đêm (Dạ Túc) trên toàn hệ thống
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="text-xs font-mono text-slate-400 block">Tổng giờ học tích luỹ:</span>
+                <span className="text-3xl sm:text-4xl font-black text-amber-300 font-mono tracking-tight">
+                  128,450
+                  <span className="text-base font-normal text-white/50 ml-1">giờ</span>
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs sm:text-sm font-semibold">
+                <div className="flex items-center gap-2 text-amber-300">
+                  <Sun className="w-4 h-4 text-amber-400" />
+                  <span>Thần Quang · Nhịp Học Ban Ngày (06:00 - 18:00): 75,015 giờ (58.4%)</span>
+                </div>
+                <div className="flex items-center gap-2 text-indigo-300">
+                  <Moon className="w-4 h-4 text-indigo-400" />
+                  <span>Dạ Túc · Nhịp Học Ban Đêm (18:00 - 06:00): 53,435 giờ (41.6%)</span>
+                </div>
+              </div>
+
+              <div className="w-full h-5 rounded-xl bg-white/5 overflow-hidden flex border border-white/10 p-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-l-lg transition-all duration-700"
+                  style={{ width: '58.4%' }}
+                  title="Nhịp ngày: 58.4%"
+                />
+                <div
+                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-r-lg transition-all duration-700"
+                  style={{ width: '41.6%' }}
+                  title="Nhịp đêm: 41.6%"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                  <span className="text-[11px] text-slate-400 block font-medium">Học sinh đang học cùng lúc</span>
+                  <strong className="text-lg font-mono font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    3,420 thành viên
+                  </strong>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                  <span className="text-[11px] text-slate-400 block font-medium">Thời lượng trung bình phiên Pomodoro</span>
+                  <strong className="text-lg font-mono font-bold text-amber-300">52 phút / phiên</strong>
+                </div>
+
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-1">
+                  <span className="text-[11px] text-slate-400 block font-medium">Tỷ lệ duy trì chuỗi học tập đều đặn</span>
+                  <strong className="text-lg font-mono font-bold text-cyan-300">98.2% học sinh</strong>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section className="card-hard p-6 sm:p-8 bg-[#0e131d] border-rose-500/30 space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-500/20 border border-rose-500/40 text-rose-400">
+                    REALTIME 1VS1
+                  </span>
+                  <span className="text-xs font-mono text-slate-400">Mùa giải 2026 - 2027</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2.5 font-['Fraunces','Playfair_Display',Georgia,serif]">
+                  <Swords className="w-6 h-6 text-rose-400 shrink-0" />
+                  <span>Bảng Thi Đua Đấu Sĩ Tri Thức</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Xếp hạng tranh tài đối kháng 5 câu hỏi nhanh liên môn theo thời gian thực
+                </p>
+              </div>
+
               <button
                 type="button"
                 onClick={() => {
-                  setEditBioForm(founderProfile);
-                  setAdminModalTab('bio');
-                  setIsEditBioModalOpen(true);
+                  window.dispatchEvent(new CustomEvent('fforum_open_peer_battle'));
                 }}
-                className="absolute inset-0 bg-black/70 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center text-[10px] font-bold text-amber-300 transition-opacity cursor-pointer"
+                className="btn-feastables ff-tactile-pop px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white font-bold text-xs flex items-center gap-2 cursor-pointer border border-rose-400/40 shadow-md transition-all"
               >
-                Đổi ảnh
+                <Swords className="w-4 h-4 text-amber-300" />
+                <span>Đấu Trường 1vs1</span>
               </button>
-            )}
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 flex-nowrap min-w-0">
-              <b className="font-['Playfair_Display'] text-[16px] text-white font-normal truncate">
-                {founderProfile.name}
-              </b>
-              <AdminVerifiedBadge size={14} />
             </div>
-            <p className="text-[11px] text-[#f2cc8f] font-mono mt-0.5 truncate">{founderProfile.role}</p>
-          </div>
-        </div>
-        <p className="bio-p text-[12px] leading-[1.55] text-[#f4f2ef]/80 font-light line-clamp-2">
-          {founderProfile.bio}
-        </p>
-        {isSuperAdmin && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditBioForm(founderProfile);
-              setAdminModalTab('bio');
-              setIsEditBioModalOpen(true);
-            }}
-            className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] text-[10.5px] font-extrabold cursor-pointer transition-colors"
-          >
-            <Edit3 className="w-3 h-3 text-[#e07a5f]" />
-            <span>Sửa</span>
-          </button>
-        )}
-      </div>
 
-      {/* Layer 6: #menu (Full-screen Drawer) */}
-      <div
-        id="menu"
-        className={`fixed inset-0 z-80 bg-[#050505] flex flex-col justify-center items-center transition-all duration-700 ${
-          isMenuOpen
-            ? 'opacity-100 pointer-events-auto clip-path-open'
-            : 'opacity-0 pointer-events-none'
-        }`}
-      >
-        <nav className="flex flex-col gap-3 text-center">
-          <a
-            href="#archive"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              setIsGridView(true);
-            }}
-            className="menu-link font-['Playfair_Display'] text-[clamp(34px,7.6vw,72px)] text-[#f4f2ef]/60 hover:text-white transition-colors"
-          >
-            The Archive
-          </a>
-          <a
-            href="#memory"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              if (onNavigate) {
-                onNavigate('memory');
-              } else {
-                onExit();
-              }
-            }}
-            className="menu-link font-['Playfair_Display'] text-[clamp(34px,7.6vw,72px)] text-[#f4f2ef]/60 hover:text-white transition-colors"
-          >
-            Miền Ký Ức
-          </a>
-          <a
-            href="#qa"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              if (onNavigate) {
-                onNavigate('qa');
-              } else {
-                onExit();
-              }
-            }}
-            className="menu-link font-['Playfair_Display'] text-[clamp(34px,7.6vw,72px)] text-[#f4f2ef]/60 hover:text-white transition-colors"
-          >
-            F-Forum Q&A
-          </a>
-          <a
-            href="#home"
-            onClick={(e) => {
-              e.preventDefault();
-              setIsMenuOpen(false);
-              onExit();
-            }}
-            className="menu-link font-['Playfair_Display'] text-[clamp(34px,7.6vw,72px)] text-amber-400 hover:text-amber-300 transition-colors"
-          >
-            Quay Lại Trang Chủ
-          </a>
-        </nav>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {duelists.slice(0, 3).map((d, idx) => (
+                <div
+                  key={d.id}
+                  className="card-hard p-5 rounded-2xl bg-white/[0.03] border-white/10 hover:border-rose-400/50 transition-all space-y-3 relative overflow-hidden"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="w-7 h-7 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-300 font-mono font-black text-xs flex items-center justify-center">
+                      #{idx + 1}
+                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-400/15 border border-amber-400/30 text-amber-300">
+                        {d.title}
+                      </span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-300">
+                        Bảo Hộ Sĩ Tử
+                      </span>
+                    </div>
+                  </div>
 
-        <div className="addr absolute bottom-[var(--pad)] inset-x-[var(--pad)] text-center text-[12.5px] text-[#8c8783] leading-[1.7] font-mono">
-          Da Nang · Hanoi · Ho Chi Minh City
-        </div>
-      </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white truncate">{d.name}</h3>
+                    <p className="text-xs text-slate-400 truncate">{d.school}</p>
+                  </div>
 
-      {/* Layer 7: #lit (FLIP Lightbox) */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center font-mono">
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Trận thắng</span>
+                      <strong className="text-sm font-bold text-emerald-400">{d.victories}</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Tỷ lệ</span>
+                      <strong className="text-sm font-bold text-amber-300">{d.winRate}%</strong>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/5">
+                      <span className="block text-[10px] text-slate-400">Bounty</span>
+                      <strong className="text-sm font-bold text-rose-400">{d.bountyScore}</strong>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/10 pb-4">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2.5 font-['Fraunces','Playfair_Display',Georgia,serif]">
+                  <BookOpen className="w-6 h-6 text-amber-400 shrink-0" />
+                  <span>Bảng Tổng Sắp 12 Môn Học Lịch Sử</span>
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                  Dữ liệu đối sánh từ hơn 2,400,000 phiên thảo luận học thuật (chuẩn mực HoiDap247, Lazi và F-Forum)
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="relative flex-1 md:w-64">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  <input
+                    type="text"
+                    maxLength={50}
+                    value={subjectSearchQuery}
+                    onChange={(e) => setSubjectSearchQuery(e.target.value)}
+                    placeholder="Tìm môn học hoặc thủ khoa..."
+                    className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setSubjectFilter('all')}
+                    className={`btn-feastables ff-tactile-pop px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      subjectFilter === 'all' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Tất cả
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubjectFilter('natural')}
+                    className={`btn-feastables ff-tactile-pop px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      subjectFilter === 'natural' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Tự nhiên
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubjectFilter('social')}
+                    className={`btn-feastables ff-tactile-pop px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      subjectFilter === 'social' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Xã hội
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSubjectFilter('specialized')}
+                    className={`btn-feastables ff-tactile-pop px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      subjectFilter === 'specialized' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    Chuyên ngành
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredSubjects.map((sub, idx) => (
+                <div
+                  key={sub.id}
+                  className="card-hard p-5 bg-[#0e131d] border-white/15 hover:border-amber-400/40 transition-all flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-white/10 text-white font-mono text-xs font-bold flex items-center justify-center">
+                          {idx + 1}
+                        </span>
+                        <h3 className="text-base font-extrabold text-white">{sub.name}</h3>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider bg-amber-400/10 text-amber-300 border border-amber-400/20">
+                        {sub.category}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                        <span className="text-[10px] text-slate-400 block">Số lời giải chuẩn</span>
+                        <strong className="font-mono text-white text-sm">{sub.solvedQuestions.toLocaleString()}</strong>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                        <span className="text-[10px] text-slate-400 block">Tỷ lệ chấp thuận</span>
+                        <strong className="font-mono text-emerald-400 text-sm">{sub.acceptanceRate}%</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Thủ khoa môn học:</span>
+                      <strong className="text-amber-200">{sub.valedictorian}</strong>
+                      <span className="text-[10px] text-slate-400 block">{sub.valedictorianSchool}</span>
+                    </div>
+                    <div className="p-2 rounded-xl bg-white/5 text-amber-300">
+                      <GraduationCap className="w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="card-hard p-8 bg-gradient-to-r from-amber-500/10 via-[#0e131d] to-[#0e131d] border-amber-400/30 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-2 text-center md:text-left">
+              <h3 className="text-xl font-extrabold text-white font-['Fraunces','Playfair_Display',Georgia,serif]">
+                Bạn Đã Sẵn Sàng Ghi Danh Lên Bảng Vàng?
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl">
+                Tham gia phòng thi thử CBT hoặc giải đáp câu hỏi hóc búa tại Đấu trường tri thức để tích lũy điểm cống hiến và giờ học sâu ngay hôm nay.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => onNavigate?.('exam-vault')}
+                className="btn-feastables ff-tactile-pop px-5 py-2.5 rounded-xl bg-amber-400 text-[#0b0d12] text-xs font-black flex items-center gap-2 cursor-pointer shadow-md"
+              >
+                <span>Kho Đề Thi</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate?.('qa')}
+                className="btn-feastables ff-tactile-pop px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-bold flex items-center gap-2 cursor-pointer"
+              >
+                <span>Hỏi Đáp Bài</span>
+              </button>
+            </div>
+          </section>
+        </main>
+      )}
+
+      {activeTabMode === 'archive' && (
+        <main className="max-w-7xl mx-auto px-4 sm:px-8 py-10 sm:py-16 space-y-10">
+          <section className="text-center space-y-4 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/25 text-amber-300 text-xs font-bold font-mono uppercase tracking-wider">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Bảo Tàng Số · Di Sản F-Forum</span>
+            </div>
+
+            <h2 className="text-3xl sm:text-5xl font-normal tracking-tight text-white font-['Fraunces','Playfair_Display',Georgia,serif]">
+              Kho Kỷ Niệm Cột Mốc
+            </h2>
+
+            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl mx-auto">
+              21 lát cắt ký ức được lưu giữ dưới định dạng ảnh Polaroid cổ điển. Di chuột hoặc chạm để chiêm ngưỡng góc xoay tự nhiên và câu chuyện phía sau mỗi bức hình.
+            </p>
+
+            <div className="grid grid-cols-3 gap-3 pt-2 max-w-lg mx-auto">
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+                <span className="text-[10px] text-slate-400 block font-mono uppercase">Kỷ vật lưu trữ</span>
+                <strong className="text-base font-bold text-amber-300 font-mono">{records.length} bản ghi</strong>
+              </div>
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+                <span className="text-[10px] text-slate-400 block font-mono uppercase">Chứng thực</span>
+                <strong className="text-base font-bold text-emerald-400 font-mono">100% Nguyên bản</strong>
+              </div>
+              <div className="p-3 rounded-2xl bg-white/5 border border-white/10 text-center">
+                <span className="text-[10px] text-slate-400 block font-mono uppercase">Niên đại</span>
+                <strong className="text-base font-bold text-cyan-300 font-mono">2024 - 2027</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="p-4 sm:p-5 rounded-2xl bg-[#0f141f] border border-white/10 space-y-4 max-w-5xl mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="relative w-full md:w-80">
+                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  maxLength={60}
+                  value={archiveSearchQuery}
+                  onChange={(e) => setArchiveSearchQuery(e.target.value)}
+                  placeholder="Tìm cột mốc hoặc địa danh..."
+                  className="w-full pl-9 pr-3 py-2 rounded-xl bg-white/5 border border-white/15 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-400 transition"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between md:justify-end gap-2 w-full md:w-auto">
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setArchiveCategory('all')}
+                    className={`btn-feastables ff-tactile-pop px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      archiveCategory === 'all' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <span>Tất cả</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setArchiveCategory('origin')}
+                    className={`btn-feastables ff-tactile-pop px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      archiveCategory === 'origin' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <span>Khởi sinh</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setArchiveCategory('academic')}
+                    className={`btn-feastables ff-tactile-pop px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      archiveCategory === 'academic' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <span>Học thuật</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setArchiveCategory('community')}
+                    className={`btn-feastables ff-tactile-pop px-3 py-1 rounded-lg text-xs font-semibold cursor-pointer ${
+                      archiveCategory === 'community' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <span>Cộng đồng</span>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setArchiveViewMode('polaroid')}
+                    className={`btn-feastables ff-tactile-pop px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
+                      archiveViewMode === 'polaroid' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <Film className="w-3.5 h-3.5" />
+                    <span>Ảnh Polaroid</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setArchiveViewMode('grid')}
+                    className={`btn-feastables ff-tactile-pop px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer ${
+                      archiveViewMode === 'grid' ? 'bg-amber-400 text-[#0b0d12]' : 'text-slate-300 hover:text-white'
+                    }`}
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span>Lưới Lưu Trữ</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between text-xs font-mono text-slate-400 pt-1 border-t border-white/5">
+              <span>Hiển thị theo thời gian thực</span>
+              <span className="text-amber-300 font-bold">{filteredArchiveRecords.length} / {records.length} kỷ vật</span>
+            </div>
+          </section>
+
+          <section
+            className="w-full px-4 sm:px-8 py-10 bg-[radial-gradient(rgba(120,100,80,0.16)_1px,transparent_1px)] [background-size:6px_6px] rounded-3xl border border-[#b89c72]/30 shadow-inner"
+            aria-label="Bộ sưu tập ảnh kỷ niệm Polaroid"
+          >
+            {archiveViewMode === 'polaroid' ? (
+              <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-4.5 max-w-6xl mx-auto py-6">
+                {filteredArchiveRecords.map((rec, index) => {
+                  const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
+                  const angleClass = POLAROID_ANGLES[index % POLAROID_ANGLES.length];
+                  return (
+                    <figure
+                      key={rec.id}
+                      tabIndex={0}
+                      onClick={(e) => openLightbox(rec, e)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openLightbox(rec);
+                        }
+                      }}
+                      aria-label={`${rec.title} - ${rec.place}. Nhấn để mở ảnh phóng to`}
+                      className={`relative group cursor-pointer m-0 w-[190px] sm:w-[205px] p-3 pb-11 rounded-sm bg-[#fffdf8] ${angleClass} shadow-[0_10px_24px_-10px_rgba(60,40,20,0.5)] transition-transform duration-[350ms] ease-[cubic-bezier(0.2,0.7,0.2,1)] hover:rotate-0 hover:scale-[1.06] hover:z-20 hover:shadow-[0_24px_44px_-16px_rgba(60,40,20,0.6)] focus-visible:rotate-0 focus-visible:scale-[1.06] focus-visible:z-20 focus-visible:outline-3 focus-visible:outline-[#8a5a2c] focus-visible:outline-offset-4 motion-reduce:transition-none`}
+                    >
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-12 h-3.5 bg-amber-100/70 border border-amber-900/10 rotate-[-1deg] shadow-xs pointer-events-none z-10" />
+
+                      <div className="relative w-full aspect-square overflow-hidden bg-[#e7e0d4] rounded-[1px]">
+                        <img
+                          src={thumbUrl}
+                          alt={rec.title}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                          className="block w-full aspect-square object-cover bg-[#e7e0d4] sepia-[0.18] contrast-[1.02] group-hover:sepia-0 group-hover:scale-105 transition-all duration-500"
+                        />
+                      </div>
+
+                      <figcaption className="mt-3 text-center">
+                        <span className="block font-['Caveat','Dancing_Script','Segoe_Script',cursive] text-[19px] sm:text-[20px] text-[#4a3c2c] leading-tight line-clamp-1">
+                          {rec.title}
+                        </span>
+                        <span className="block font-mono text-[9px] uppercase tracking-wider text-[#8a725b] truncate mt-0.5">
+                          {rec.place}
+                        </span>
+                      </figcaption>
+                    </figure>
+                  );
+                })}
+
+                {filteredArchiveRecords.length === 0 && (
+                  <div className="py-16 text-center space-y-3 col-span-full">
+                    <p className="text-sm text-slate-400">Không tìm thấy cột mốc phù hợp.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setArchiveSearchQuery('');
+                        setArchiveCategory('all');
+                      }}
+                      className="btn-feastables ff-tactile-pop px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-amber-300 cursor-pointer"
+                    >
+                      <span>Xem tất cả</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 max-w-6xl mx-auto py-6">
+                {filteredArchiveRecords.map((rec) => {
+                  const thumbUrl = rec.customImgUrl || `${CDN_BASE}${rec.imgId}_min.webp`;
+                  return (
+                    <div
+                      key={rec.id}
+                      tabIndex={0}
+                      onClick={(e) => openLightbox(rec, e)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          openLightbox(rec);
+                        }
+                      }}
+                      aria-label={`${rec.title} - ${rec.place}. Nhấn để mở ảnh phóng to`}
+                      className="group block rounded-[10px] overflow-hidden bg-[#1a1d24] border border-white/10 cursor-pointer focus-visible:outline-3 focus-visible:outline-[#8a5a2c] focus-visible:outline-offset-2 relative"
+                    >
+                      <img
+                        src={thumbUrl}
+                        alt={rec.title}
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                        className="block w-full [aspect-ratio:4/3] object-cover transition-transform duration-[400ms] group-hover:scale-[1.07] group-focus-visible:scale-[1.07] motion-reduce:transition-none"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent p-3.5 flex flex-col justify-end pointer-events-none">
+                        <span className="text-[9.5px] text-amber-300 font-mono font-bold uppercase tracking-wider truncate">
+                          {rec.place}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-bold text-white line-clamp-1">{rec.title}</h4>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {filteredArchiveRecords.length === 0 && (
+                  <div className="py-16 text-center space-y-3 col-span-full">
+                    <p className="text-sm text-slate-400">Không tìm thấy cột mốc phù hợp.</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setArchiveSearchQuery('');
+                        setArchiveCategory('all');
+                      }}
+                      className="btn-feastables ff-tactile-pop px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-bold text-amber-300 cursor-pointer"
+                    >
+                      <span>Xem tất cả</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+        </main>
+      )}
+
       {activeLitRecord && (
         <div
-          id="lit"
           role="dialog"
-          aria-modal="true"
-          aria-label="Chi tiết vinh danh"
-          className="fixed inset-0 z-90 grid place-items-center p-4 sm:p-8 animate-fade-in bg-black/85 backdrop-blur-md"
+          aria-label={`${activeLitRecord.title} phóng to`}
+          onClick={closeLightbox}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-[oklch(0.15_0.01_265/0.88)] backdrop-blur-[5px] animate-fade-in"
         >
-          {/* Backdrop button */}
-          <button
-            type="button"
-            tabIndex={-1}
-            aria-label="Đóng xem chi tiết"
-            className="fixed inset-0 bg-transparent border-none outline-none cursor-default"
-            onClick={closeLightbox}
-          />
-          <div
-            className="lit-dialog modal-container relative z-10 w-full max-w-[min(78vw,920px)] p-5 sm:p-7"
+          <figure
+            className="relative m-0 max-w-[min(960px,94vw)] max-h-[90vh] bg-[#1a1d24] rounded-2xl shadow-[0_40px_80px_-30px_rgba(0,0,0,0.85)] border border-white/15 overflow-hidden flex flex-col scale-100 transition-transform duration-[350ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] motion-reduce:transition-none"
+            onClick={(e) => e.stopPropagation()}
           >
-            {/* Close Button */}
             <button
               type="button"
               onClick={closeLightbox}
-              className="ff-tactile-btn absolute top-4 right-4 z-10 p-2 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/20 text-[#d8d5ce] hover:text-white transition-all cursor-pointer"
-              aria-label="Close"
+              aria-label="Đóng ảnh"
+              className="absolute top-2.5 right-2.5 sm:-top-3.5 sm:-right-3.5 grid place-items-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white text-[#0f1116] text-base font-bold no-underline shadow-[0_6px_16px_-4px_rgba(0,0,0,0.5)] transition-colors duration-200 hover:bg-[#8a5a2c] hover:text-white focus-visible:outline-3 focus-visible:outline-[#8a5a2c] focus-visible:outline-offset-[3px] cursor-pointer z-30"
             >
-              <X className="w-5 h-5" />
+              &#10005;
             </button>
 
-            {/* Photo Container */}
-            <div className="relative w-full aspect-[3/2] rounded-2xl overflow-hidden bg-black border border-white/15 shadow-2xl">
+            {records.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={goToPrevLit}
+                  aria-label="Ảnh trước"
+                  className="absolute left-3 sm:-left-5.5 top-1/2 -translate-y-1/2 grid place-items-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/95 text-[#0f1116] text-base font-bold shadow-[0_6px_16px_-4px_rgba(0,0,0,0.5)] transition-all duration-200 hover:bg-[#8a5a2c] hover:text-white focus-visible:outline-3 focus-visible:outline-[#8a5a2c] cursor-pointer z-30"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={goToNextLit}
+                  aria-label="Ảnh kế tiếp"
+                  className="absolute right-3 sm:-right-5.5 top-1/2 -translate-y-1/2 grid place-items-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white/95 text-[#0f1116] text-base font-bold shadow-[0_6px_16px_-4px_rgba(0,0,0,0.5)] transition-all duration-200 hover:bg-[#8a5a2c] hover:text-white focus-visible:outline-3 focus-visible:outline-[#8a5a2c] cursor-pointer z-30"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </>
+            )}
+
+            <div className="relative w-full max-h-[62vh] sm:max-h-[68vh] bg-[#0c0e12] flex items-center justify-center p-2 sm:p-4 overflow-hidden">
               <img
-                src={
-                  fullImgLoaded
-                    ? activeLitRecord.customImgUrl || `${CDN_BASE}${activeLitRecord.imgId}.png`
-                    : activeLitRecord.customImgUrl || `${CDN_BASE}${activeLitRecord.imgId}_min.webp`
-                }
+                src={activeLitRecord.customImgUrl || `${CDN_BASE}${activeLitRecord.imgId}.png`}
                 alt={activeLitRecord.title}
-                onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
                 loading="lazy"
                 decoding="async"
-                width={960}
-                height={640}
-                className="w-full h-full object-cover"
+                onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
+                className="block max-w-full max-h-[58vh] sm:max-h-[64vh] object-contain rounded-lg shadow-lg mx-auto"
               />
-              {isSuperAdmin && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenEditRecord(activeLitRecord)}
-                  className="ff-tactile-btn absolute bottom-3.5 right-3.5 px-3.5 py-2 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] font-extrabold text-xs flex items-center gap-1.5 cursor-pointer transition-all"
-                >
-                  <ImageIcon className="w-4 h-4 text-[#e07a5f]" />
-                  <span>Sửa</span>
-                </button>
-              )}
             </div>
 
-            {/* Meta Row */}
-            <div className="lit-meta grid grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)] gap-6 pt-5">
-              <div>
-                <h2 className="font-['Playfair_Display'] text-xl sm:text-2xl text-white font-normal">
-                  {activeLitRecord.title}
-                </h2>
-                <div className="flex items-center gap-1.5 text-xs text-[#8c8783] mt-1 font-mono">
-                  <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{activeLitRecord.place}</span>
-                </div>
-
-                {isSuperAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditRecord(activeLitRecord)}
-                    className="ff-tactile-btn mt-3 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] text-xs font-extrabold transition-all cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-[#e07a5f]" />
-                    <span>Sửa</span>
-                  </button>
+            <figcaption className="p-5 sm:p-6 bg-[#131720] border-t border-white/10 space-y-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
+                  {activeLitRecord.place}
+                </span>
+                {activeLitIndex >= 0 && (
+                  <span className="text-[11px] font-mono text-slate-400 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10">
+                    {activeLitIndex + 1} / {records.length}
+                  </span>
                 )}
               </div>
-
-              <div>
-                <p className="text-xs sm:text-sm text-[#f4f2ef]/90 leading-relaxed font-light">
-                  {activeLitRecord.note}
-                </p>
-              </div>
-            </div>
-          </div>
+              <h3 className="text-lg sm:text-2xl font-bold text-white font-['Fraunces',Georgia,serif]">
+                {activeLitRecord.title}
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                {activeLitRecord.note}
+              </p>
+            </figcaption>
+          </figure>
         </div>
       )}
 
-      {/* Layer 8 & 9: #intro & #splash */}
-      {!isSplashDone && (
-        <div id="splash" className="fixed inset-0 z-[250] bg-black grid place-items-center content-center gap-6">
-          <div className="font-['Playfair_Display'] text-[clamp(28px,4.4vw,52px)] tracking-[0.005em] text-[#f4f2ef]">
-            BroAmStuck<em className="not-italic font-normal">Studio</em>
-          </div>
-          <div className="w-[clamp(120px,17vw,210px)] h-[1px] bg-[#f4f2ef]/20 relative overflow-hidden">
-            <span className="absolute inset-y-0 left-0 bg-[#f4f2ef] w-full" />
-          </div>
-          <div className="text-[10px] tracking-[0.26em] uppercase text-[#f4f2ef]/40">
-            F-FORUM HALL OF FAME 2026
-          </div>
-        </div>
-      )}
-
-      {isIntroFilmPlaying && (
+      {isEditBioModalOpen && (
         <div
-          id="intro"
-          className={`fixed inset-0 z-[200] bg-black grid place-items-center overflow-hidden transition-opacity duration-700 ${
-            isIntroFading ? 'opacity-0 pointer-events-none' : 'opacity-100'
-          }`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Quản trị nội dung Đại Sảnh"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in"
         >
-          <video
-            ref={filmVideoRef}
-            src={introFilmUrl}
-            preload="auto"
-            onError={finishIntroFilm}
-            onEnded={finishIntroFilm}
-            onLoadedMetadata={handleSetVideoSpeed}
-            onPlay={handleSetVideoSpeed}
-            autoPlay
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-          />
-          <div
-            className={`veil absolute inset-0 bg-black pointer-events-none transition-opacity duration-700 ${
-              isIntroFading ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-          <button
-            type="button"
-            onClick={finishIntroFilm}
-            className="absolute right-[calc(var(--pad)+10px)] bottom-[calc(var(--pad)+10px)] z-10 px-5 py-2 rounded-full border border-white/30 bg-black/40 text-white/70 hover:text-white hover:border-white text-xs tracking-widest uppercase backdrop-blur-md cursor-pointer transition-all"
-          >
-            Skip
-          </button>
-        </div>
-      )}
-
-      {/* Layer 10: #dot custom cursor placeholder (managed by GlobalCursor) */}
-      <div
-        id="dot"
-        ref={dotRef}
-        className="hidden"
-      />
-
-      {/* Admin Edit Record Modal — Rộng rãi, rõ ràng, xem trước ảnh trực tiếp */}
-      {isEditRecordModalOpen && editingRecord && isSuperAdmin && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
-          <form
-            onSubmit={handleSaveRecord}
-            className="modal-container w-full max-w-2xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-5"
-          >
-            <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
-              <div>
-                <h3 className="text-lg font-extrabold text-[#f4f1de]">Chỉnh Sửa Cột Mốc</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsEditRecordModalOpen(false)}
-                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Khung xem trước ảnh trực quan */}
-            <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-bold text-[#f2cc8f]">Hình ảnh cột mốc hiện tại</span>
-                {canRestoreRecordImage(editingRecord) && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setEditingRecord({
-                        ...editingRecord,
-                        customImgUrl: editingRecord.imgId === FOUNDER_AVATAR_ID ? ADMIN_AVATAR_URL : undefined,
-                      })
-                    }
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#d8d5ce] cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Khôi phục ảnh gốc</span>
-                  </button>
-                )}
-              </div>
-              <div className="relative w-full aspect-[16/9] max-h-56 rounded-xl overflow-hidden bg-black border border-white/10">
-                <img
-                  src={editingRecord.customImgUrl || `${CDN_BASE}${editingRecord.imgId}.png`}
-                  alt={editingRecord.title}
-                  onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                  loading="lazy"
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-                <input
-                  id="anh-dan-url-hoac-tai-tep"
-                  type="text"
-                  placeholder="Dán đường dẫn ảnh (https://... hoặc /uploads/...)"
-                  maxLength={500}
-                  value={editingRecord.customImgUrl || ''}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, customImgUrl: e.target.value })}
-                  className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-4 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 cursor-pointer shrink-0 shadow-md"
-                >
-                  <Upload className="w-4 h-4" />
-                  <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  maxLength={200}
-                  onChange={(e) => handleFileUpload(e, 'record')}
-                  className="hidden"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="tieu-de-cot-moc" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Tiêu đề cột mốc (*)</label>
-                <input
-                  id="tieu-de-cot-moc"
-                  type="text"
-                  required
-                  maxLength={100}
-                  value={editingRecord.title}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, title: e.target.value })}
-                  className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="dia-diem-danh-muc" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Địa điểm / Danh mục (*)</label>
-                <input
-                  id="dia-diem-danh-muc"
-                  type="text"
-                  required
-                  maxLength={80}
-                  value={editingRecord.place}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, place: e.target.value })}
-                  className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="noi-dung-ghi-chu" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Nội dung mô tả chi tiết (*)</label>
-              <textarea
-                id="noi-dung-ghi-chu"
-                required
-                rows={4}
-                maxLength={400}
-                value={editingRecord.note}
-                onChange={(e) => setEditingRecord({ ...editingRecord, note: e.target.value })}
-                className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
-              />
-            </div>
-
-            <div className="flex items-center justify-between pt-3 border-t border-dashed border-[#f4f1de]/15">
-              <label htmlFor="field" className="flex items-center gap-2.5 text-xs sm:text-sm text-[#f4f1de] font-semibold cursor-pointer">
-                <input
-                  id="field"
-                  type="checkbox"
-                  maxLength={10}
-                  checked={Boolean(editingRecord.isTall)}
-                  onChange={(e) => setEditingRecord({ ...editingRecord, isTall: e.target.checked })}
-                  className="w-4 h-4 rounded accent-[#e07a5f]"
-                />
-                <span>Hiển thị khung ảnh dọc (Tall Portrait)</span>
-              </label>
-
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsEditRecordModalOpen(false)}
-                  className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors cursor-pointer"
-                >
-                  Lưu
-                </button>
-              </div>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* Admin Edit Bio, 21 Milestones & Scene Studio Modal */}
-      {isEditBioModalOpen && isSuperAdmin && (
-        <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md">
-          <div className="modal-container w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6 sm:p-8 space-y-5">
-            <div className="flex items-center justify-between border-b border-dashed border-[#f4f1de]/15 pb-4">
-              <div>
-                <h3 className="text-lg sm:text-xl font-extrabold text-[#f4f1de]">Quản Trị Khu Vinh Danh</h3>
-              </div>
+          <div className="card-hard max-w-lg w-full bg-[#111722] border-white/20 p-6 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <h3 className="text-base font-bold text-white">Quản trị Đại Sảnh Vinh Danh</h3>
               <button
                 type="button"
                 onClick={() => setIsEditBioModalOpen(false)}
-                className="ff-tactile-btn p-2 rounded-lg bg-[#0b0d12] border border-[#f4f1de]/18 text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
+                className="p-1 text-white/60 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Tab switchers: Founder Bio | 21 Milestones | Scene & Headlines */}
-            <div className="grid grid-cols-3 gap-2 p-1.5 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15">
-              <button
-                type="button"
-                onClick={() => setAdminModalTab('bio')}
-                className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
-                  adminModalTab === 'bio'
-                    ? 'bg-[#f4f1de] text-[#0b0d12] border-2 border-[#0b0d12]'
-                    : 'bg-[#151a26] text-[#d8d5ce] border border-[#f4f1de]/15 hover:text-[#f4f1de]'
-                }`}
-              >
-                1. Hồ sơ
-              </button>
-              <button
-                type="button"
-                onClick={() => setAdminModalTab('milestones')}
-                className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
-                  adminModalTab === 'milestones'
-                    ? 'bg-[#f4f1de] text-[#0b0d12] border-2 border-[#0b0d12]'
-                    : 'bg-[#151a26] text-[#d8d5ce] border border-[#f4f1de]/15 hover:text-[#f4f1de]'
-                }`}
-              >
-                2. Cột mốc (21)
-              </button>
-              <button
-                type="button"
-                onClick={() => setAdminModalTab('scene')}
-                className={`ff-tactile-btn py-2.5 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition-all cursor-pointer ${
-                  adminModalTab === 'scene'
-                    ? 'bg-[#f4f1de] text-[#0b0d12] border-2 border-[#0b0d12]'
-                    : 'bg-[#151a26] text-[#d8d5ce] border border-[#f4f1de]/15 hover:text-[#f4f1de]'
-                }`}
-              >
-                3. Giao diện
-              </button>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Họ tên người sáng lập</label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={editBioForm.name}
+                  onChange={(e) => setEditBioForm({ ...editBioForm, name: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Chức danh</label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={editBioForm.role}
+                  onChange={(e) => setEditBioForm({ ...editBioForm, role: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Lời ngỏ / Tiểu sử</label>
+                <textarea
+                  rows={3}
+                  maxLength={500}
+                  value={editBioForm.bio}
+                  onChange={(e) => setEditBioForm({ ...editBioForm, bio: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/15 text-sm text-white"
+                />
+              </div>
             </div>
 
-            {adminModalTab === 'bio' ? (
-              <form onSubmit={handleSaveBio} className="space-y-4">
-                <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 flex flex-col sm:flex-row items-center gap-4">
-                  <img
-                    src={editBioForm.avatarUrl}
-                    alt={editBioForm.name}
-                    onError={(e) => handleImageError(e, DEFAULT_AVATAR)}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-20 h-20 rounded-2xl object-cover border border-[#f2cc8f]/50 shrink-0"
-                  />
-                  <div className="flex-1 w-full space-y-2">
-                    <label htmlFor="anh-dai-dien-url-hoac-tai-tep" className="text-xs sm:text-sm font-bold text-[#f2cc8f] block">
-                      Ảnh đại diện Founder (Dán URL hoặc tải ảnh từ máy)
-                    </label>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <input
-                        id="anh-dai-dien-url-hoac-tai-tep"
-                        type="text"
-                        maxLength={500}
-                        value={editBioForm.avatarUrl}
-                        onChange={(e) => setEditBioForm({ ...editBioForm, avatarUrl: e.target.value })}
-                        className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                      />
-                      <label htmlFor="field-2" className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0">
-                        <Upload className="w-4 h-4" />
-                        <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh'}</span>
-                        <input
-                          id="field-2"
-                          type="file"
-                          accept="image/*"
-                          maxLength={200}
-                          onChange={(e) => handleFileUpload(e, 'avatar')}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="ho-va-ten" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Họ và tên (*)</label>
-                    <input
-                      id="ho-va-ten"
-                      type="text"
-                      required
-                      maxLength={80}
-                      value={editBioForm.name}
-                      onChange={(e) => setEditBioForm({ ...editBioForm, name: e.target.value })}
-                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="chuc-danh-vai-tro" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Chức danh / Vai trò (*)</label>
-                    <input
-                      id="chuc-danh-vai-tro"
-                      type="text"
-                      required
-                      maxLength={100}
-                      value={editBioForm.role}
-                      onChange={(e) => setEditBioForm({ ...editBioForm, role: e.target.value })}
-                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="loi-ngo-tieu-su" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Lời ngỏ / Tiểu sử (*)</label>
-                  <textarea
-                    id="loi-ngo-tieu-su"
-                    required
-                    rows={4}
-                    maxLength={400}
-                    value={editBioForm.bio}
-                    onChange={(e) => setEditBioForm({ ...editBioForm, bio: e.target.value })}
-                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-3 pt-3 border-t border-dashed border-[#f4f1de]/15">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditBioModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="submit"
-                    className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] text-[#0b0d12] font-extrabold text-xs sm:text-sm hover:bg-[#f2cc8f] transition-colors cursor-pointer"
-                  >
-                    Lưu hồ sơ Founder
-                  </button>
-                </div>
-              </form>
-            ) : adminModalTab === 'milestones' ? (
-              <div className="space-y-4">
-                {/* Lưới chọn nhanh 21 cột mốc bằng ảnh thu nhỏ */}
-                <div>
-                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-2">
-                    Chọn cột mốc cần thay ảnh / sửa nội dung ({adminSelectedMilestoneIdx + 1}/21):
-                  </label>
-                  <div className="grid grid-cols-7 gap-1.5 p-2 rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 max-h-36 overflow-y-auto">
-                    {records.map((r, i) => {
-                      const active = i === adminSelectedMilestoneIdx;
-                      const thumb = r.customImgUrl || `${CDN_BASE}${r.imgId}_min.webp`;
-                      return (
-                        <button
-                          key={r.id}
-                          type="button"
-                          onClick={() => setAdminSelectedMilestoneIdx(i)}
-                          className={`relative aspect-[4/3] rounded-lg overflow-hidden border transition-all cursor-pointer ${
-                            active ? 'border-[#f2cc8f] ring-2 ring-[#f2cc8f]/60 scale-[1.03]' : 'border-white/15 opacity-70 hover:opacity-100'
-                          }`}
-                          title={`#${i + 1}: ${r.title}`}
-                        >
-                          <img
-                            src={thumb}
-                            alt={r.title}
-                            loading="lazy"
-                            decoding="async"
-                            onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                            className="w-full h-full object-cover"
-                          />
-                          <span className="absolute bottom-0.5 right-1 px-1 rounded bg-black/80 text-[9px] font-mono text-white">
-                            {i + 1}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Khung xem trước & thay thế ảnh cột mốc đang chọn */}
-                {records[adminSelectedMilestoneIdx] && (
-                  <div className="rounded-xl bg-[#0b0d12] border border-[#f4f1de]/15 p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs sm:text-sm font-bold text-[#f2cc8f]">
-                        Ảnh Cột mốc #{adminSelectedMilestoneIdx + 1}: {records[adminSelectedMilestoneIdx].title}
-                      </span>
-                      {canRestoreRecordImage(records[adminSelectedMilestoneIdx]) && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setRecords((prev) =>
-                              prev.map((r, i) =>
-                                i === adminSelectedMilestoneIdx
-                                  ? {
-                                      ...r,
-                                      customImgUrl: r.imgId === FOUNDER_AVATAR_ID ? ADMIN_AVATAR_URL : undefined,
-                                    }
-                                  : r,
-                              ),
-                            )
-                          }
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-[#d8d5ce] cursor-pointer"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Khôi phục ảnh gốc</span>
-                        </button>
-                      )}
-                    </div>
-                    <div className="relative w-full aspect-[16/9] max-h-48 rounded-xl overflow-hidden bg-black border border-white/10">
-                      <img
-                        src={
-                          records[adminSelectedMilestoneIdx].customImgUrl ||
-                          `${CDN_BASE}${records[adminSelectedMilestoneIdx].imgId}.png`
-                        }
-                        alt={records[adminSelectedMilestoneIdx].title}
-                        onError={(e) => handleImageError(e, DEFAULT_CLUB_COVER)}
-                        loading="lazy"
-                        decoding="async"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                      <input
-                        type="text"
-                        maxLength={500}
-                        placeholder="Dán URL ảnh mới (https://... hoặc /uploads/...)"
-                        value={records[adminSelectedMilestoneIdx]?.customImgUrl || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setRecords((prev) =>
-                            prev.map((r, i) =>
-                              i === adminSelectedMilestoneIdx ? { ...r, customImgUrl: val } : r,
-                            ),
-                          );
-                        }}
-                        className="flex-1 bg-[#151a26] border border-[#f4f1de]/20 rounded-xl px-3.5 py-2.5 text-sm text-[#f4f1de] placeholder-[#84817a] focus:outline-none focus:border-[#f2cc8f]"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => milestoneFileInputRef.current?.click()}
-                        className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                      >
-                        <Upload className="w-4 h-4" />
-                        <span>{isUploadingMedia ? 'Đang tải...' : 'Tải ảnh từ máy'}</span>
-                      </button>
-                      <input
-                        ref={milestoneFileInputRef}
-                        type="file"
-                        accept="image/*"
-                        maxLength={200}
-                        onChange={(e) => handleFileUpload(e, 'milestone-tab')}
-                        className="hidden"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="tieu-de-cot-moc-2" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Tiêu đề cột mốc (*)</label>
-                    <input
-                      id="tieu-de-cot-moc-2"
-                      type="text"
-                      required
-                      maxLength={100}
-                      value={records[adminSelectedMilestoneIdx]?.title || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRecords((prev) =>
-                          prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, title: val } : r))
-                        );
-                      }}
-                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                    />
-                  </div>
-
-                  <div>
-                    <label htmlFor="dia-diem-danh-muc-2" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Địa điểm / Danh mục (*)</label>
-                    <input
-                      id="dia-diem-danh-muc-2"
-                      type="text"
-                      required
-                      maxLength={80}
-                      value={records[adminSelectedMilestoneIdx]?.place || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setRecords((prev) =>
-                          prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, place: val } : r))
-                        );
-                      }}
-                      className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="noi-dung-ghi-chu-2" className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">Nội dung ghi chú (*)</label>
-                  <textarea
-                    id="noi-dung-ghi-chu-2"
-                    required
-                    rows={3}
-                    maxLength={400}
-                    value={records[adminSelectedMilestoneIdx]?.note || ''}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setRecords((prev) =>
-                        prev.map((r, i) => (i === adminSelectedMilestoneIdx ? { ...r, note: val } : r))
-                      );
-                    }}
-                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f] leading-relaxed resize-y"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-dashed border-[#f4f1de]/15">
-                  <label className="flex items-center gap-2.5 text-xs sm:text-sm text-[#f4f1de] font-semibold cursor-pointer">
-                    <input
-                      type="checkbox"
-                      maxLength={10}
-                      checked={Boolean(records[adminSelectedMilestoneIdx]?.isTall)}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setRecords((prev) =>
-                          prev.map((r, i) =>
-                            i === adminSelectedMilestoneIdx ? { ...r, isTall: checked } : r,
-                          ),
-                        );
-                      }}
-                      className="w-4 h-4 rounded accent-[#e07a5f]"
-                    />
-                    <span>Hiển thị khung ảnh dọc (Tall Portrait)</span>
-                  </label>
-
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditBioModalOpen(false)}
-                      className="px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-[#f4f1de] cursor-pointer"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        safeStorage.setItem('fforum_vinhdanh_records', JSON.stringify(records));
-                        syncToServer(founderProfile, records);
-                        setIsEditBioModalOpen(false);
-                      }}
-                      className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#e07a5f] text-[#0b0d12] font-extrabold text-xs sm:text-sm hover:bg-[#f2cc8f] transition-colors cursor-pointer"
-                    >
-                      Lưu ghi chú cột mốc
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-2">
-                    5 Cụm từ Tiêu đề Trung tâm Quả cầu 3D (#headline):
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    {headlineWords.map((word, idx) => (
-                      <input
-                        key={idx}
-                        type="text"
-                        maxLength={40}
-                        value={word}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setHeadlineWords((prev) => prev.map((w, i) => (i === idx ? val : w)));
-                        }}
-                        className="bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-3 py-2.5 text-sm text-[#f4f1de] text-center focus:outline-none focus:border-[#f2cc8f]"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">
-                    Dòng chữ Chân trang góc phải (Colophon):
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={100}
-                    value={colophonText}
-                    onChange={(e) => setColophonText(e.target.value)}
-                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs sm:text-sm font-bold text-[#f4f1de] block mb-1.5">
-                    Đường dẫn Video Mở đầu (Intro Film URL):
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={500}
-                    value={introFilmUrl}
-                    onChange={(e) => setIntroFilmUrl(e.target.value)}
-                    className="w-full bg-[#0b0d12] border border-[#f4f1de]/20 rounded-xl px-4 py-3 text-sm text-[#f4f1de] focus:outline-none focus:border-[#f2cc8f]"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setHeadlineWords(DEFAULT_HEADLINE_WORDS);
-                      setColophonText(DEFAULT_COLOPHON);
-                      setIntroFilmUrl(INTRO_FILM_URL);
-                    }}
-                    className="ff-tactile-btn inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs font-semibold text-[#d8d5ce] cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Khôi phục mặc định</span>
-                  </button>
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setIsEditBioModalOpen(false)}
-                      className="ff-tactile-btn px-4 py-2.5 rounded-xl bg-[#0b0d12] hover:bg-white/10 border border-[#f4f1de]/18 text-xs sm:text-sm font-bold text-[#d8d5ce] hover:text-white cursor-pointer"
-                    >
-                      Hủy
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        syncToServer(founderProfile, records, {
-                          headlineWords,
-                          colophon: colophonText,
-                          introFilmUrl,
-                        });
-                        setIsEditBioModalOpen(false);
-                      }}
-                      className="ff-tactile-btn px-6 py-2.5 rounded-xl bg-[#f4f1de] hover:bg-[#f2cc8f] border-2 border-[#0b0d12] text-[#0b0d12] font-extrabold text-xs sm:text-sm transition-colors cursor-pointer"
-                    >
-                      Lưu
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setIsEditBioModalOpen(false)}
+                className="px-4 py-2 rounded-xl bg-white/5 text-xs text-white"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setFounderProfile(editBioForm);
+                  safeStorage.setItem('fforum_vinhdanh_founder', JSON.stringify(editBioForm));
+                  setIsEditBioModalOpen(false);
+                }}
+                className="btn-feastables ff-tactile-pop px-5 py-2 rounded-xl bg-amber-400 text-[#0b0d12] text-xs font-bold"
+              >
+                Lưu thay đổi
+              </button>
+            </div>
           </div>
         </div>
       )}

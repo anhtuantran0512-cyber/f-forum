@@ -1,0 +1,21 @@
+{
+  "name": "F-Forum 2027 · Diễn đàn Học thuật Sĩ tử",
+  "short_name": "F-Forum",
+  "description": "Diễn đàn học thuật 2.5D, phòng thi CBT và đấu trường tranh tài tri thức cho sinh viên FPT",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#2B2331",
+  "theme_color": "#FBF2E1",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "vi-VN",
+  "categories": ["education", "academic", "books"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

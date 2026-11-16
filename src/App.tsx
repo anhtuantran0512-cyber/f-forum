@@ -9,6 +9,7 @@ import { ScrollToTopDock } from './components/ScrollToTopDock';
 import { KeyboardShortcutsModal } from './components/KeyboardShortcutsModal';
 import { MigrationCelebrationModal } from './components/decorations/MigrationCelebrationModal';
 import { CelebrationBurst } from './components/CelebrationBurst';
+import { ScholarSpiritBridge } from './components/mascot/ScholarSpiritBridge';
 import { HomeView } from './components/views/HomeView';
 import { GlobalCursor } from './components/GlobalCursor';
 import {
@@ -35,9 +36,20 @@ import {
   AlertCircle,
   Clock,
   BookOpen,
+  Download,
+  X as XClose,
 } from 'lucide-react';
 import type { DimensionView, User } from './types';
-import { CommandPalette, type PaletteCommand } from './components/CommandPalette';
+import {
+  initPwaInstallListener,
+  subscribePwaInstallState,
+  promptPwaInstall,
+  isPwaBannerDismissed,
+  dismissPwaBanner,
+  registerPwaServiceWorker,
+} from './utils/pwaInstall';
+import { CommandPaletteModal as CommandPalette, type PaletteCommand } from './components/CommandPaletteModal';
+import { readFocusSession, requestFocusStop, startFocusSession } from './utils/focusSession';
 import { searchCorpus, type SearchHit } from './utils/globalSearch';
 import { QuickNotesDock } from './components/QuickNotesDock';
 import { StudyCareCoach } from './components/StudyCareCoach';
@@ -51,6 +63,7 @@ import { safeStorage } from './utils/storage';
 import { isMasterAdmin } from './config/admin';
 import { capsCanOpenAdminPanel, useAdminCapabilitiesLoader, useAdminCaps } from './utils/adminCapabilities';
 import { PageResourceLoader } from './components/PageResourceLoader';
+import { TheColophon } from './components/TheColophon';
 import { UserQuickCard } from './components/UserQuickCard';
 import { RadialQuickMenu } from './components/RadialQuickMenu';
 import { AnalyticsTracker } from './components/AnalyticsTracker';
@@ -79,6 +92,9 @@ const FocusSanctuary = lazyWithRetry(() => import('./components/FocusSanctuary')
 const AuthModal = lazyWithRetry(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const ReportInboxModal = lazyWithRetry(() => import('./components/ReportInboxModal').then(m => ({ default: m.ReportInboxModal })));
 const AdminConsoleModal = lazyWithRetry(() => import('./components/AdminConsoleModal').then(m => ({ default: m.AdminConsoleModal })));
+const MemorialWallModal = lazyWithRetry(() => import('./components/MemorialWallModal').then(m => ({ default: m.MemorialWallModal })));
+const DailyCheckInModal = lazyWithRetry(() => import('./components/DailyCheckInModal').then(m => ({ default: m.DailyCheckInModal })));
+const PeerBattleModal = lazyWithRetry(() => import('./components/exam/PeerBattleModal').then(m => ({ default: m.PeerBattleModal })));
 const RoleBadge = lazyWithRetry(() => import('./components/RoleBadge').then(m => ({ default: m.RoleBadge })));
 const TriVideoCrossfadeBg = lazyWithRetry(() => import('./components/TriVideoCrossfadeBg').then(m => ({ default: m.TriVideoCrossfadeBg })));
 
@@ -375,6 +391,26 @@ export const App: React.FC = () => {
     return safeStorage.getItem('fforum_fabulous_mode') === 'true';
   });
 
+  const [isMemorialModalOpen, setIsMemorialModalOpen] = useState(false);
+  const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
+  const [isBattleModalOpen, setIsBattleModalOpen] = useState(false);
+
+  useEffect(() => {
+    const onOpenMemorial = () => setIsMemorialModalOpen(true);
+    const onOpenCheckIn = () => setIsCheckInModalOpen(true);
+    const onOpenBattle = () => setIsBattleModalOpen(true);
+
+    window.addEventListener('fforum_open_memorial_wall', onOpenMemorial);
+    window.addEventListener('fforum_open_daily_checkin', onOpenCheckIn);
+    window.addEventListener('fforum_open_peer_battle', onOpenBattle);
+
+    return () => {
+      window.removeEventListener('fforum_open_memorial_wall', onOpenMemorial);
+      window.removeEventListener('fforum_open_daily_checkin', onOpenCheckIn);
+      window.removeEventListener('fforum_open_peer_battle', onOpenBattle);
+    };
+  }, []);
+
   useEffect(() => {
     const handleFabulousSync = (e: Event) => {
       const detail = (e as CustomEvent<{ enabled?: boolean }>).detail;
@@ -391,6 +427,16 @@ export const App: React.FC = () => {
   /* Light Mode: Navbar bật/tắt class `light` trên <html>. Theo dõi để tạm dừng các
      video nền mà CSS đã ẩn ở các trang nội dung (lớp chuyển đổi sáng — xem
      scripts/generate-light-adapter.mjs) thay vì để chúng giải mã ngầm tốn GPU/pin. */
+  const [canInstallPwa, setCanInstallPwa] = useState(false);
+  const [isPwaDismissed, setIsPwaDismissed] = useState(() => isPwaBannerDismissed());
+
+  useEffect(() => {
+    initPwaInstallListener();
+    registerPwaServiceWorker();
+    const unsubscribe = subscribePwaInstallState(setCanInstallPwa);
+    return () => unsubscribe();
+  }, []);
+
   const [isLightTheme, setIsLightTheme] = useState<boolean>(
     () => typeof document !== 'undefined' && document.documentElement.classList.contains('light')
   );
@@ -620,6 +666,25 @@ export const App: React.FC = () => {
     [currentView, setCurrentView, beginTransition],
   );
 
+  useEffect(() => {
+    const onNavExam = () => handleViewChange('exam-vault');
+    const onNavQa = () => handleViewChange('qa');
+    const onNavThreads = () => handleViewChange('threads');
+    const onOpenFocus = () => setIsFocusModeOpen(true);
+
+    window.addEventListener('fforum_nav_exam', onNavExam);
+    window.addEventListener('fforum_nav_qa', onNavQa);
+    window.addEventListener('fforum_nav_threads', onNavThreads);
+    window.addEventListener('fforum_open_focus', onOpenFocus);
+
+    return () => {
+      window.removeEventListener('fforum_nav_exam', onNavExam);
+      window.removeEventListener('fforum_nav_qa', onNavQa);
+      window.removeEventListener('fforum_nav_threads', onNavThreads);
+      window.removeEventListener('fforum_open_focus', onOpenFocus);
+    };
+  }, [handleViewChange]);
+
   /* Chuyển thẳng vào Khu chat chung thay vì mở hộp chat nhỏ */
   const handleToggleChat = useCallback(() => {
     setIsChatOpen(false);
@@ -762,6 +827,24 @@ export const App: React.FC = () => {
         icon: <Flame className="w-4 h-4" />,
         keywords: 'diem danh streak hop qua',
         run: () => window.dispatchEvent(new CustomEvent('fforum_open_daily')),
+      },
+      {
+        id: 'act-memorial-wall',
+        label: 'Lưu bút mùa thi & Lời chúc sĩ tử',
+        hint: '',
+        group: 'Không gian',
+        icon: <Compass className="w-4 h-4 text-rose-400" />,
+        keywords: 'luu but mua thi si tu loi chuc origami',
+        run: () => setIsMemorialModalOpen(true),
+      },
+      {
+        id: 'act-checkin-2027',
+        label: 'Chuỗi ngày & Điểm danh học tập 2027',
+        hint: '',
+        group: 'Không gian',
+        icon: <Flame className="w-4 h-4 text-amber-400" />,
+        keywords: 'diem danh streak chuoi ngay do vui so cai',
+        run: () => setIsCheckInModalOpen(true),
       },
       {
         id: 'act-chat',
@@ -928,16 +1011,42 @@ export const App: React.FC = () => {
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      const isTyping = isTypingTarget(e.target);
       const mod = e.ctrlKey || e.metaKey;
+
+      if (!mod && !isTyping) {
+        const k = e.key.toLowerCase();
+        if (k === 'd') {
+          e.preventDefault();
+          setIsCheckInModalOpen(true);
+          return;
+        }
+        if (k === 'm') {
+          e.preventDefault();
+          setIsMemorialModalOpen(true);
+          return;
+        }
+        if (k === 'p') {
+          e.preventDefault();
+          const curSession = readFocusSession();
+          if (curSession) {
+            requestFocusStop();
+          } else {
+            startFocusSession('work', currentUser?.email, null, 25);
+          }
+          return;
+        }
+      }
+
       if (!mod) return;
 
-      if (e.key.toLowerCase() === 'k') {
+      if (e.key.toLowerCase() === 'k' || e.key.toLowerCase() === 'e') {
         e.preventDefault();
         setIsPaletteOpen((prev) => !prev);
         return;
       }
       if (e.key.toLowerCase() === 'i' && !e.shiftKey) {
-        if (isTypingTarget(e.target)) return;
+        if (isTyping) return;
         e.preventDefault();
         setIsNotesOpen((prev) => !prev);
         return;
@@ -952,8 +1061,6 @@ export const App: React.FC = () => {
         setIsFocusModeOpen(true);
         return;
       }
-      /* Ctrl/Cmd + / mở bảng phím tắt — quy ước quen thuộc, và là cách duy nhất
-         để người dùng biết bốn tổ hợp phím còn lại tồn tại. */
       if (e.key === '/' || e.key === '?') {
         e.preventDefault();
         setIsShortcutsOpen((prev) => !prev);
@@ -1049,10 +1156,15 @@ export const App: React.FC = () => {
       <div
         className={`relative isolate w-full ${
           isScrollableView ? 'min-h-screen' : 'h-[100dvh] md:h-screen overflow-hidden'
-        } ff-app-shell ff-view-${currentView} ${currentView === 'landing' ? 'bg-[var(--ff-bg)]' : 'bg-[var(--bg-base)]'} text-white font-sans`}
+        } ff-app-shell ff-view-${currentView} ${
+          currentView === 'landing' || currentView === 'home' ? 'bg-[var(--ff-bg)] text-white' : 'bg-[var(--bg-paper)] text-[var(--ink-primary)]'
+        } font-sans`}
       >
         {/* Phase 1.2: Z-index Layering — Anti Gradient Bleeding */}
         <div className="layer-base-color" aria-hidden="true" />
+        {currentView !== 'landing' && currentView !== 'home' && isLightTheme && (
+          <div className="paper-grain-overlay" aria-hidden="true" />
+        )}
         <div className="layer-gradient-aura" aria-hidden="true">
           <div className="aura-blob aura-blob-1" />
           {fabulousMode && !potatorMode && !reducedMotion ? (
@@ -1289,6 +1401,10 @@ export const App: React.FC = () => {
               }}
             />
           )}
+
+          {currentView !== 'landing' && currentView !== 'home' && currentView !== 'exam-viewer' && currentView !== 'chat' && (
+            <TheColophon onNavigate={handleNavigate} onOpenAbout={() => handleOpenProfile('overview')} />
+          )}
           </div>
         </Suspense>
       </main>
@@ -1476,27 +1592,26 @@ export const App: React.FC = () => {
       <PotatoSuggestion />
       <SecurityNoticeToast />
 
-      {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed top-20 sm:top-24 right-4 sm:right-6 z-50 animate-fade-up">
-          <div className="liquid-glass rounded-2xl bg-neutral-950/95 border border-white/20 p-3 sm:p-4 shadow-2xl backdrop-blur-xl flex items-center gap-3 max-w-sm">
-            <div className="shrink-0 p-2 rounded-xl bg-white/10">
+          <div className="ff-toast-capsule rounded-full bg-neutral-950/85 border border-white/10 px-4 py-2 shadow-xl backdrop-blur-md flex items-center gap-2.5 max-w-sm" role="status" aria-live="polite">
+            <div className="shrink-0 p-1 rounded-full bg-white/10">
               {toastMessage.type === 'error' ? (
-                <AlertCircle className="w-5 h-5 text-rose-400" />
+                <AlertCircle className="w-4 h-4 text-rose-400" />
               ) : toastMessage.type === 'level' ? (
-                <Trophy className="w-5 h-5 text-amber-400" />
+                <Trophy className="w-4 h-4 text-amber-400" />
               ) : toastMessage.type === 'xp' ? (
-                <Sparkles className="w-5 h-5 text-amber-300" />
+                <Sparkles className="w-4 h-4 text-amber-300" />
               ) : toastMessage.type === 'success' ? (
-                <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
               ) : (
-                <Info className="w-5 h-5 text-blue-400" />
+                <Info className="w-4 h-4 text-blue-400" />
               )}
             </div>
-            <div>
-              <h4 className="text-xs font-bold text-white">{toastMessage.title}</h4>
+            <div className="min-w-0">
+              <h4 className="text-xs font-semibold text-white tracking-tight truncate" title={toastMessage.title}>{toastMessage.title}</h4>
               {toastMessage.subtitle && (
-                <p className="text-[11px] text-neutral-300 mt-0.5 leading-snug">
+                <p className="text-[11px] text-neutral-300 truncate opacity-85 leading-tight" title={toastMessage.subtitle}>
                   {toastMessage.subtitle}
                 </p>
               )}
@@ -1562,6 +1677,31 @@ export const App: React.FC = () => {
               setIsAdminConsoleOpen(false);
               handleViewChange('clubs');
             }}
+          />
+        )}
+        {isMemorialModalOpen && (
+          <MemorialWallModal
+            isOpen={isMemorialModalOpen}
+            onClose={() => setIsMemorialModalOpen(false)}
+            currentUser={currentUser}
+            onOpenLoginModal={() => handleOpenAuth('login')}
+          />
+        )}
+        {isCheckInModalOpen && (
+          <DailyCheckInModal
+            isOpen={isCheckInModalOpen}
+            onClose={() => setIsCheckInModalOpen(false)}
+            currentUser={currentUser}
+            onOpenLoginModal={() => handleOpenAuth('login')}
+            onClaimDailyReward={claimDailyReward}
+          />
+        )}
+        {isBattleModalOpen && (
+          <PeerBattleModal
+            isOpen={isBattleModalOpen}
+            onClose={() => setIsBattleModalOpen(false)}
+            currentUser={currentUser}
+            onNavigateToLeaderboard={() => handleNavigate('chronicles')}
           />
         )}
       </Suspense>
@@ -1647,6 +1787,56 @@ export const App: React.FC = () => {
         </div>
       )}
 
+      {canInstallPwa && !isPwaDismissed && (
+        <aside
+          role="region"
+          aria-label="Cài đặt ứng dụng PWA F-Forum"
+          className="fixed bottom-6 right-6 z-[105] max-w-sm rounded-2xl bg-[#FBF2E1] dark:bg-[#151a26] text-[#2B2331] dark:text-[#f4f1de] border-2 border-[#2B2331] dark:border-white/20 p-4 shadow-[6px_6px_0px_#2B2331] dark:shadow-[6px_6px_0px_rgba(0,0,0,0.8)] card-hard animate-fade-up"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-400 border border-[#2B2331] dark:border-white/20 flex items-center justify-center font-black text-sm text-[#0b0d12] shadow-[2px_2px_0px_#2B2331]">
+                F
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-black text-[#2B2331] dark:text-white">
+                  Cài Đặt App F-Forum 2027
+                </h4>
+                <p className="text-[11px] text-[#2B2331]/70 dark:text-neutral-400 mt-0.5 leading-snug">
+                  Mở tức thì dưới 0.5s, học offline không gián đoạn
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                dismissPwaBanner();
+                setIsPwaDismissed(true);
+              }}
+              aria-label="Đóng thông báo cài đặt"
+              className="p-1 rounded-lg text-[#2B2331]/60 dark:text-neutral-400 hover:text-black dark:hover:text-white cursor-pointer"
+            >
+              <XClose className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                const installed = await promptPwaInstall();
+                if (installed) {
+                  setIsPwaDismissed(true);
+                }
+              }}
+              className="btn-feastables w-full py-2 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#0b0d12] font-black text-xs border border-[#2B2331] dark:border-white/20 shadow-[2px_2px_0px_#2B2331] flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Cài Đặt App Học Tập</span>
+            </button>
+          </div>
+        </aside>
+      )}
+
       {authOutcome && <OwlOutcome flow={authOutcome} onSkip={dismissAuthOutcome} />}
       {/* Hoa giấy ăn mừng khi lên cấp hoặc đạt mốc thành tích. */}
       <CelebrationBurst trigger={celebrationTick} tone="gold" headline={celebrationText} />
@@ -1656,6 +1846,8 @@ export const App: React.FC = () => {
         tone="gold"
         headline={decoEquipBurst.tick > 0 ? `Đã trang bị: ${decoEquipBurst.name}` : undefined}
       />
+
+      {currentView === 'landing' && <ScholarSpiritBridge currentView={currentView} />}
 
       {/* CodeFronts .la-08 Healthcare Appointment & Resource Loading Animation */}
       {isResourceLoading && (

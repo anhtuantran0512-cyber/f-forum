@@ -57,6 +57,13 @@ export interface ExamCBTOption {
   text: string;
 }
 
+export interface ExamCBTStatement {
+  id: string;
+  label: string;
+  text: string;
+  isCorrect: boolean;
+}
+
 export interface ExamCBTQuestion {
   id: string;
   number: number;
@@ -67,6 +74,11 @@ export interface ExamCBTQuestion {
   difficulty: ExamDifficulty;
   explanation: string;
   keyFormula?: string;
+  part?: 1 | 2 | 3;
+  questionType?: 'single_choice' | 'true_false' | 'short_answer';
+  statements?: Array<{ id: string; label: string; text: string; isCorrect: boolean }>;
+  numericAnswer?: number | string;
+  tolerance?: number;
 }
 
 export interface CBTResult {
@@ -74,12 +86,17 @@ export interface CBTResult {
   examTitle: string;
   totalQuestions: number;
   correctCount: number;
-  score: number; /* Thang điểm 10 */
+  score: number;
   timeSpentSeconds: number;
   submittedAt: string;
   topicBreakdown: Record<string, { total: number; correct: number }>;
   difficultyBreakdown: Record<string, { total: number; correct: number }>;
-  answers: Record<number, 'A' | 'B' | 'C' | 'D'>;
+  answers?: Record<number, 'A' | 'B' | 'C' | 'D' | Record<string, boolean> | string | number>;
+  partBreakdown?: {
+    part1: { total: number; correct: number; score: number };
+    part2: { total: number; correctStatements: number; score: number };
+    part3: { total: number; correct: number; score: number };
+  };
 }
 
 export interface ExamPrintOptions {

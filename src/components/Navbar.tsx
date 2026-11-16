@@ -503,13 +503,19 @@ export const Navbar: React.FC<NavbarProps> = ({
     document.documentElement.dataset.darkGradient = darkGradient;
   }, [theme, reducedMotion, glassBlur, fontSize, potatorMode, potatorBg, fabulousMode, darkGradient]);
 
-  const handleToggleTheme = () => {
-    setTheme(toggleThemeMode());
+  const handleToggleTheme = (e?: React.MouseEvent | MouseEvent | { clientX?: number; clientY?: number }) => {
+    const coords = e && typeof e.clientX === 'number' && typeof e.clientY === 'number'
+      ? { clientX: e.clientX, clientY: e.clientY }
+      : undefined;
+    setTheme(toggleThemeMode(coords));
   };
 
   /* Cho phép Bảng lệnh (⌘K) và các phím tắt đổi theme từ bên ngoài Navbar */
   useEffect(() => {
-    const onToggleTheme = () => handleToggleTheme();
+    const onToggleTheme = (e: Event) => {
+      const detail = (e as CustomEvent<{ clientX?: number; clientY?: number }>).detail;
+      handleToggleTheme(detail);
+    };
     const onOpenDaily = () => setIsDailyModalOpen(true);
     window.addEventListener('fforum_toggle_theme', onToggleTheme);
     window.addEventListener('fforum_open_daily', onOpenDaily);
@@ -517,8 +523,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('fforum_toggle_theme', onToggleTheme);
       window.removeEventListener('fforum_open_daily', onOpenDaily);
     };
-    /* eslint-disable-next-line react-hooks/exhaustive-deps */
-  }, [theme]);
+  }, []);
 
   useEffect(() => {
     const onThemeSync = (event: Event) => {
@@ -840,7 +845,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             cancelMorphLoading();
           }}
           aria-busy={isMorphBusy}
-          className={`ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full pointer-events-auto px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 shadow-2xl ${
+          className={`ff-nav-capsule fixed top-5 inset-x-0 mx-auto z-50 w-[94%] max-w-[1180px] h-14 liquid-glass rounded-full card-hard pointer-events-auto px-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 shadow-2xl ${
             isMorphBusy ? 'ff-nav-capsule--busy' : ''
           }`}
           aria-label="Điều hướng chính"
@@ -890,6 +895,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             className="relative flex items-center justify-center gap-1 overflow-x-auto no-scrollbar py-1 min-w-0 nav-center-tabs"
           >
             {navItems.map((item, idx) => {
+              if (item.id === 'memory' && currentView !== 'memory') return null;
               const isActive = currentView === item.id;
 
               return (
@@ -1054,7 +1060,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={onOpenLoginModal}
-                className="nav-login-btn bg-white text-neutral-900 px-3.5 py-1.5 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-colors shadow-md cursor-pointer whitespace-nowrap flex-shrink-0 pointer-events-auto"
+                className="nav-login-btn px-3.5 py-1.5 rounded-full text-xs font-bold transition-all shadow-[var(--shadow-brutal-sm)] border border-[var(--border-color)] bg-[var(--accent-terracotta)] text-white hover:brightness-110 cursor-pointer whitespace-nowrap flex-shrink-0 pointer-events-auto"
               >
                 Đăng nhập
               </button>
@@ -1174,12 +1180,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           aria-label="Về trang chủ F-Forum"
           aria-current={currentView === 'home' ? 'page' : undefined}
         >
-          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-200 p-[1px] flex-shrink-0">
-            <div className="w-full h-full bg-[#0a0f14] rounded-full flex items-center justify-center text-amber-400 font-bold text-xs">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-[var(--accent-terracotta)] to-[var(--accent-mustard)] p-[1.5px] flex-shrink-0 shadow-[var(--shadow-brutal-sm)]">
+            <div className="w-full h-full bg-[var(--bg-paper)] rounded-full flex items-center justify-center text-[var(--accent-terracotta)] font-bold text-xs">
               F
             </div>
           </div>
-          <span className="ff-mobile-brand-word font-['Playfair_Display'] italic font-bold text-lg tracking-wide bg-gradient-to-r from-amber-200 via-amber-400 to-yellow-500 bg-clip-text text-transparent whitespace-nowrap">
+          <span className="ff-mobile-brand-word font-['Playfair_Display'] italic font-bold text-lg tracking-wide text-[var(--ink-primary)] whitespace-nowrap">
             <span className="ff-swash-cap text-base">F</span>-Forum
           </span>
         </button>
@@ -1205,12 +1211,12 @@ export const Navbar: React.FC<NavbarProps> = ({
                 setIsFlyoutOpen(false);
               }}
               className={`relative p-2 rounded-full transition-colors focus:outline-none pointer-events-auto cursor-pointer ${
-                isSettingsOpen ? 'bg-amber-500/20 text-amber-300' : 'text-white/80 hover:text-white hover:bg-white/10'
+                isSettingsOpen ? 'bg-[var(--accent-terracotta)]/20 text-[var(--accent-terracotta)]' : 'text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-elevated)]'
               }`}
               aria-label="Cài đặt hệ thống"
               title="Cài đặt"
             >
-              <Settings size={18} className={isSettingsOpen ? 'text-amber-300 rotate-90 transition-transform' : 'text-amber-400'} />
+              <Settings size={18} className={isSettingsOpen ? 'text-[var(--accent-terracotta)] rotate-90 transition-transform' : 'text-[var(--ink-secondary)]'} />
             </button>
           </div>
 
@@ -1225,11 +1231,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                 setIsFlyoutOpen(false);
                 setIsSettingsOpen(false);
               }}
-              className="relative p-2 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-colors focus:outline-none pointer-events-auto cursor-pointer"
+              className="relative p-2 rounded-full text-[var(--ink-secondary)] hover:text-[var(--ink-primary)] hover:bg-[var(--bg-elevated)] transition-colors focus:outline-none pointer-events-auto cursor-pointer"
               aria-label={unreadNotifCount > 0 ? `Thông báo (${unreadNotifCount} chưa đọc)` : 'Thông báo'}
             >
               <span className="ff-notif-glyph">
-                <Bell size={18} className={`${isNotificationsOpen ? 'text-amber-300' : 'text-amber-400'}${unreadNotifCount > 0 ? ' ff-notif-notched' : ''}`} />
+                <Bell size={18} className={`${isNotificationsOpen ? 'text-[var(--accent-terracotta)]' : 'text-[var(--ink-secondary)]'}${unreadNotifCount > 0 ? ' ff-notif-notched' : ''}`} />
                 {unreadNotifCount > 0 && (
                   <span key={unreadNotifCount} className="ff-notif-badge" aria-hidden="true">
                     {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
@@ -1257,7 +1263,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onOpenLoginModal}
-              className="ff-mobile-login-btn bg-white text-neutral-900 px-3 py-1 rounded-full text-xs font-semibold hover:bg-neutral-200 transition-colors shadow-md cursor-pointer whitespace-nowrap"
+              className="ff-mobile-login-btn px-3 py-1 rounded-full text-xs font-bold transition-all shadow-[var(--shadow-brutal-sm)] border border-[var(--border-color)] bg-[var(--accent-terracotta)] text-white hover:brightness-110 cursor-pointer whitespace-nowrap"
             >
               Đăng nhập
             </button>
@@ -1316,7 +1322,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* ======================================================== */}
       {/* 3. MOBILE BOTTOM NAVIGATION DOCK (Viewports < 768px)     */}
       {/* ======================================================== */}
-      <nav aria-label="Điều hướng nhanh trên di động" className="ff-mobile-dock md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-white/10 px-2 flex items-center justify-around pointer-events-auto select-none">
+      <nav aria-label="Điều hướng nhanh trên di động" className="ff-mobile-dock md:hidden fixed bottom-0 inset-x-0 z-40 h-[calc(56px+var(--safe-bottom))] pb-[var(--safe-bottom)] liquid-glass border-t border-[var(--border-color)]/20 px-2 flex items-center justify-around pointer-events-auto select-none">
         {/* Trang chủ nằm ở logo F trên header, không nhân đôi trong dock. */}
         {/* Tab 1: Hỏi Đáp */}
         <button
@@ -1329,8 +1335,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
           className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
             currentView === 'qa' && !isMobileMenuOpen
-              ? 'text-[#f2cc8f] font-semibold'
-              : 'text-[#f4f1de]/60 hover:text-[#f4f1de]'
+              ? 'text-[var(--accent-terracotta)] font-semibold'
+              : 'text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]'
           }`}
           aria-label="Hỏi Đáp"
           aria-current={currentView === 'qa' ? 'page' : undefined}
@@ -1350,8 +1356,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
           className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
             currentView === 'threads' && !isMobileMenuOpen
-              ? 'text-amber-400 font-semibold'
-              : 'text-white/60 hover:text-white'
+              ? 'text-[var(--accent-terracotta)] font-semibold'
+              : 'text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]'
           }`}
           aria-label="Thread"
           aria-current={currentView === 'threads' ? 'page' : undefined}
@@ -1371,8 +1377,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
           className={`relative flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
             currentView === 'chat' && !isMobileMenuOpen
-              ? 'text-orange-400 font-semibold'
-              : 'text-white/60 hover:text-white'
+              ? 'text-[var(--accent-terracotta)] font-semibold'
+              : 'text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]'
           }`}
           aria-label="Phòng Chat"
           aria-current={currentView === 'chat' ? 'page' : undefined}
@@ -1380,7 +1386,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative">
             <MessageSquare className="w-5 h-5 mb-0.5" />
             {unreadChatCount > 0 && (
-              <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-amber-400" />
+              <span className="absolute -top-1 -right-1.5 w-2 h-2 rounded-full bg-[var(--accent-terracotta)]" />
             )}
           </div>
           <span className="text-[10px] tracking-tight whitespace-nowrap">Chat</span>
@@ -1396,8 +1402,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           }}
           className={`flex flex-col items-center justify-center min-w-[48px] min-h-[44px] px-2 py-1 rounded-xl transition-all cursor-pointer ${
             isMobileMenuOpen || currentView === 'landing' || currentView === 'memory' || currentView === 'chronicles' || currentView === 'coming-soon'
-              ? 'text-amber-400 font-semibold'
-              : 'text-white/60 hover:text-white'
+              ? 'text-[var(--accent-terracotta)] font-semibold'
+              : 'text-[var(--ink-secondary)] hover:text-[var(--ink-primary)]'
           }`}
           aria-label="Khám Phá"
           aria-expanded={isMobileMenuOpen}
@@ -1406,7 +1412,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         >
           <Compass
             className={`w-5 h-5 mb-0.5 transition-transform duration-200 ${
-              isMobileMenuOpen ? 'rotate-90 text-amber-400' : ''
+              isMobileMenuOpen ? 'rotate-90 text-[var(--accent-terracotta)]' : ''
             }`}
           />
           <span className="text-[10px] tracking-tight whitespace-nowrap">Khám Phá</span>
@@ -1422,7 +1428,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             tabIndex={-1}
             aria-label="Đóng menu khám phá"
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden border-none outline-none cursor-default"
+            className="fixed inset-0 z-40 bg-black/60 md:hidden border-none outline-none cursor-default"
             onClick={() => setIsMobileMenuOpen(false)}
           />
           <div
@@ -1430,17 +1436,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             role="dialog"
             aria-modal="true"
             aria-label="Menu khám phá"
-            className="ff-light-adapt modal-container fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 backdrop-blur-2xl p-3.5 animate-fade-up md:hidden pointer-events-auto"
+            className="ff-light-adapt modal-container fixed bottom-[calc(56px+var(--safe-bottom)+8px)] inset-x-3 z-50 p-3.5 animate-fade-up md:hidden pointer-events-auto bg-[var(--bg-paper)] border-[1.5px] border-[var(--border-color)] rounded-[var(--radius-soft)] shadow-[var(--shadow-brutal-hover)]"
           >
-            <div className="flex items-center justify-between pb-2.5 border-b border-dashed border-[#f4f1de]/15 mb-3">
-              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
-                <Compass className="w-3.5 h-3.5 text-amber-400" />
+            <div className="flex items-center justify-between pb-2.5 border-b border-dashed border-[var(--border-color)]/20 mb-3">
+              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-[var(--accent-terracotta)] flex items-center gap-1.5">
+                <Compass className="w-3.5 h-3.5 text-[var(--accent-terracotta)]" />
                 Khám phá
               </span>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-1 rounded-lg text-neutral-400 hover:text-white cursor-pointer"
+                className="p-1 rounded text-[var(--ink-muted)] hover:text-[var(--ink-primary)] cursor-pointer"
                 aria-label="Đóng menu khám phá"
               >
                 <X className="w-4 h-4" />
@@ -1471,19 +1477,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => {
-                  onViewChange('memory');
+                  onViewChange('coming-soon');
                   setIsMobileMenuOpen(false);
                 }}
-                data-active={currentView === 'memory' ? 'true' : 'false'}
+                data-active={currentView === 'coming-soon' ? 'true' : 'false'}
                 className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
-                aria-label="Miền Ký Ức"
-                title="Miền Ký Ức"
+                aria-label="Bản nâng cấp"
+                title="Bản nâng cấp"
               >
-                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-pink-400/25 to-fuchsia-500/10 border border-pink-300/30 flex items-center justify-center">
-                  <Film className="w-4 h-4 text-pink-300" />
+                <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-purple-400/25 to-pink-500/10 border border-purple-300/30 flex items-center justify-center">
+                  <Rocket className="w-4 h-4 text-purple-300" />
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
-                  Ký ức
+                  Nâng cấp
                 </span>
               </button>
 
@@ -1495,14 +1501,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }}
                 data-active={currentView === 'chronicles' ? 'true' : 'false'}
                 className="ff-explore-tile p-2 flex flex-col items-center gap-1.5 cursor-pointer"
-                aria-label="Khu Vinh Danh"
-                title="Khu Vinh Danh"
+                aria-label="Phòng Truyền Thống"
+                title="Phòng Truyền Thống"
               >
                 <span className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-300/25 to-orange-500/10 border border-amber-300/30 flex items-center justify-center">
                   <Trophy className="w-4 h-4 text-amber-300" />
                 </span>
                 <span className="text-[9.5px] font-semibold text-white/85 leading-tight text-center">
-                  Vinh danh
+                  Truyền thống
                 </span>
               </button>
 

@@ -687,7 +687,7 @@ export const SEED_EXAMS: ExamPaper[] = [
   },
   {
     id: 'ex-09',
-    title: 'Đề thi Đánh giá năng lực (APT) — Đại học Quốc gia TP. Hồ Chí Minh',
+    title: 'Đề thi Đánh giá năng lực V-ACT (APT) — Đại học Quốc gia TP. Hồ Chí Minh',
     subject: 'Toán học',
     grade: 12,
     examType: 'Khảo sát chất lượng',
@@ -700,7 +700,7 @@ export const SEED_EXAMS: ExamPaper[] = [
     difficulty: 'Vận dụng cao',
     uploader: { name: 'Trung Tâm Khảo Thí ĐHQG-HCM', role: 'ĐHQG TP.HCM' },
     uploadDate: '07/04/2025',
-    summary: 'Cấu trúc bài thi ĐGNL ĐHQG TP.HCM: 120 câu hỏi trắc nghiệm gồm Phần 1 (Ngôn ngữ), Phần 2 (Toán học, Tư duy logic, Phân tích số liệu), Phần 3 (Giải quyết vấn đề Khoa học Tự nhiên và Xã hội).',
+    summary: 'Cấu trúc bài thi ĐGNL V-ACT ĐHQG TP.HCM: 120 câu hỏi trắc nghiệm gồm Phần 1 (Ngôn ngữ), Phần 2 (Toán học, Tư duy logic, Phân tích số liệu), Phần 3 (Giải quyết vấn đề Khoa học Tự nhiên và Xã hội).',
     attachments: [
       {
         id: 'att-ex-09-pdf',
@@ -725,6 +725,24 @@ export const SEED_EXAMS: ExamPaper[] = [
         tips: 'Vẽ sơ đồ vị trí 1 - 2 - 3 - 4 - 5 ra nháp và điền các vị trí bị cấm trước.',
       },
     ],
+    status: 'approved',
+  },
+  {
+    id: 'ex-17',
+    title: 'Đề thi Đánh giá tư duy TSA — Đại học Bách Khoa Hà Nội (Tư duy Toán học & Tư duy Khoa học)',
+    subject: 'Toán học',
+    grade: 12,
+    examType: 'Khảo sát chất lượng',
+    province: 'Hà Nội',
+    school: 'Đại học Bách Khoa Hà Nội',
+    schoolYear: '2025-2026',
+    format: 'PDF',
+    verified: true,
+    hasAnswer: true,
+    difficulty: 'Vận dụng cao',
+    uploader: { name: 'Ban Tuyển sinh ĐHBK Hà Nội', role: 'ĐHBK Hà Nội' },
+    uploadDate: '24/10/2026',
+    summary: 'Đề thi Đánh giá tư duy TSA Đại học Bách Khoa Hà Nội theo cấu trúc 3 phần chuẩn: Phần 1 Tư duy Toán học (40 câu), Phần 2 Tư duy Đọc hiểu (20 câu), Phần 3 Tư duy Khoa học / Giải quyết vấn đề (40 câu).',
     status: 'approved',
   },
   {

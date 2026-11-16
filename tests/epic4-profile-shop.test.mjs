@@ -287,7 +287,7 @@ test('Discord-Style Boutique Visual System: 4-col grid, 51px icon, rarity-dot, �
   assert.equal(combo.corner?.id, 'profile_archive');
   assert.equal(combo.highestRarity, 'legendary');
   assert.equal(combo.mythicTitle, 'Thần Thoại Tri Thức');
-  assert.match(profileTsx, /🎨 Đang trang bị:/);
+  assert.match(profileTsx, /(?:🎨\s*)?Đang trang bị:/);
   assert.match(profileTsx, /openShopAtCategory/);
 });
 

@@ -635,7 +635,7 @@ export default function QuestionRecallStudio({ entries, onClose }: QuestionRecal
                 onClick={startSelectedSession}
                 disabled={selectedEntries.length === 0}
               >
-                <span>{selectedEntries.length > 0 ? `Bắt đầu ${selectedEntries.length} câu` : 'Chọn câu để luyện'}</span>
+                <span>{selectedEntries.length > 0 ? `Bắt đầu ${selectedEntries.length} câu` : 'Chọn câu luyện'}</span>
                 <ArrowRight size={16} aria-hidden="true" />
               </button>
             </div>

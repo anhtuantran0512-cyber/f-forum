@@ -10,7 +10,14 @@ import {
   CheckCircle2,
   CornerUpLeft,
   LoaderCircle,
+  Calculator,
+  Timer,
+  AlertCircle,
+  Pin,
+  Sparkles,
+  Lightbulb,
 } from 'lucide-react';
+import { StepSolutionAccordion } from './exam/StepSolutionAccordion';
 import {
   Send,
   Hash,
@@ -67,6 +74,171 @@ const CHANNELS: {
   { id: 'confessions', name: 'Tâm sự', shortName: 'Tâm sự', icon: Heart },
   { id: 'club-hub', name: 'CLB', shortName: 'CLB', icon: Shield },
 ];
+
+const STUDY_MATH_FORMULAS = [
+  { label: 'Phân số a/b', code: '\\frac{a}{b}' },
+  { label: 'Căn √(x)', code: '√(x)' },
+  { label: 'Tích phân', code: '$$\\int_{a}^{b} f(x)dx$$' },
+  { label: 'Đạo hàm', code: "$$f'(x) = \\lim_{\\Delta x \\to 0} \\frac{f(x+\\Delta x)-f(x)}{\\Delta x}$$" },
+  { label: 'Bậc hai Delta', code: '$$\\Delta = b^2 - 4ac$$' },
+  { label: 'Giới hạn', code: '$$\\lim_{x \\to 0} \\frac{\\sin x}{x} = 1$$' },
+  { label: 'Hệ thức Euler', code: '$$e^{i\\pi} + 1 = 0$$' },
+  { label: 'Tổng Sigma', code: '$$\\sum_{i=1}^{n} x_i$$' },
+];
+
+const MATH_SCIENCE_SYMBOLS = [
+  { label: '√', symbol: '√', title: 'Căn bậc hai √(x)' },
+  { label: 'π', symbol: 'π', title: 'Số Pi' },
+  { label: '∑', symbol: '∑', title: 'Tổng Sigma' },
+  { label: '∫', symbol: '∫', title: 'Tích phân' },
+  { label: 'Δ', symbol: 'Δ', title: 'Delta' },
+  { label: '±', symbol: '±', title: 'Cộng trừ' },
+  { label: '∞', symbol: '∞', title: 'Vô cực' },
+  { label: '→', symbol: '→', title: 'Suy ra' },
+];
+
+interface FloatingStudyActionsProps {
+  onInsertText: (snippet: string) => void;
+}
+
+const FloatingStudyActions: React.FC<FloatingStudyActionsProps> = ({ onInsertText }) => {
+  const [isMathOpen, setIsMathOpen] = useState(false);
+
+  return (
+    <div className="ff-study-actions-bar flex flex-col gap-1 mb-2">
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsMathOpen(!isMathOpen)}
+            className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#81b29a]/15 hover:bg-[#81b29a]/25 text-[#81b29a] border border-[#81b29a]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+            title="Công thức LaTeX"
+          >
+            <Calculator className="w-3 h-3" />
+            <span>Toán</span>
+          </button>
+
+          {isMathOpen && (
+            <div className="absolute bottom-full mb-1.5 left-0 z-30 w-52 rounded-xl bg-[#141b28] border border-[#81b29a]/40 p-1.5 shadow-xl space-y-1">
+              <div className="px-2 py-1 text-[9.5px] font-mono font-bold text-[#81b29a] uppercase border-b border-white/10 flex items-center justify-between">
+                <span>Công thức mẫu</span>
+                <button
+                  type="button"
+                  onClick={() => setIsMathOpen(false)}
+                  className="text-[#9a978e] hover:text-white"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+              {STUDY_MATH_FORMULAS.map((f, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => {
+                    onInsertText(f.code);
+                    setIsMathOpen(false);
+                  }}
+                  className="w-full text-left px-2 py-1 rounded-lg text-xs text-[#dad7d0] hover:text-white hover:bg-[#81b29a]/20 flex items-center justify-between cursor-pointer"
+                >
+                  <span>{f.label}</span>
+                  <span className="text-[9.5px] font-mono text-[#81b29a] truncate max-w-[80px]">{f.code}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Bước giải chi tiết]**\n- Bước 1: Điều kiện & giả thiết...\n- Bước 2: Biến đổi tương đương...\n- Kết luận: Vậy đáp án là...')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Gửi Bước Giải Chi Tiết - Chèn mẫu cấu trúc các bước giải chi tiết"
+          aria-label="Gửi Bước Giải Chi Tiết"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Giải chi tiết</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Tóm tắt bước]**\n- B1: Xác định yêu cầu bài toán\n- B2: Phương pháp áp dụng\n- B3: Kết quả và đối chiếu')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Tóm tắt các bước giải ngắn gọn"
+          aria-label="Tóm tắt bước"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Tóm tắt bước</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Công thức nhanh]**\n- Công thức: \n- Điều kiện áp dụng: \n- Ví dụ tính nhanh: ')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Công thức giải nhanh & áp dụng"
+          aria-label="Công thức nhanh"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Công thức nhanh</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n**[Cách giải khác]**\n- Phương pháp 2: (Giải nhanh / Hình học / Đại số)\n- Các bước: \n- So sánh kết quả: ')}
+          className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-md bg-emerald-500/20 hover:bg-emerald-500/35 text-emerald-200 border border-emerald-400/40 text-[10px] font-bold cursor-pointer transition-all flex items-center gap-1 shrink-0"
+          title="Phương pháp & cách tiếp cận khác"
+          aria-label="Cách giải khác"
+        >
+          <Sparkles className="w-2.5 h-2.5 text-emerald-300" />
+          <span>Cách giải khác</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('\n[spoiler]Đáp án: [/spoiler]')}
+          className="ff-tactile-pop btn-feastables px-1.5 py-0.5 rounded-md bg-purple-500/20 hover:bg-purple-500/35 text-purple-200 border border-purple-400/40 text-[10px] font-mono font-black cursor-pointer transition-all flex items-center gap-0.5 shrink-0"
+          title="Chèn định dạng spoiler ẩn đáp án"
+        >
+          <Lightbulb className="w-2.5 h-2.5 text-purple-300" />
+          <span>Ẩn</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('[Pomodoro 25p] Mời các bạn cùng tham gia phiên học tập trung 25 phút ngay bây giờ!')}
+          className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#f2cc8f]/15 hover:bg-[#f2cc8f]/25 text-[#f2cc8f] border border-[#f2cc8f]/35 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+          title="Mời bạn bè cùng học Pomodoro 25 phút"
+        >
+          <Timer className="w-3 h-3" />
+          <span>Pomodoro 25p</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onInsertText('[SOS Cứu trợ bài tập] Bài này mình đang vướng, nhờ các bạn hỗ trợ với ạ: ')}
+          className="ff-tactile-btn inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[#e07a5f]/15 hover:bg-[#e07a5f]/25 text-[#ffc6b1] border border-[#e07a5f]/40 text-[10.5px] font-bold cursor-pointer transition-colors shrink-0"
+          title="Gắn thẻ cứu trợ bài tập SOS khẩn cấp"
+        >
+          <AlertCircle className="w-3 h-3 text-[#e07a5f]" />
+          <span>SOS</span>
+        </button>
+      </div>
+
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+        {MATH_SCIENCE_SYMBOLS.map((item) => (
+          <button
+            key={item.label}
+            type="button"
+            onClick={() => onInsertText(item.symbol)}
+            className="ff-tactile-pop btn-feastables px-1.5 py-0.5 rounded-md bg-amber-400/20 hover:bg-amber-400/35 text-amber-200 border border-amber-400/40 text-[10px] font-mono font-black cursor-pointer transition-all shrink-0"
+            title={item.title}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 export const ChatDock: React.FC<ChatDockProps> = ({
   isOpen,
@@ -125,6 +297,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
   const canRecallMessages = capsHas(adminCaps, 'edit_content');
   const [activeChannel, setActiveChannel] = useState<ChatChannelId>('hallway');
   const [inputText, setInputText] = useState('');
+  const [isChallengeSolutionOpen, setIsChallengeSolutionOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ id: string; authorId: string; authorName: string; excerpt: string } | null>(null);
   const cooldown = useChatCooldown();
   const [isSending, setIsSending] = useState(false);
@@ -419,18 +592,26 @@ export const ChatDock: React.FC<ChatDockProps> = ({
     }
   };
 
+  const handleInsertStudySnippet = useCallback((snippet: string) => {
+    setInputText((prev) => {
+      const combined = prev ? `${prev} ${snippet}` : snippet;
+      return combined.slice(0, 300);
+    });
+    inputRef.current?.focus();
+  }, []);
+
   const currentChannelObj = CHANNELS.find(c => c.id === activeChannel) || CHANNELS[0];
 
   return (
     <>
       <div
-        className={`fixed top-20 bottom-4 right-0 sm:right-4 z-40 w-full sm:w-[430px] md:w-[460px] p-2 sm:p-0 flex flex-col chat-dock-panel ${
+        className={`fixed inset-0 sm:inset-auto sm:top-20 sm:bottom-4 sm:right-4 z-40 w-full sm:w-[430px] md:w-[460px] p-0 sm:p-0 flex flex-col chat-dock-panel ${
           isOpen
             ? 'translate-x-0 opacity-100 pointer-events-auto'
             : 'translate-x-full opacity-0 pointer-events-none'
         }`}
       >
-        <div className="ff-chat-dock-shell flex-1 bg-[#0e131d] border border-[#f8f7f4]/14 rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.68)] flex flex-col overflow-hidden">
+        <div className="ff-chat-dock-shell flex-1 bg-[#0e131d] border-0 sm:border border-[#f8f7f4]/14 rounded-none sm:rounded-2xl shadow-none sm:shadow-[0_24px_60px_rgba(0,0,0,0.68)] flex flex-col overflow-hidden pb-[env(safe-area-inset-bottom,0px)]">
           
           {/* Thanh tiêu đề & bộ chọn kênh */}
           <div className="ff-chat-dock-header p-3.5 border-b border-[#f8f7f4]/10 bg-[#0b0f17] flex flex-col gap-2.5">
@@ -509,6 +690,77 @@ export const ChatDock: React.FC<ChatDockProps> = ({
             aria-relevant="additions"
             aria-label="Tin nhắn phòng chat nhanh"
           >
+            {/* Thanh Ghim Câu Hỏi Thử Thách Nhóm (Pinned Academic Challenge Banner) */}
+            <div className="mb-3 p-3 rounded-xl bg-amber-400/[0.08] border border-amber-400/30 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="p-1 rounded-md bg-amber-400/20 text-amber-400 border border-amber-400/30">
+                    <Pin className="w-3 h-3" />
+                  </span>
+                  <span className="text-[11px] font-bold font-mono text-amber-300 uppercase tracking-wide">
+                    Thử Thách Nhóm Tuần Này
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsChallengeSolutionOpen(!isChallengeSolutionOpen)}
+                  className="ff-tactile-pop btn-feastables px-2 py-0.5 rounded-lg bg-amber-400 hover:bg-amber-300 text-[#0b0d12] text-[10px] font-black flex items-center gap-1 cursor-pointer shadow-sm"
+                >
+                  <Sparkles className="w-3 h-3 text-[#0b0d12]" />
+                  <span>{isChallengeSolutionOpen ? 'Thu Gọn' : 'Mở Bước Giải'}</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#81b29a]/20 text-emerald-300 border border-[#81b29a]/40">
+                  Toán 12
+                </span>
+                <span
+                  className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-400/40 flex items-center gap-0.5"
+                  title="+50 Điểm Thưởng (Bounty)"
+                >
+                  <Sparkles className="w-2.5 h-2.5 text-amber-400" />
+                  +50 Bounty
+                </span>
+                <span
+                  className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-0.5"
+                  title="Thủ khoa kiểm chứng"
+                >
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  Thủ khoa duyệt
+                </span>
+                <span
+                  className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 flex items-center gap-0.5"
+                  title="Đã có lời giải chuẩn"
+                >
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  Lời giải chuẩn
+                </span>
+              </div>
+
+              <p className="text-[11px] text-[#f4f1de] font-serif leading-relaxed">
+                Cho hàm số f(x) = (2x + 1)/(x - 1). Tìm m để d: y = -2x + m cắt đồ thị tại 2 điểm phân biệt A, B sao cho tam giác OAB có diện tích căn(3).
+              </p>
+
+              {isChallengeSolutionOpen && (
+                <div className="pt-2 border-t border-amber-400/20 animate-fade-in">
+                  <StepSolutionAccordion
+                    solutionRaw={`Bước 1: Phân tích đề bài & Thiết lập phương trình hoành độ giao điểm
+(2x + 1)/(x - 1) = -2x + m <=> 2x^2 - mx + m + 1 = 0 (1) với x != 1.
+Điều kiện có 2 nghiệm phân biệt: Delta = m^2 - 8m - 8 > 0.
+
+Bước 2: Thiết lập hệ thức Vi-ét & Độ dài
+x1 + x2 = m/2, x1*x2 = (m + 1)/2.
+Khoảng cách h = |m| / căn(5), AB = căn[5*(m^2/4 - 2m - 2)].
+
+Bước 3: Biện luận diện tích tam giác & Kết luận
+S = 1/2 * h * AB = căn(3) => m = +- 2*căn(3) hoặc m = +- căn(14).`}
+                    subject="Toán học"
+                  />
+                </div>
+              )}
+            </div>
+
             {!isSynced && currentMessages.length === 0 ? (
               <div className="space-y-2.5 py-3" aria-busy="true">
                 <ThinkingBubble compact phase="Đang kết nối máy chủ F-Forum…" />
@@ -552,6 +804,7 @@ export const ChatDock: React.FC<ChatDockProps> = ({
 
             {currentUser ? (
               <div className="ff-chat-composer-wrap ff-chat-composer-wrap--dock">
+                <FloatingStudyActions onInsertText={handleInsertStudySnippet} />
                 <div className="ff-chat-composer-input-row">
                 <ChatMentionPicker
                   id="ff-chat-mention-options-dock"

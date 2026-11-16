@@ -1,6 +1,6 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
-import { Compass, BookOpen, Trophy, Users } from 'lucide-react';
+import { Compass, BookOpen, Trophy, Users, Film, Sparkles } from 'lucide-react';
 import type { DimensionView } from '../../types';
 import { handleVideoError } from '../../utils/mediaFallback';
 import { COMING_SOON_VIDEO_URL, toWebmVideoUrl } from '../../utils/chatVideos';
@@ -82,6 +82,26 @@ export const ComingSoonView: React.FC<ComingSoonViewProps> = ({ onReturnHome }) 
               </div>
             );
           })}
+        </div>
+
+        <div className="mt-5 w-full max-w-lg p-3 rounded-2xl bg-[#13161f]/85 border border-pink-400/30 backdrop-blur-md flex items-center justify-between gap-3 shadow-[0_8px_24px_rgba(0,0,0,0.5)]">
+          <div className="flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-xl bg-pink-500/20 border border-pink-400/40 flex items-center justify-center text-pink-300">
+              <Film className="w-4 h-4" />
+            </span>
+            <div className="text-left">
+              <span className="block text-[11px] font-bold text-pink-300">Tính năng ẩn · Miền Ký Ức</span>
+              <span className="block text-[10px] text-white/60">Lưu bút học sinh &amp; kỷ niệm</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onReturnHome('memory')}
+            className="ff-tactile-btn px-4 py-2 rounded-xl bg-pink-500 hover:bg-pink-400 text-white font-extrabold text-xs flex items-center gap-1.5 cursor-pointer shadow-md"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Mở Ký Ức</span>
+          </button>
         </div>
 
         <button

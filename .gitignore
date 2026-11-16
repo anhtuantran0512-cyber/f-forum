@@ -51,3 +51,6 @@ cosmetics/nameplate.zip
 
 # Tài liệu nội bộ studio (không thuộc repo F-Forum)
 docs/ai_collab_hub/
+/HANDOFF.md
+/*.bak*
+

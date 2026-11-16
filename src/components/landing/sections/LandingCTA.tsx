@@ -51,7 +51,7 @@ export const LandingCTA: React.FC<LandingCTAProps> = ({ onOpenAuth }) => (
                 className="w-full sm:w-auto"
                 onClick={() => scrollToSection('nang-luc')}
               >
-                Xem gợi ý đặt câu hỏi
+                Xem gợi ý
               </MagneticButton>
             </div>
           </div>

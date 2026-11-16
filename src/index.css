@@ -5,6 +5,7 @@
 @theme {
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-inter: 'Inter', sans-serif;
+  --font-fraunces: 'Fraunces', Georgia, serif;
   --font-serif-instrument: 'Instrument Serif', Georgia, serif;
   --font-playfair: 'Playfair Display', Georgia, serif;
   --font-cormorant: 'Cormorant Garamond', Georgia, serif;
@@ -23,27 +24,62 @@
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
+  /* Warm Editorial + Soft Neo-Brutalism + Swiss Grid Tokens */
+  --bg-paper: #FAF7F2;
+  --bg-parchment: #F2ECE1;
+  --bg-elevated: #EBE3D5;
+  --ink-primary: #2C2623;
+  --ink-secondary: #5C534E;
+  --ink-muted: #8C827A;
+  --accent-terracotta: #D95D39;
+  --accent-mustard: #E6AA28;
+  --accent-forest: #2E5A44;
+  --accent-cobalt: #2B4C7E;
+  --border-grid: 1.5px solid #2C2623;
+  --border-double: 3px double #2C2623;
+  --shadow-brutal: 4px 4px 0px #2C2623;
+  --shadow-brutal-sm: 2px 2px 0px #2C2623;
+  --shadow-brutal-hover: 6px 6px 0px #2C2623;
+  --radius-soft: 6px;
+
+  --font-display: 'Newsreader', 'Playfair Display', 'Fraunces', Georgia, serif;
+  --font-sans: 'Plus Jakarta Sans', 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Space Mono', ui-monospace, monospace;
+
   /* Design System Tokens — Nhiemvu_9 (Phase 1–5) */
   --navbar-height: 76px;
-  --bg-base: #0b0d12;
-  --surface-base: #11151d;
-  --surface-elevated: #161b27;
-  --surface-overlay: #1d2430;
-  --surface-active: rgba(242, 204, 143, 0.14);
-  --border-subtle: rgba(244, 241, 222, 0.13);
-  --text-primary: #f4f1de;
-  --text-secondary: #b5b2a9;
-  --accent-gold: #f2cc8f;
-  --accent-terracotta: #e07a5f;
-  --accent-sage: #81b29a;
-  --success-glow: #81b29a;
-  --ff-ui-radius-card: 1rem;
-  --ff-ui-radius-control: 0.75rem;
-  --ff-ui-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --ff-ui-focus: rgba(242, 204, 143, 0.78);
-  --ff-ui-card-shadow: 3px 3px 0 rgba(4, 6, 11, 0.68), inset 0 1px 0 rgba(244, 241, 222, 0.055);
-  --ff-ui-card-hover-shadow: 0 12px 28px rgba(0, 0, 0, 0.23), 3px 3px 0 rgba(4, 6, 11, 0.58), inset 0 1px 0 rgba(244, 241, 222, 0.07);
-  color-scheme: dark;
+  --bg-base: #FAF7F2;
+  --surface-base: #FAF7F2;
+  --surface-elevated: #F2ECE1;
+  --surface-overlay: #EBE3D5;
+  --surface-active: rgba(230, 170, 40, 0.14);
+  --border-subtle: #2C2623;
+  --text-primary: #2C2623;
+  --text-secondary: #5C534E;
+  --accent-gold: #E6AA28;
+  --accent-terracotta: #D95D39;
+  --accent-sage: #2E5A44;
+  --success-glow: #2E5A44;
+  --ff-ui-radius-card: 6px;
+  --ff-ui-radius-control: 4px;
+  --ff-ui-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ff-ui-focus: #D95D39;
+  --ff-ui-card-shadow: 4px 4px 0px #2C2623;
+  --ff-ui-card-hover-shadow: 6px 6px 0px #2C2623;
+  --ff-btn-shadow: 2px 2px 0px #2C2623;
+  color-scheme: light;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 9999;
 }
 
 html.light {
@@ -62,6 +98,7 @@ html.light {
   --ff-ui-focus: rgba(180, 83, 53, 0.72);
   --ff-ui-card-shadow: 3px 3px 0 rgba(41, 37, 32, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   --ff-ui-card-hover-shadow: 0 12px 26px rgba(41, 37, 32, 0.1), 3px 3px 0 rgba(41, 37, 32, 0.12), inset 0 1px 0 #fff;
+  --ff-btn-shadow: #1e1b18;
   color-scheme: light;
 }
 
@@ -75,6 +112,104 @@ html.light {
 
 .ff-app-shell :is(h1, h2, h3) {
   text-wrap: balance;
+}
+
+:is(.ff-app-shell, .landing-root, body) :is(h1, h2):not(.font-sans) {
+  font-family: 'Fraunces', 'Playfair Display', 'Cormorant Garamond', Georgia, serif;
+  letter-spacing: -0.015em;
+}
+
+.ff-swash-flourish {
+  font-family: 'Fraunces', 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-feature-settings: "swsh" 1, "cswh" 1;
+  display: inline-block;
+}
+
+.card-hard {
+  border-radius: 16px;
+  border: 1.5px solid var(--border-subtle, rgba(244, 241, 222, 0.16));
+  background: var(--surface-base, #11151d);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+html.light .card-hard {
+  border-color: rgba(41, 37, 32, 0.16);
+  background: var(--surface-base, #fffdf8);
+  box-shadow: 4px 4px 0px rgba(41, 37, 32, 0.14);
+}
+
+.btn-feastables, .ff-tactile-pop {
+  position: relative;
+  border: 2px solid var(--ff-btn-shadow);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 var(--ff-btn-shadow);
+  transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-feastables:hover, .ff-tactile-pop:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 0 var(--ff-btn-shadow);
+}
+
+.heartfelt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.38);
+  color: #fef3c7;
+  font-family: var(--font-fraunces, Georgia, serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.15);
+}
+
+.slop-warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.75rem;
+  background: rgba(234, 179, 8, 0.08);
+  border: 1px dashed rgba(234, 179, 8, 0.35);
+  color: #fef08a;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(5, 7, 12, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  cursor: zoom-out;
+}
+
+.lightbox-image {
+  max-width: 90vw;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 0.75rem;
+  border: 2px solid rgba(244, 241, 222, 0.2);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.65);
+}
+
+.btn-feastables:active, .ff-tactile-pop:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--ff-btn-shadow);
 }
 
 .ff-app-shell button {
@@ -1413,14 +1548,14 @@ html.light .settings-modal .ff-set-ico svg {
   padding: 1.5px;
   display: grid;
   place-items: center;
-  background: conic-gradient(from 140deg, #fbbf24, #f472b6 26%, #a78bfa 50%, #22d3ee 72%, #fbbf24 100%);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 6px 18px rgba(245, 158, 11, 0.2);
+  background: linear-gradient(135deg, var(--accent-terracotta, #D05333) 0%, var(--accent-mustard, #CF9226) 100%);
+  box-shadow: 0 0 0 1px var(--border-color, rgba(255, 255, 255, 0.15)), 2px 2px 0px rgba(0, 0, 0, 0.4);
   transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease;
   flex-shrink: 0;
 }
 .ff-nav-brand:hover .ff-nav-logo {
   transform: translateY(-1px) scale(1.05);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.2), 0 10px 26px rgba(245, 158, 11, 0.42);
+  box-shadow: 0 0 0 1px var(--border-color, rgba(255, 255, 255, 0.25)), 3px 3px 0px rgba(0, 0, 0, 0.6);
 }
 .ff-nav-logo__core {
   width: 100%;
@@ -1428,14 +1563,26 @@ html.light .settings-modal .ff-set-ico svg {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: radial-gradient(circle at 34% 26%, #1c2534, #070a10 72%);
-  color: #fcd34d;
+  background: var(--bg-paper, #11141A);
+  color: var(--accent-terracotta, #D05333);
   font-weight: 800;
   font-size: 15px;
   line-height: 1;
   letter-spacing: 0.01em;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 -6px 12px rgba(0, 0, 0, 0.55);
-  text-shadow: 0 1px 6px rgba(252, 211, 77, 0.45);
+  font-family: var(--font-display, 'Playfair Display', Georgia, serif);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+html.light .ff-nav-logo {
+  background: linear-gradient(135deg, #D05333 0%, #CF9226 100%);
+  box-shadow: 0 0 0 1px rgba(38, 33, 30, 0.2), 2px 2px 0px rgba(38, 33, 30, 0.2);
+}
+html.light .ff-nav-brand:hover .ff-nav-logo {
+  box-shadow: 0 0 0 1px rgba(38, 33, 30, 0.3), 3px 3px 0px rgba(38, 33, 30, 0.35);
+}
+html.light .ff-nav-logo__core {
+  background: #FAF8F5;
+  color: #D05333;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 .ff-nav-brand-title {
   font-family: 'Playfair Display', Georgia, serif;
@@ -1444,7 +1591,7 @@ html.light .settings-modal .ff-set-ico svg {
   font-size: 19px;
   line-height: 1;
   letter-spacing: 0.01em;
-  background: linear-gradient(96deg, #fef3c7 0%, #fbbf24 38%, #fff8dd 52%, #f59e0b 74%, #fbbf24 100%);
+  background: linear-gradient(96deg, #FAF8F5 0%, #E8A938 38%, #FFFFFF 52%, #D05333 74%, #E8A938 100%);
   background-size: 220% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -1453,7 +1600,7 @@ html.light .settings-modal .ff-set-ico svg {
   animation: ffBrandSweep 7.5s ease-in-out infinite;
 }
 html.light .ff-nav-brand-title {
-  background-image: linear-gradient(96deg, #b45309 0%, #f59e0b 42%, #fbbf24 55%, #92400e 100%);
+  background-image: linear-gradient(96deg, #1F1B18 0%, #D05333 42%, #CF9226 55%, #1F1B18 100%);
 }
 @keyframes ffBrandSweep {
   0%, 64% { background-position: 130% 50%; }
@@ -1474,13 +1621,18 @@ html.light .ff-nav-brand-title {
   transform: translateY(-1px);
 }
 .nav-icon-btn--on {
-  background: rgba(245, 158, 11, 0.16);
-  border-color: rgba(245, 158, 11, 0.38);
+  background: rgba(208, 83, 51, 0.18);
+  border-color: rgba(232, 169, 56, 0.45);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 html.light .nav-icon-btn:hover {
   background: rgba(15, 23, 42, 0.06);
   border-color: rgba(15, 23, 42, 0.1);
+}
+html.light .nav-icon-btn--on {
+  background: rgba(208, 83, 51, 0.14);
+  border-color: var(--accent-terracotta, #D05333);
+  color: var(--accent-terracotta, #D05333);
 }
 /* Vạch phân cách cụm tiện ích ↔ tài khoản */
 .nav-actions-divider {
@@ -2033,11 +2185,11 @@ html.light .ff-landing .ff-plan-card .tg-10__gold {
   z-index: -1;
   opacity: 0;
   transform: scale(0.55);
-  background: linear-gradient(135deg, rgba(251, 191, 36, 0.20), rgba(245, 158, 11, 0.08));
-  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: linear-gradient(135deg, rgba(208, 83, 51, 0.28), rgba(232, 169, 56, 0.16));
+  border: 1px solid rgba(232, 169, 56, 0.45);
   box-shadow:
-    0 4px 16px rgba(245, 158, 11, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    0 4px 14px rgba(208, 83, 51, 0.20),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition:
     opacity 0.28s ease,
     transform 0.46s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -2051,18 +2203,18 @@ html.light .ff-landing .ff-plan-card .tg-10__gold {
 }
 /* Icon của tab đang mở phát sáng nhẹ — điểm nhấn duy nhất, không chồng lớp */
 .nav-tab-btn--active .ff-nav-tab-icon {
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.55));
+  filter: drop-shadow(0 0 6px rgba(232, 169, 56, 0.55));
   transition: filter 0.3s ease;
 }
 html.light .nav-tab-btn__indicator {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.20), rgba(251, 191, 36, 0.10));
-  border-color: rgba(180, 83, 9, 0.35);
+  background: linear-gradient(135deg, rgba(208, 83, 51, 0.16), rgba(207, 146, 38, 0.12));
+  border-color: rgba(208, 83, 51, 0.45);
   box-shadow:
-    0 4px 14px rgba(180, 83, 9, 0.14),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 2px 10px rgba(38, 33, 30, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 html.light .nav-tab-btn--active .ff-nav-tab-icon {
-  filter: drop-shadow(0 0 5px rgba(180, 83, 9, 0.45));
+  filter: drop-shadow(0 0 5px rgba(208, 83, 51, 0.45));
 }
 
 /* ==========================================================================
@@ -6308,25 +6460,26 @@ html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-v
 }
 html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .ff-potator-bg::before, html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .ff-potator-bg::after { display: none; }
 html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .ff-potator-bg .gradient-surface__image { display: none; }
-html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) :is(.min-h-screen, .h-screen):is(.bg-\[\#000000\], .bg-\[\#04070d\], .bg-\[\#050505\], .bg-\[\#070b14\], .bg-\[\#090d14\], .bg-\[\#0a0a0a\], .bg-\[\#0a0f14\], .bg-\[\#0b0b0b\], .bg-\[\#0b0d12\], .bg-\[\#0b0f17\], .bg-\[\#0b1018\], .bg-\[\#0d1420\], .bg-\[\#0e131d\], .bg-\[\#0f1520\], .bg-\[\#101520\], .bg-\[\#111520\], .bg-\[\#111710\], .bg-\[\#121824\], .bg-\[\#13161f\], .bg-\[\#131924\], .bg-\[\#131926\], .bg-\[\#131b24\], .bg-\[\#141a26\], .bg-\[\#141b28\], .bg-\[\#151a26\], .bg-\[\#151b28\], .bg-\[\#151c28\], .bg-black, .bg-neutral-950) { background-color: transparent !important; }
+html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) :is(.min-h-screen, .h-screen):is(.bg-\[\#000000\], .bg-\[\#04070d\], .bg-\[\#05070a\], .bg-\[\#07090e\], .bg-\[\#070b14\], .bg-\[\#090d14\], .bg-\[\#0a0e14\], .bg-\[\#0b0d12\], .bg-\[\#0b0f17\], .bg-\[\#0b1018\], .bg-\[\#0c0e12\], .bg-\[\#0c1017\], .bg-\[\#0d121c\], .bg-\[\#0d1420\], .bg-\[\#0e131d\], .bg-\[\#0f141d\], .bg-\[\#0f141f\], .bg-\[\#0f1520\], .bg-\[\#0f2027\], .bg-\[\#101520\], .bg-\[\#111520\], .bg-\[\#111710\], .bg-\[\#111722\], .bg-\[\#121822\], .bg-\[\#121824\], .bg-\[\#13161f\], .bg-\[\#131720\], .bg-\[\#131924\], .bg-\[\#131926\], .bg-\[\#131b24\], .bg-\[\#141a26\], .bg-\[\#141b28\], .bg-\[\#151a26\], .bg-\[\#151b28\], .bg-\[\#151c28\], .bg-\[\#161a24\], .bg-\[\#161f2e\], .bg-\[\#171d28\], .bg-\[\#171e2b\], .bg-\[\#1a1d24\], .bg-\[\#1b354b\], .bg-\[\#1e1528\], .bg-\[\#1e2025\], .bg-\[\#1f2937\], .bg-\[\#2B2331\], .bg-black, .bg-neutral-950) { background-color: transparent !important; }
 html.light .ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) .pointer-events-none.inset-0:is([class*="from-black"], [class*="via-black"], [class*="bg-black/"]):empty:not(:has(> img, > video, > picture) > *) { display: none; }
-html.light :is(.text-\[\#9cc4ae\], .text-\[\#b8b4a8\], .text-\[\#b9d7c4\], .text-\[\#bdb5a5\], .text-\[\#c5bba6\], .text-\[\#c7c3b6\], .text-\[\#c7c3b8\], .text-\[\#d8d5ce\], .text-\[\#d8f3dc\], .text-\[\#dad7d0\], .text-\[\#dbdee1\], .text-\[\#ede9fe\], .text-\[\#f4f1de\], .text-\[\#f4f1de\]\/85, .text-\[\#f4f1e8\], .text-\[\#f4f2ef\], .text-\[\#f4f2ef\]\/80, .text-\[\#f4f2ef\]\/90, .text-\[\#f8f7f4\], .text-\[\#fff4d9\], .text-neutral-100, .text-slate-100, .text-white, .text-white\/80, .text-white\/85, .text-white\/90, .text-white\/95) { --lv-c: var(--lv-ink); }
-html.light :is(.text-\[\#f4f1de\]\/60, .text-\[\#f4f2ef\]\/60, .text-neutral-200, .text-neutral-300, .text-slate-200, .text-slate-300, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/75) { --lv-c: var(--lv-ink-3); }
-html.light :is(.text-\[\#8c8783\], .text-\[\#8e8a82\], .text-\[\#928d82\], .text-\[\#949ba4\], .text-\[\#9a978e\], .text-\[\#a39f96\], .text-\[\#a8a294\], .text-\[\#b5b2a9\], .text-neutral-400, .text-slate-400, .text-white\/45, .text-white\/50, .text-white\/55) { --lv-c: var(--lv-muted); }
-html.light :is(.text-\[\#f4f2ef\]\/40, .text-neutral-500, .text-neutral-600, .text-slate-500, .text-slate-600, .text-white\/15, .text-white\/20, .text-white\/25, .text-white\/30, .text-white\/35, .text-white\/40) { --lv-c: var(--lv-faint); }
-html.light :is(.text-\[\#e8d7af\], .text-\[\#e9c46a\], .text-amber-100, .text-amber-200, .text-amber-200\/90, .text-amber-300, .text-amber-300\/75, .text-amber-300\/80, .text-amber-300\/85, .text-amber-300\/90, .text-amber-400, .text-amber-400\/80, .text-amber-400\/90) { --lv-c: #92400e; }
-html.light :is(.text-\[\#f2cc8f\], .text-\[\#f2cc8f\]\/85, .text-\[\#f2cc8f\]\/95, .text-\[\#ffedd5\], .text-orange-300, .text-orange-400) { --lv-c: #9a3412; }
-html.light :is(.text-rose-100, .text-rose-200, .text-rose-300, .text-rose-400) { --lv-c: #9f1239; }
-html.light :is(.text-\[\#d97757\], .text-\[\#e07a5f\], .text-\[\#ffc6b1\], .text-\[\#ffd7c8\], .text-red-200, .text-red-300, .text-red-400) { --lv-c: #991b1b; }
-html.light :is(.text-\[\#81b29a\], .text-\[\#81b29a\]\/60, .text-emerald-200, .text-emerald-300, .text-emerald-300\/80, .text-emerald-300\/85, .text-emerald-400) { --lv-c: #065f46; }
+html.light :is(.text-\[\#9cc4ae\], .text-\[\#EFE3CA\], .text-\[\#FBF2E1\], .text-\[\#b8b4a8\], .text-\[\#b9d7c4\], .text-\[\#bdb5a5\], .text-\[\#c5bba6\], .text-\[\#c7c3b6\], .text-\[\#c7c3b8\], .text-\[\#d8d5ce\], .text-\[\#d8f3dc\], .text-\[\#dad7d0\], .text-\[\#dbdee1\], .text-\[\#ede9fe\], .text-\[\#f4f1de\], .text-\[\#f4f1de\]\/85, .text-\[\#f4f1e8\], .text-\[\#f4f2ef\], .text-\[\#f8f7f4\], .text-\[\#fff4d9\], .text-neutral-100, .text-slate-100, .text-white, .text-white\/80, .text-white\/85, .text-white\/90, .text-white\/95) { --lv-c: var(--lv-ink); }
+html.light :is(.text-neutral-200, .text-neutral-300, .text-slate-200, .text-slate-300, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/75) { --lv-c: var(--lv-ink-3); }
+html.light :is(.text-\[\#8A7D91\], .text-\[\#8a7e93\], .text-\[\#8c8783\], .text-\[\#8e8a82\], .text-\[\#928d82\], .text-\[\#949ba4\], .text-\[\#9a978e\], .text-\[\#a39f96\], .text-\[\#a8a294\], .text-\[\#b5b2a9\], .text-neutral-400, .text-slate-400, .text-white\/45, .text-white\/50, .text-white\/55) { --lv-c: var(--lv-muted); }
+html.light :is(.text-neutral-500, .text-neutral-600, .text-slate-500, .text-slate-600, .text-white\/15, .text-white\/20, .text-white\/25, .text-white\/30, .text-white\/35, .text-white\/40) { --lv-c: var(--lv-faint); }
+html.light :is(.text-\[\#e8d7af\], .text-\[\#e9c46a\], .text-amber-100, .text-amber-200, .text-amber-200\/80, .text-amber-200\/90, .text-amber-300, .text-amber-300\/80, .text-amber-300\/85, .text-amber-300\/90, .text-amber-400, .text-amber-400\/80, .text-amber-400\/90) { --lv-c: #92400e; }
+html.light :is(.text-\[\#f2cc8f\], .text-\[\#f2cc8f\]\/85, .text-\[\#f2cc8f\]\/95, .text-\[\#ffedd5\], .text-orange-200, .text-orange-300, .text-orange-400) { --lv-c: #9a3412; }
+html.light :is(.text-rose-100, .text-rose-200, .text-rose-200\/80, .text-rose-300, .text-rose-400) { --lv-c: #9f1239; }
+html.light :is(.text-\[\#E07A5F\], .text-\[\#d97757\], .text-\[\#e07a5f\], .text-\[\#ff9b71\], .text-\[\#ffc6b1\], .text-\[\#ffd7c8\], .text-red-200, .text-red-300, .text-red-400) { --lv-c: #991b1b; }
+html.light :is(.text-\[\#81b29a\], .text-\[\#81b29a\]\/60, .text-emerald-100, .text-emerald-200, .text-emerald-300, .text-emerald-300\/80, .text-emerald-300\/85, .text-emerald-400) { --lv-c: #065f46; }
+html.light :is(.text-teal-300) { --lv-c: #115e59; }
 html.light :is(.text-cyan-200, .text-cyan-300, .text-cyan-400) { --lv-c: #155e75; }
-html.light :is(.text-sky-200, .text-sky-400) { --lv-c: #075985; }
+html.light :is(.text-sky-200, .text-sky-300, .text-sky-400) { --lv-c: #075985; }
 html.light :is(.text-blue-300, .text-blue-400) { --lv-c: #1e40af; }
-html.light :is(.text-indigo-200, .text-indigo-300, .text-indigo-400\/35) { --lv-c: #3730a3; }
+html.light :is(.text-indigo-200, .text-indigo-300, .text-indigo-400, .text-indigo-400\/35) { --lv-c: #3730a3; }
 html.light :is(.text-violet-300) { --lv-c: #5b21b6; }
 html.light :is(.text-purple-200, .text-purple-300, .text-purple-400) { --lv-c: #6b21a8; }
 html.light :is(.text-fuchsia-200, .text-fuchsia-300) { --lv-c: #86198f; }
-html.light :is(.text-pink-300) { --lv-c: #9d174d; }
+html.light :is(.text-pink-300, .text-pink-400) { --lv-c: #9d174d; }
 html.light :is(.text-yellow-100, .text-yellow-300, .text-yellow-400) { --lv-c: #854d0e; }
 html.light :is(.hover\:text-\[\#f4f1de\]:hover, .hover\:text-\[\#f4f2ef\]:hover, .hover\:text-\[\#f8f7f4\]:hover, .hover\:text-white:hover) { --lv-c: var(--lv-ink); }
 html.light :is(.hover\:text-\[\#e9c46a\]:hover, .hover\:text-amber-100:hover, .hover\:text-amber-200:hover, .hover\:text-amber-300:hover) { --lv-c: #92400e; }
@@ -6339,53 +6492,54 @@ html.light :is(.group:hover .group-hover\:text-amber-100, .group:hover .group-ho
 html.light :is(.group:hover .group-hover\:text-\[\#f2cc8f\]) { --lv-c: #9a3412; }
 html.light :is(.group:hover .group-hover\:text-rose-400) { --lv-c: #9f1239; }
 html.light :is(.group:hover .group-hover\:text-\[\#81b29a\]) { --lv-c: #065f46; }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .liquid-glass, .obsidian-glass, .ff-nav-capsule, .pc-12-shell, .ff-light-adapt):is(.group:hover .group-hover\:text-\[\#f8f7f4\], .group:hover .group-hover\:text-white, .hover\:text-\[\#f4f1de\]:hover, .hover\:text-\[\#f4f2ef\]:hover, .hover\:text-\[\#f8f7f4\]:hover, .hover\:text-white:hover, .text-\[\#8c8783\], .text-\[\#8e8a82\], .text-\[\#928d82\], .text-\[\#949ba4\], .text-\[\#9a978e\], .text-\[\#9cc4ae\], .text-\[\#a39f96\], .text-\[\#a8a294\], .text-\[\#b5b2a9\], .text-\[\#b8b4a8\], .text-\[\#b9d7c4\], .text-\[\#bdb5a5\], .text-\[\#c5bba6\], .text-\[\#c7c3b6\], .text-\[\#c7c3b8\], .text-\[\#d8d5ce\], .text-\[\#d8f3dc\], .text-\[\#dad7d0\], .text-\[\#dbdee1\], .text-\[\#ede9fe\], .text-\[\#f4f1de\], .text-\[\#f4f1de\]\/60, .text-\[\#f4f1de\]\/85, .text-\[\#f4f1e8\], .text-\[\#f4f2ef\], .text-\[\#f4f2ef\]\/40, .text-\[\#f4f2ef\]\/60, .text-\[\#f4f2ef\]\/80, .text-\[\#f4f2ef\]\/90, .text-\[\#f8f7f4\], .text-\[\#fff4d9\], .text-neutral-100, .text-neutral-200, .text-neutral-300, .text-neutral-400, .text-neutral-500, .text-neutral-600, .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400, .text-slate-500, .text-slate-600, .text-white, .text-white\/15, .text-white\/20, .text-white\/25, .text-white\/30, .text-white\/35, .text-white\/40, .text-white\/45, .text-white\/50, .text-white\/55, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/75, .text-white\/80, .text-white\/85, .text-white\/90, .text-white\/95):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:is([class~="bg-amber-400"], [class~="bg-amber-400/80"], [class~="bg-amber-500"], [class~="bg-cyan-400"], [class~="bg-cyan-500"], [class~="bg-emerald-400"], [class~="bg-emerald-400/80"], [class~="bg-emerald-500"], [class~="bg-orange-400"], [class~="bg-orange-500"], [class~="bg-purple-400"], [class~="bg-red-500"], [class~="bg-red-600"], [class~="bg-rose-400"], [class~="bg-rose-400/80"], [class~="bg-rose-500"], [class~="bg-rose-600"], [class~="bg-violet-400"], [class~="from-amber-400"], [class~="from-amber-400/70"], [class~="from-amber-400/80"], [class~="from-amber-500"], [class~="from-amber-500/85"], [class~="from-emerald-400/80"], [class~="from-emerald-500"], [class~="from-fuchsia-400/80"], [class~="from-purple-500"], [class~="from-red-600"]), :is([class~="bg-amber-400"], [class~="bg-amber-400/80"], [class~="bg-amber-500"], [class~="bg-cyan-400"], [class~="bg-cyan-500"], [class~="bg-emerald-400"], [class~="bg-emerald-400/80"], [class~="bg-emerald-500"], [class~="bg-orange-400"], [class~="bg-orange-500"], [class~="bg-purple-400"], [class~="bg-red-500"], [class~="bg-red-600"], [class~="bg-rose-400"], [class~="bg-rose-400/80"], [class~="bg-rose-500"], [class~="bg-rose-600"], [class~="bg-violet-400"], [class~="from-amber-400"], [class~="from-amber-400/70"], [class~="from-amber-400/80"], [class~="from-amber-500"], [class~="from-amber-500/85"], [class~="from-emerald-400/80"], [class~="from-emerald-500"], [class~="from-fuchsia-400/80"], [class~="from-purple-500"], [class~="from-red-600"]) *) { color: var(--lv-c); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .liquid-glass, .obsidian-glass, .ff-nav-capsule, .pc-12-shell, .ff-light-adapt):is(.group:hover .group-hover\:text-\[\#81b29a\], .group:hover .group-hover\:text-\[\#f2cc8f\], .group:hover .group-hover\:text-amber-100, .group:hover .group-hover\:text-amber-200, .group:hover .group-hover\:text-amber-300, .group:hover .group-hover\:text-rose-400, .hover\:text-\[\#81b29a\]:hover, .hover\:text-\[\#e07a5f\]:hover, .hover\:text-\[\#e9c46a\]:hover, .hover\:text-\[\#f2cc8f\]:hover, .hover\:text-amber-100:hover, .hover\:text-amber-200:hover, .hover\:text-amber-300:hover, .hover\:text-red-100:hover, .hover\:text-red-200:hover, .hover\:text-red-300:hover, .hover\:text-rose-100:hover, .hover\:text-rose-200:hover, .hover\:text-rose-300:hover, .hover\:text-rose-400:hover, .text-\[\#81b29a\], .text-\[\#81b29a\]\/60, .text-\[\#d97757\], .text-\[\#e07a5f\], .text-\[\#e8d7af\], .text-\[\#e9c46a\], .text-\[\#f2cc8f\], .text-\[\#f2cc8f\]\/85, .text-\[\#f2cc8f\]\/95, .text-\[\#ffc6b1\], .text-\[\#ffd7c8\], .text-\[\#ffedd5\], .text-amber-100, .text-amber-200, .text-amber-200\/90, .text-amber-300, .text-amber-300\/75, .text-amber-300\/80, .text-amber-300\/85, .text-amber-300\/90, .text-amber-400, .text-amber-400\/80, .text-amber-400\/90, .text-blue-300, .text-blue-400, .text-cyan-200, .text-cyan-300, .text-cyan-400, .text-emerald-200, .text-emerald-300, .text-emerald-300\/80, .text-emerald-300\/85, .text-emerald-400, .text-fuchsia-200, .text-fuchsia-300, .text-indigo-200, .text-indigo-300, .text-indigo-400\/35, .text-orange-300, .text-orange-400, .text-pink-300, .text-purple-200, .text-purple-300, .text-purple-400, .text-red-200, .text-red-300, .text-red-400, .text-rose-100, .text-rose-200, .text-rose-300, .text-rose-400, .text-sky-200, .text-sky-400, .text-violet-300, .text-yellow-100, .text-yellow-300, .text-yellow-400):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { color: var(--lv-c); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .liquid-glass, .obsidian-glass, .ff-nav-capsule, .pc-12-shell, .ff-light-adapt):is(.group:hover .group-hover\:text-\[\#f8f7f4\], .group:hover .group-hover\:text-white, .hover\:text-\[\#f4f1de\]:hover, .hover\:text-\[\#f4f2ef\]:hover, .hover\:text-\[\#f8f7f4\]:hover, .hover\:text-white:hover, .text-\[\#8A7D91\], .text-\[\#8a7e93\], .text-\[\#8c8783\], .text-\[\#8e8a82\], .text-\[\#928d82\], .text-\[\#949ba4\], .text-\[\#9a978e\], .text-\[\#9cc4ae\], .text-\[\#EFE3CA\], .text-\[\#FBF2E1\], .text-\[\#a39f96\], .text-\[\#a8a294\], .text-\[\#b5b2a9\], .text-\[\#b8b4a8\], .text-\[\#b9d7c4\], .text-\[\#bdb5a5\], .text-\[\#c5bba6\], .text-\[\#c7c3b6\], .text-\[\#c7c3b8\], .text-\[\#d8d5ce\], .text-\[\#d8f3dc\], .text-\[\#dad7d0\], .text-\[\#dbdee1\], .text-\[\#ede9fe\], .text-\[\#f4f1de\], .text-\[\#f4f1de\]\/85, .text-\[\#f4f1e8\], .text-\[\#f4f2ef\], .text-\[\#f8f7f4\], .text-\[\#fff4d9\], .text-neutral-100, .text-neutral-200, .text-neutral-300, .text-neutral-400, .text-neutral-500, .text-neutral-600, .text-slate-100, .text-slate-200, .text-slate-300, .text-slate-400, .text-slate-500, .text-slate-600, .text-white, .text-white\/15, .text-white\/20, .text-white\/25, .text-white\/30, .text-white\/35, .text-white\/40, .text-white\/45, .text-white\/50, .text-white\/55, .text-white\/60, .text-white\/65, .text-white\/70, .text-white\/75, .text-white\/80, .text-white\/85, .text-white\/90, .text-white\/95):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:is([class~="bg-amber-400"], [class~="bg-amber-400/80"], [class~="bg-amber-500"], [class~="bg-blue-600"], [class~="bg-cyan-400"], [class~="bg-cyan-500"], [class~="bg-emerald-400"], [class~="bg-emerald-400/80"], [class~="bg-emerald-500"], [class~="bg-orange-400"], [class~="bg-orange-500"], [class~="bg-pink-500"], [class~="bg-purple-400"], [class~="bg-purple-600"], [class~="bg-red-500"], [class~="bg-red-600"], [class~="bg-rose-400"], [class~="bg-rose-400/80"], [class~="bg-rose-500"], [class~="bg-rose-600"], [class~="bg-sky-400"], [class~="bg-sky-500"], [class~="bg-violet-400"], [class~="from-amber-400"], [class~="from-amber-400/70"], [class~="from-amber-400/80"], [class~="from-amber-500"], [class~="from-amber-500/85"], [class~="from-emerald-400/80"], [class~="from-emerald-500"], [class~="from-fuchsia-400/80"], [class~="from-indigo-500"], [class~="from-purple-500"], [class~="from-red-600"], [class~="from-rose-500"], [class~="from-rose-600"]), :is([class~="bg-amber-400"], [class~="bg-amber-400/80"], [class~="bg-amber-500"], [class~="bg-blue-600"], [class~="bg-cyan-400"], [class~="bg-cyan-500"], [class~="bg-emerald-400"], [class~="bg-emerald-400/80"], [class~="bg-emerald-500"], [class~="bg-orange-400"], [class~="bg-orange-500"], [class~="bg-pink-500"], [class~="bg-purple-400"], [class~="bg-purple-600"], [class~="bg-red-500"], [class~="bg-red-600"], [class~="bg-rose-400"], [class~="bg-rose-400/80"], [class~="bg-rose-500"], [class~="bg-rose-600"], [class~="bg-sky-400"], [class~="bg-sky-500"], [class~="bg-violet-400"], [class~="from-amber-400"], [class~="from-amber-400/70"], [class~="from-amber-400/80"], [class~="from-amber-500"], [class~="from-amber-500/85"], [class~="from-emerald-400/80"], [class~="from-emerald-500"], [class~="from-fuchsia-400/80"], [class~="from-indigo-500"], [class~="from-purple-500"], [class~="from-red-600"], [class~="from-rose-500"], [class~="from-rose-600"]) *) { color: var(--lv-c); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .liquid-glass, .obsidian-glass, .ff-nav-capsule, .pc-12-shell, .ff-light-adapt):is(.group:hover .group-hover\:text-\[\#81b29a\], .group:hover .group-hover\:text-\[\#f2cc8f\], .group:hover .group-hover\:text-amber-100, .group:hover .group-hover\:text-amber-200, .group:hover .group-hover\:text-amber-300, .group:hover .group-hover\:text-rose-400, .hover\:text-\[\#81b29a\]:hover, .hover\:text-\[\#e07a5f\]:hover, .hover\:text-\[\#e9c46a\]:hover, .hover\:text-\[\#f2cc8f\]:hover, .hover\:text-amber-100:hover, .hover\:text-amber-200:hover, .hover\:text-amber-300:hover, .hover\:text-red-100:hover, .hover\:text-red-200:hover, .hover\:text-red-300:hover, .hover\:text-rose-100:hover, .hover\:text-rose-200:hover, .hover\:text-rose-300:hover, .hover\:text-rose-400:hover, .text-\[\#81b29a\], .text-\[\#81b29a\]\/60, .text-\[\#E07A5F\], .text-\[\#d97757\], .text-\[\#e07a5f\], .text-\[\#e8d7af\], .text-\[\#e9c46a\], .text-\[\#f2cc8f\], .text-\[\#f2cc8f\]\/85, .text-\[\#f2cc8f\]\/95, .text-\[\#ff9b71\], .text-\[\#ffc6b1\], .text-\[\#ffd7c8\], .text-\[\#ffedd5\], .text-amber-100, .text-amber-200, .text-amber-200\/80, .text-amber-200\/90, .text-amber-300, .text-amber-300\/80, .text-amber-300\/85, .text-amber-300\/90, .text-amber-400, .text-amber-400\/80, .text-amber-400\/90, .text-blue-300, .text-blue-400, .text-cyan-200, .text-cyan-300, .text-cyan-400, .text-emerald-100, .text-emerald-200, .text-emerald-300, .text-emerald-300\/80, .text-emerald-300\/85, .text-emerald-400, .text-fuchsia-200, .text-fuchsia-300, .text-indigo-200, .text-indigo-300, .text-indigo-400, .text-indigo-400\/35, .text-orange-200, .text-orange-300, .text-orange-400, .text-pink-300, .text-pink-400, .text-purple-200, .text-purple-300, .text-purple-400, .text-red-200, .text-red-300, .text-red-400, .text-rose-100, .text-rose-200, .text-rose-200\/80, .text-rose-300, .text-rose-400, .text-sky-200, .text-sky-300, .text-sky-400, .text-teal-300, .text-violet-300, .text-yellow-100, .text-yellow-300, .text-yellow-400):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { color: var(--lv-c); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-\[\#84817a\]::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-\[\#8e8a82\]::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-\[\#9a978e\]::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-\[\#a39f96\]::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-neutral-500::placeholder,
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-slate-400::placeholder,
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-slate-500::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-white\/35::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder-white\/45::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder\:text-neutral-600::placeholder,
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *).placeholder\:text-white\/40::placeholder { color: var(--lv-placeholder); }
-html.light :is(.bg-\[\#000000\], .bg-\[\#03070c\]\/92, .bg-\[\#04070d\], .bg-\[\#050505\], .bg-\[\#060911\]\/92, .bg-\[\#07090e\]\/90, .bg-\[\#070b14\], .bg-\[\#090d14\], .bg-\[\#090d14\]\/90, .bg-\[\#0A0E1A\]\/95, .bg-\[\#0D1326\]\/95, .bg-\[\#0a0a0a\], .bg-\[\#0a0f14\], .bg-\[\#0a0f14\]\/95, .bg-\[\#0b0b0b\], .bg-\[\#0b0d12\], .bg-\[\#0b0d12\]\/90, .bg-\[\#0b0d12\]\/95, .bg-\[\#0b0f17\], .bg-\[\#0b1018\], .bg-\[\#0c111a\]\/95, .bg-\[\#0c1218\]\/95, .bg-\[\#0d111a\]\/95, .bg-\[\#0d121c\]\/90, .bg-\[\#0d1420\], .bg-\[\#0e131d\], .bg-\[\#0e1522\]\/90, .bg-\[\#0f1520\], .bg-\[\#101520\], .bg-\[\#111520\], .bg-\[\#111710\], .bg-\[\#121824\], .bg-\[\#13161f\], .bg-\[\#13161f\]\/90, .bg-\[\#131924\], .bg-\[\#131926\], .bg-\[\#131b24\], .bg-\[\#141a26\], .bg-\[\#141b28\], .bg-\[\#141b28\]\/95, .bg-\[\#151a26\], .bg-\[\#151a26\]\/95, .bg-\[\#151b28\], .bg-\[\#151c28\], .bg-black, .bg-black\/92, .bg-black\/95, .bg-neutral-800, .bg-neutral-800\/90, .bg-neutral-900, .bg-neutral-900\/90, .bg-neutral-900\/95, .bg-neutral-950, .bg-neutral-950\/95, .bg-slate-950\/90) { --lv-bg: rgba(255, 255, 255, 0.92); }
-html.light :is(.bg-\[\#070b14\]\/44, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40) { --lv-bg: rgba(255, 255, 255, 0.6); }
-html.light :is(.bg-\[\#0b0d12\]\/50, .bg-\[\#0b0d12\]\/60, .bg-\[\#0b0d12\]\/65, .bg-black\/45, .bg-black\/50, .bg-black\/55, .bg-black\/60, .bg-black\/65) { --lv-bg: rgba(255, 255, 255, 0.72); }
-html.light :is(.bg-\[\#0b0d12\]\/70, .bg-\[\#0b0d12\]\/75, .bg-\[\#0b0d12\]\/80, .bg-\[\#0b0d12\]\/85, .bg-\[\#0b0d12\]\/88, .bg-\[\#111214\]\/85, .bg-\[\#131924\]\/80, .bg-black\/70, .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/88, .bg-neutral-900\/80, .bg-white\/15, .bg-white\/20, .bg-white\/25) { --lv-bg: rgba(255, 255, 255, 0.84); }
+html.light :is(.bg-\[\#000000\], .bg-\[\#03070c\]\/92, .bg-\[\#04070d\], .bg-\[\#05070a\], .bg-\[\#060911\]\/92, .bg-\[\#07090e\], .bg-\[\#07090e\]\/90, .bg-\[\#070b14\], .bg-\[\#090d14\], .bg-\[\#090d14\]\/90, .bg-\[\#090d14\]\/95, .bg-\[\#0A0E1A\]\/95, .bg-\[\#0D1326\]\/95, .bg-\[\#0a0e14\], .bg-\[\#0a0f14\]\/95, .bg-\[\#0b0d12\], .bg-\[\#0b0d12\]\/90, .bg-\[\#0b0d12\]\/95, .bg-\[\#0b0f17\], .bg-\[\#0b1018\], .bg-\[\#0c0e12\], .bg-\[\#0c1017\], .bg-\[\#0c111a\]\/95, .bg-\[\#0c1218\]\/95, .bg-\[\#0d111a\]\/95, .bg-\[\#0d121c\], .bg-\[\#0d121c\]\/90, .bg-\[\#0d1420\], .bg-\[\#0e131d\], .bg-\[\#0e1522\]\/90, .bg-\[\#0f141d\], .bg-\[\#0f141f\], .bg-\[\#0f1520\], .bg-\[\#0f2027\], .bg-\[\#101520\], .bg-\[\#111520\], .bg-\[\#111710\], .bg-\[\#111722\], .bg-\[\#121822\], .bg-\[\#121824\], .bg-\[\#13161f\], .bg-\[\#13161f\]\/90, .bg-\[\#131720\], .bg-\[\#131924\], .bg-\[\#131926\], .bg-\[\#131b24\], .bg-\[\#141a26\], .bg-\[\#141b28\], .bg-\[\#141b28\]\/90, .bg-\[\#141b28\]\/95, .bg-\[\#151a26\], .bg-\[\#151a26\]\/95, .bg-\[\#151b28\], .bg-\[\#151c28\], .bg-\[\#161a24\], .bg-\[\#161f2e\], .bg-\[\#171d28\], .bg-\[\#171e2b\], .bg-\[\#1a1d24\], .bg-\[\#1b354b\], .bg-\[\#1e1528\], .bg-\[\#1e2025\], .bg-\[\#1f2937\], .bg-\[\#2B2331\], .bg-black, .bg-black\/92, .bg-black\/95, .bg-neutral-800, .bg-neutral-800\/90, .bg-neutral-900, .bg-neutral-900\/90, .bg-neutral-900\/95, .bg-neutral-950, .bg-neutral-950\/95, .bg-slate-950\/90) { --lv-bg: rgba(255, 255, 255, 0.92); }
+html.light :is(.bg-\[\#07090e\]\/85, .bg-\[\#0b0d12\]\/70, .bg-\[\#0b0d12\]\/75, .bg-\[\#0b0d12\]\/80, .bg-\[\#0b0d12\]\/85, .bg-\[\#111214\]\/85, .bg-\[\#13161f\]\/85, .bg-\[\#131924\]\/80, .bg-\[\#141b28\]\/80, .bg-\[\#1e2330\]\/85, .bg-black\/70, .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/88, .bg-neutral-900\/80, .bg-neutral-950\/85, .bg-white\/15, .bg-white\/20, .bg-white\/25) { --lv-bg: rgba(255, 255, 255, 0.84); }
+html.light :is(.bg-\[\#070b14\]\/44, .bg-black\/10, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40, .bg-black\/5) { --lv-bg: rgba(255, 255, 255, 0.6); }
+html.light :is(.bg-\[\#0b0d12\]\/50, .bg-\[\#0b0d12\]\/60, .bg-\[\#0b0d12\]\/65, .bg-black\/45, .bg-black\/50, .bg-black\/55, .bg-black\/60) { --lv-bg: rgba(255, 255, 255, 0.72); }
 html.light :is(.bg-amber-950\/20, .bg-amber-950\/30) { --lv-bg: rgba(254, 243, 199, 0.78); }
 html.light :is(.bg-cyan-950\/30) { --lv-bg: rgba(207, 250, 254, 0.78); }
 html.light :is(.bg-emerald-950\/30, .bg-emerald-950\/40) { --lv-bg: rgba(209, 250, 229, 0.78); }
 html.light :is(.bg-purple-950\/35) { --lv-bg: rgba(243, 232, 255, 0.78); }
 html.light :is(.bg-red-950\/30, .bg-red-950\/50) { --lv-bg: rgba(254, 226, 226, 0.78); }
-html.light :is(.bg-rose-950\/30) { --lv-bg: rgba(255, 228, 230, 0.78); }
+html.light :is(.bg-rose-950\/30, .bg-rose-950\/40) { --lv-bg: rgba(255, 228, 230, 0.78); }
 html.light :is(.bg-white\/10, .bg-white\/8) { --lv-bg: rgba(255, 255, 255, 0.74); }
 html.light :is(.bg-white\/5) { --lv-bg: rgba(255, 255, 255, 0.62); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .ff-light-adapt):is(.bg-\[\#000000\], .bg-\[\#03070c\]\/92, .bg-\[\#04070d\], .bg-\[\#050505\], .bg-\[\#060911\]\/92, .bg-\[\#07090e\]\/90, .bg-\[\#070b14\], .bg-\[\#070b14\]\/44, .bg-\[\#090d14\], .bg-\[\#090d14\]\/90, .bg-\[\#0A0E1A\]\/95, .bg-\[\#0D1326\]\/95, .bg-\[\#0a0a0a\], .bg-\[\#0a0f14\], .bg-\[\#0a0f14\]\/95, .bg-\[\#0b0b0b\], .bg-\[\#0b0d12\], .bg-\[\#0b0d12\]\/50, .bg-\[\#0b0d12\]\/60, .bg-\[\#0b0d12\]\/65, .bg-\[\#0b0d12\]\/70, .bg-\[\#0b0d12\]\/75, .bg-\[\#0b0d12\]\/80, .bg-\[\#0b0d12\]\/85, .bg-\[\#0b0d12\]\/88, .bg-\[\#0b0d12\]\/90, .bg-\[\#0b0d12\]\/95, .bg-\[\#0b0f17\], .bg-\[\#0b1018\], .bg-\[\#0c111a\]\/95, .bg-\[\#0c1218\]\/95, .bg-\[\#0d111a\]\/95, .bg-\[\#0d121c\]\/90, .bg-\[\#0d1420\], .bg-\[\#0e131d\], .bg-\[\#0e1522\]\/90, .bg-\[\#0f1520\], .bg-\[\#101520\], .bg-\[\#111214\]\/85, .bg-\[\#111520\], .bg-\[\#111710\], .bg-\[\#121824\], .bg-\[\#13161f\], .bg-\[\#13161f\]\/90, .bg-\[\#131924\], .bg-\[\#131924\]\/80, .bg-\[\#131926\], .bg-\[\#131b24\], .bg-\[\#141a26\], .bg-\[\#141b28\], .bg-\[\#141b28\]\/95, .bg-\[\#151a26\], .bg-\[\#151a26\]\/95, .bg-\[\#151b28\], .bg-\[\#151c28\], .bg-amber-950\/20, .bg-amber-950\/30, .bg-black, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40, .bg-black\/45, .bg-black\/50, .bg-black\/55, .bg-black\/60, .bg-black\/65, .bg-black\/70, .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/88, .bg-black\/92, .bg-black\/95, .bg-cyan-950\/30, .bg-emerald-950\/30, .bg-emerald-950\/40, .bg-neutral-800, .bg-neutral-800\/90, .bg-neutral-900, .bg-neutral-900\/80, .bg-neutral-900\/90, .bg-neutral-900\/95, .bg-neutral-950, .bg-neutral-950\/95, .bg-purple-950\/35, .bg-red-950\/30, .bg-red-950\/50, .bg-rose-950\/30, .bg-slate-950\/90, .bg-white\/10, .bg-white\/15, .bg-white\/20, .bg-white\/25, .bg-white\/5, .bg-white\/8):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *):not(.fixed.inset-0, .inset-0[class*="backdrop-blur"], .inset-0.opacity-0) { background-color: var(--lv-bg); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *, .ff-light-adapt):is(.bg-\[\#000000\], .bg-\[\#03070c\]\/92, .bg-\[\#04070d\], .bg-\[\#05070a\], .bg-\[\#060911\]\/92, .bg-\[\#07090e\], .bg-\[\#07090e\]\/85, .bg-\[\#07090e\]\/90, .bg-\[\#070b14\], .bg-\[\#070b14\]\/44, .bg-\[\#090d14\], .bg-\[\#090d14\]\/90, .bg-\[\#090d14\]\/95, .bg-\[\#0A0E1A\]\/95, .bg-\[\#0D1326\]\/95, .bg-\[\#0a0e14\], .bg-\[\#0a0f14\]\/95, .bg-\[\#0b0d12\], .bg-\[\#0b0d12\]\/50, .bg-\[\#0b0d12\]\/60, .bg-\[\#0b0d12\]\/65, .bg-\[\#0b0d12\]\/70, .bg-\[\#0b0d12\]\/75, .bg-\[\#0b0d12\]\/80, .bg-\[\#0b0d12\]\/85, .bg-\[\#0b0d12\]\/90, .bg-\[\#0b0d12\]\/95, .bg-\[\#0b0f17\], .bg-\[\#0b1018\], .bg-\[\#0c0e12\], .bg-\[\#0c1017\], .bg-\[\#0c111a\]\/95, .bg-\[\#0c1218\]\/95, .bg-\[\#0d111a\]\/95, .bg-\[\#0d121c\], .bg-\[\#0d121c\]\/90, .bg-\[\#0d1420\], .bg-\[\#0e131d\], .bg-\[\#0e1522\]\/90, .bg-\[\#0f141d\], .bg-\[\#0f141f\], .bg-\[\#0f1520\], .bg-\[\#0f2027\], .bg-\[\#101520\], .bg-\[\#111214\]\/85, .bg-\[\#111520\], .bg-\[\#111710\], .bg-\[\#111722\], .bg-\[\#121822\], .bg-\[\#121824\], .bg-\[\#13161f\], .bg-\[\#13161f\]\/85, .bg-\[\#13161f\]\/90, .bg-\[\#131720\], .bg-\[\#131924\], .bg-\[\#131924\]\/80, .bg-\[\#131926\], .bg-\[\#131b24\], .bg-\[\#141a26\], .bg-\[\#141b28\], .bg-\[\#141b28\]\/80, .bg-\[\#141b28\]\/90, .bg-\[\#141b28\]\/95, .bg-\[\#151a26\], .bg-\[\#151a26\]\/95, .bg-\[\#151b28\], .bg-\[\#151c28\], .bg-\[\#161a24\], .bg-\[\#161f2e\], .bg-\[\#171d28\], .bg-\[\#171e2b\], .bg-\[\#1a1d24\], .bg-\[\#1b354b\], .bg-\[\#1e1528\], .bg-\[\#1e2025\], .bg-\[\#1e2330\]\/85, .bg-\[\#1f2937\], .bg-\[\#2B2331\], .bg-amber-950\/20, .bg-amber-950\/30, .bg-black, .bg-black\/10, .bg-black\/20, .bg-black\/25, .bg-black\/30, .bg-black\/35, .bg-black\/40, .bg-black\/45, .bg-black\/5, .bg-black\/50, .bg-black\/55, .bg-black\/60, .bg-black\/70, .bg-black\/75, .bg-black\/80, .bg-black\/85, .bg-black\/88, .bg-black\/92, .bg-black\/95, .bg-cyan-950\/30, .bg-emerald-950\/30, .bg-emerald-950\/40, .bg-neutral-800, .bg-neutral-800\/90, .bg-neutral-900, .bg-neutral-900\/80, .bg-neutral-900\/90, .bg-neutral-900\/95, .bg-neutral-950, .bg-neutral-950\/85, .bg-neutral-950\/95, .bg-purple-950\/35, .bg-red-950\/30, .bg-red-950\/50, .bg-rose-950\/30, .bg-rose-950\/40, .bg-slate-950\/90, .bg-white\/10, .bg-white\/15, .bg-white\/20, .bg-white\/25, .bg-white\/5, .bg-white\/8):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *):not(.fixed.inset-0, .inset-0[class*="backdrop-blur"], .inset-0.opacity-0) { background-color: var(--lv-bg); }
 html.light :is(.hover\:bg-white\/10:hover, .hover\:bg-white\/5:hover, .hover\:bg-white\/8:hover) { --lv-bg-h: rgba(15, 23, 42, 0.06); }
 html.light :is(.hover\:bg-white\/12:hover, .hover\:bg-white\/15:hover, .hover\:bg-white\/20:hover) { --lv-bg-h: rgba(15, 23, 42, 0.09); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.hover\:bg-white\/10:hover, .hover\:bg-white\/12:hover, .hover\:bg-white\/15:hover, .hover\:bg-white\/20:hover, .hover\:bg-white\/5:hover, .hover\:bg-white\/8:hover):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { background-color: var(--lv-bg-h); }
-html.light :is(.border-slate-800) { --lv-bd: rgba(15, 23, 42, 0.12); }
+html.light :is(.border-slate-700\/50, .border-slate-800) { --lv-bd: rgba(15, 23, 42, 0.12); }
 html.light :is(.border-white\/10, .border-white\/8) { --lv-bd: rgba(15, 23, 42, 0.1); }
 html.light :is(.border-white\/12, .border-white\/15, .border-white\/20) { --lv-bd: rgba(15, 23, 42, 0.14); }
-html.light :is(.border-white\/25, .border-white\/30, .border-white\/45) { --lv-bd: rgba(15, 23, 42, 0.2); }
+html.light :is(.border-white\/25, .border-white\/40, .border-white\/45) { --lv-bd: rgba(15, 23, 42, 0.2); }
 html.light :is(.border-white\/5) { --lv-bd: rgba(15, 23, 42, 0.07); }
 html.light :is(.hover\:border-white\/20:hover) { --lv-bd: rgba(15, 23, 42, 0.14); }
 html.light :is(.hover\:border-white\/30:hover) { --lv-bd: rgba(15, 23, 42, 0.2); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.border-slate-800, .border-white\/10, .border-white\/12, .border-white\/15, .border-white\/20, .border-white\/25, .border-white\/30, .border-white\/45, .border-white\/5, .border-white\/8, .hover\:border-white\/20:hover, .hover\:border-white\/30:hover):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { border-color: var(--lv-bd); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.border-slate-700\/50, .border-slate-800, .border-white\/10, .border-white\/12, .border-white\/15, .border-white\/20, .border-white\/25, .border-white\/40, .border-white\/45, .border-white\/5, .border-white\/8, .hover\:border-white\/20:hover, .hover\:border-white\/30:hover):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { border-color: var(--lv-bd); }
 html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.divide-white\/5 > :not(:last-child)):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *) { border-color: rgba(15, 23, 42, 0.07); }
-html.light :is(.from-\[\#050811\]\/88, .from-\[\#090d14\], .from-\[\#0a0f1d\], .from-\[\#0b0d12\], .from-\[\#0b0d12\]\/88, .from-\[\#131924\], .from-\[\#141b28\], .from-\[\#182130\], .from-black\/85, .from-black\/95, .from-neutral-950) { --lv-from: rgba(248, 250, 252, 0.94); }
-html.light :is(.from-\[\#151a26\]\/80, .from-black\/80) { --lv-from: rgba(248, 250, 252, 0.75); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.from-\[\#050811\]\/88, .from-\[\#090d14\], .from-\[\#0a0f1d\], .from-\[\#0b0d12\], .from-\[\#0b0d12\]\/88, .from-\[\#131924\], .from-\[\#141b28\], .from-\[\#151a26\]\/80, .from-\[\#182130\], .from-black\/80, .from-black\/85, .from-black\/95, .from-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-from: var(--lv-from); }
-html.light :is(.via-\[\#0b0d12\]\/25, .via-black\/30, .via-black\/40) { --lv-via: rgba(248, 250, 252, 0.45); }
-html.light :is(.via-\[\#0b0d12\]\/88, .via-\[\#0b0d12\]\/90, .via-\[\#0c111a\], .via-\[\#10141d\], .via-\[\#141b33\], .via-neutral-800) { --lv-via: rgba(248, 250, 252, 0.94); }
-html.light :is(.via-black\/60) { --lv-via: rgba(248, 250, 252, 0.75); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.via-\[\#0b0d12\]\/25, .via-\[\#0b0d12\]\/88, .via-\[\#0b0d12\]\/90, .via-\[\#0c111a\], .via-\[\#10141d\], .via-\[\#141b33\], .via-black\/30, .via-black\/40, .via-black\/60, .via-neutral-800):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-via: var(--lv-via); }
+html.light :is(.from-\[\#05070a\]\/90, .from-\[\#050811\]\/88, .from-\[\#090d14\], .from-\[\#0a0f1d\], .from-\[\#0b0d12\], .from-\[\#0b0d12\]\/88, .from-\[\#0e131d\], .from-\[\#12072b\], .from-\[\#131924\], .from-\[\#141824\], .from-\[\#141b28\], .from-\[\#151208\], .from-\[\#16141a\], .from-\[\#170e0a\], .from-\[\#181d2a\], .from-\[\#182130\], .from-\[\#1b1722\], .from-black\/85, .from-neutral-950) { --lv-from: rgba(248, 250, 252, 0.94); }
+html.light :is(.from-black\/80) { --lv-from: rgba(248, 250, 252, 0.75); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.from-\[\#05070a\]\/90, .from-\[\#050811\]\/88, .from-\[\#090d14\], .from-\[\#0a0f1d\], .from-\[\#0b0d12\], .from-\[\#0b0d12\]\/88, .from-\[\#0e131d\], .from-\[\#12072b\], .from-\[\#131924\], .from-\[\#141824\], .from-\[\#141b28\], .from-\[\#151208\], .from-\[\#16141a\], .from-\[\#170e0a\], .from-\[\#181d2a\], .from-\[\#182130\], .from-\[\#1b1722\], .from-black\/80, .from-black\/85, .from-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-from: var(--lv-from); }
+html.light :is(.via-\[\#09152b\], .via-\[\#0b0d12\]\/88, .via-\[\#0c111a\], .via-\[\#0e131d\], .via-\[\#10141d\], .via-\[\#141b27\], .via-\[\#141b33\], .via-\[\#1c180b\], .via-\[\#1f130e\], .via-neutral-800) { --lv-via: rgba(248, 250, 252, 0.94); }
+html.light :is(.via-\[\#0b0d12\]\/25, .via-black\/20, .via-black\/30) { --lv-via: rgba(248, 250, 252, 0.45); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.via-\[\#09152b\], .via-\[\#0b0d12\]\/25, .via-\[\#0b0d12\]\/88, .via-\[\#0c111a\], .via-\[\#0e131d\], .via-\[\#10141d\], .via-\[\#141b27\], .via-\[\#141b33\], .via-\[\#1c180b\], .via-\[\#1f130e\], .via-black\/20, .via-black\/30, .via-neutral-800):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-via: var(--lv-via); }
+html.light :is(.to-\[\#040814\], .to-\[\#080a0f\], .to-\[\#0b0d12\], .to-\[\#0d1420\], .to-\[\#0e1014\], .to-\[\#0e121a\], .to-\[\#0e131d\], .to-\[\#101520\], .to-\[\#101622\], .to-\[\#121620\], .to-\[\#131a28\], .to-\[\#1a2333\], .to-\[\#1e1b4b\], .to-\[\#2a220e\], .to-\[\#2b1a13\], .to-neutral-950) { --lv-to: rgba(248, 250, 252, 0.94); }
 html.light :is(.to-\[\#050811\]\/72, .to-\[\#0b0d12\]\/55, .to-black\/60) { --lv-to: rgba(248, 250, 252, 0.75); }
-html.light :is(.to-\[\#080a0f\], .to-\[\#0b0d12\], .to-\[\#101520\], .to-\[\#101622\], .to-\[\#131a28\], .to-\[\#1e1b4b\], .to-neutral-950) { --lv-to: rgba(248, 250, 252, 0.94); }
 html.light :is(.to-black\/45) { --lv-to: rgba(248, 250, 252, 0.45); }
-html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.to-\[\#050811\]\/72, .to-\[\#080a0f\], .to-\[\#0b0d12\], .to-\[\#0b0d12\]\/55, .to-\[\#101520\], .to-\[\#101622\], .to-\[\#131a28\], .to-\[\#1e1b4b\], .to-black\/45, .to-black\/60, .to-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-to: var(--lv-to); }
+html.light :is(.ff-app-shell:is(.ff-view-clubs, .ff-view-qa, .ff-view-threads, .ff-view-chat, .ff-view-chronicles, .ff-view-coming-soon) *, .liquid-glass *, .obsidian-glass *, .ff-nav-capsule *, .pc-12-shell *, .ff-light-adapt *):is(.to-\[\#040814\], .to-\[\#050811\]\/72, .to-\[\#080a0f\], .to-\[\#0b0d12\], .to-\[\#0b0d12\]\/55, .to-\[\#0d1420\], .to-\[\#0e1014\], .to-\[\#0e121a\], .to-\[\#0e131d\], .to-\[\#101520\], .to-\[\#101622\], .to-\[\#121620\], .to-\[\#131a28\], .to-\[\#1a2333\], .to-\[\#1e1b4b\], .to-\[\#2a220e\], .to-\[\#2b1a13\], .to-black\/45, .to-black\/60, .to-neutral-950):not(:is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])), :is(.faa-backdrop, .gb-inspect, .gb-unbox, .ff-holo-card, .auth-overlay, .ff-keep-dark, :has(> img, > video, > picture):has(> [class*="from-black"], > [class*="via-black"], > [class*="bg-black/"]), .inset-0.opacity-0:is([class~="bg-black"], [class*="bg-black/"])) *):not(:has(> img, > video, > picture) > *) { --tw-gradient-to: var(--lv-to); }
 /* @generated light-adapter:end */
 
 /* AppErrorBoundary — chấm xanh nhấp nháy "Đang tự động tải lại…" */
@@ -6828,3 +6982,141 @@ html.light .modal-container.ff-notes-panel {
   box-shadow: 0 18px 48px rgba(60, 48, 30, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
   color: #1c1917 !important;
 }
+
+.ff-toast-capsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 9999px;
+  background: rgba(11, 13, 18, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  animation: ffToastCapsuleIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes ffToastCapsuleIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+html.light .ff-toast-capsule {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-toast-capsule {
+    animation: none !important;
+  }
+}
+.reduce-motion .ff-toast-capsule {
+  animation: none !important;
+}
+
+.ff-qa-card,
+.thread-card,
+.ff-exam-card,
+.bento-card,
+.ff-chat-bubble {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.22s ease !important;
+}
+
+.ff-qa-card:hover {
+  box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.85),
+              0 0 20px -5px rgba(233, 196, 106, 0.12),
+              inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+.thread-card:hover {
+  box-shadow: 0 20px 42px -20px rgba(0, 0, 0, 0.75),
+              0 0 18px -4px rgba(142, 182, 154, 0.15),
+              inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+.ff-exam-card:hover {
+  box-shadow: 0 20px 42px -18px rgba(0, 0, 0, 0.8),
+              0 0 22px -4px rgba(251, 191, 36, 0.14),
+              inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+}
+
+.btn-feastables,
+.ff-tactile-btn,
+.action-text-btn,
+.threads-filter-pill,
+.ff-qa-filter-chip {
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1),
+              background-color 0.16s ease,
+              border-color 0.16s ease,
+              box-shadow 0.16s ease !important;
+}
+
+.btn-feastables:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  box-shadow: 0 6px 20px -4px rgba(251, 191, 36, 0.45);
+}
+
+.btn-feastables:active:not(:disabled) {
+  transform: translateY(0.5px);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.16);
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.modal-container {
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.75),
+              0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+}
+
+html.light .modal-container {
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.18),
+              0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ff-qa-card,
+  .thread-card,
+  .ff-exam-card,
+  .bento-card,
+  .btn-feastables,
+  .ff-tactile-btn {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+

@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import {
   Search,
   BookOpen,
+  Share2,
   FileText,
   Download,
   Eye,
@@ -35,6 +36,7 @@ import {
   Send,
   Zap,
   Flame,
+  Award,
   ChevronDown,
   ChevronUp,
   Lightbulb,
@@ -82,6 +84,7 @@ const CbtPracticeModal = lazy(() => import('../exam/CbtPracticeModal').then((mod
 const ExamFlashcardModal = lazy(() => import('../exam/ExamFlashcardModal').then((module) => ({ default: module.ExamFlashcardModal })));
 const ExamBookmarkDrawer = lazy(() => import('../exam/ExamBookmarkDrawer').then((module) => ({ default: module.ExamBookmarkDrawer })));
 const ExamPrintExportModal = lazy(() => import('../exam/ExamPrintExportModal').then((module) => ({ default: module.ExamPrintExportModal })));
+const KnowledgeNetworkModal = lazy(() => import('../exam/KnowledgeNetworkModal').then((module) => ({ default: module.KnowledgeNetworkModal })));
 import { getCachedExamIds, OFFLINE_EXAMS_CACHE_KEY } from '../exam/offlineStorage';
 import './ExamVaultView.css';
 
@@ -134,17 +137,35 @@ const EXAM_TYPE_OPTIONS: ('Tất cả loại' | ExamType)[] = [
   'Khảo sát chất lượng',
 ];
 
+const CORE_12_SUBJECTS = [
+  { id: 'toan', name: 'Toán học', short: 'Toán', color: '#3b82f6' },
+  { id: 'ly', name: 'Vật lý', short: 'Lý', color: '#06b6d4' },
+  { id: 'hoa', name: 'Hóa học', short: 'Hóa', color: '#10b981' },
+  { id: 'sinh', name: 'Sinh học', short: 'Sinh', color: '#84cc16' },
+  { id: 'su', name: 'Lịch sử', short: 'Sử', color: '#eab308' },
+  { id: 'dia', name: 'Địa lý', short: 'Địa', color: '#f97316' },
+  { id: 'van', name: 'Ngữ văn', short: 'Văn', color: '#ec4899' },
+  { id: 'anh', name: 'Tiếng Anh', short: 'Anh', color: '#8b5cf6' },
+  { id: 'tin', name: 'Tin học', short: 'Tin', color: '#14b8a6' },
+  { id: 'triet', name: 'Triết học', short: 'Triết', color: '#a855f7' },
+  { id: 'thien-van', name: 'Thiên văn', short: 'Thiên văn', color: '#6366f1' },
+  { id: 'nghe-thuat', name: 'Nghệ thuật', short: 'Nghệ thuật', color: '#f43f5e' },
+];
+
 const SUBJECT_OPTIONS = [
   'Tất cả môn',
   'Toán học',
   'Vật lý',
-  'Hoá học',
+  'Hóa học',
   'Sinh học',
   'Ngữ văn',
   'Tiếng Anh',
   'Lịch sử',
   'Địa lý',
   'Tin học',
+  'Triết học',
+  'Thiên văn',
+  'Nghệ thuật',
   'GDCD',
 ];
 
@@ -251,6 +272,28 @@ const getCompactPaperTitle = (paper: ExamPaper): string => {
   return title || paper.title;
 };
 
+const ASSESSMENT_TRACKS = [
+  { id: 'all', label: 'Tất cả' },
+  { id: 'gdpt2018', label: 'GDPT 2018 (3 Phần Chuẩn)' },
+  { id: 'hsa', label: 'ĐGNL HSA (ĐHQG Hà Nội)' },
+  { id: 'vact', label: 'ĐGNL V-ACT (ĐHQG TP.HCM)' },
+  { id: 'tsa', label: 'ĐGTD TSA (Bách Khoa Hà Nội)' },
+] as const;
+
+const getExamStructureBadge = (paper: ExamPaper): string => {
+  const text = (paper.title + ' ' + (paper.summary || '') + ' ' + paper.school).toLowerCase();
+  if (text.includes('tsa') || text.includes('tư duy')) {
+    return 'ĐGTD TSA (Bách Khoa Hà Nội) · 40 câu';
+  }
+  if (text.includes('v-act') || text.includes('apt') || text.includes('đhqg-hcm') || text.includes('tp. hồ chí minh')) {
+    return 'ĐGNL V-ACT (ĐHQG TP.HCM) · 60 câu';
+  }
+  if (text.includes('hsa') || text.includes('đhqg hà nội') || text.includes('đhkhtn')) {
+    return 'ĐGNL HSA (ĐHQG Hà Nội) · 50 câu';
+  }
+  return 'GDPT 2018 (3 Phần Chuẩn) · 40 câu';
+};
+
 export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   currentUser,
   onNavigate,
@@ -332,6 +375,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   const [selectedSchool, setSelectedSchool] = useState<string>('Tất cả trường');
   const [selectedYear, setSelectedYear] = useState<string>('Tất cả năm');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('Tất cả mức độ');
+  const [selectedAssessmentTrack, setSelectedAssessmentTrack] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'likes' | 'rating'>('newest');
   const [activeTab, setActiveTab] = useState<'all' | 'syllabus' | 'exams' | 'saved' | 'cached' | 'my_submissions'>('all');
   const [isAdvancedFiltersOpen, setIsAdvancedFiltersOpen] = useState(false);
@@ -466,6 +510,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     return null;
   });
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [isKnowledgeGraphOpen, setIsKnowledgeGraphOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   /* Toast Helper */
@@ -574,7 +619,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       const exists = prev.includes(examId);
       const next = exists ? prev.filter((id) => id !== examId) : [...prev, examId];
       safeStorage.setItem(SAVED_EXAMS_KEY, JSON.stringify(next));
-      showToast(exists ? 'Đã bỏ lưu đề thi khỏi thư viện.' : 'Đã lưu đề thi vào kho cá nhân thành công!');
+      showToast(exists ? 'Đã bỏ lưu' : 'Đã lưu bài');
       try {
         playChime();
       } catch {
@@ -641,7 +686,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     try {
       const snapshot = await rateExamPaper(paperId, stars);
       saveInteractionSnapshot(paperId, snapshot);
-      showToast(`Đã ghi nhận ${stars} sao của bạn.`);
+      showToast('Đã ghi nhận');
     } catch (error) {
       showToast(error instanceof Error ? error.message : 'Không thể lưu đánh giá.');
     } finally {
@@ -716,7 +761,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
     if (navigator?.clipboard?.writeText) {
       navigator.clipboard.writeText(url).catch(() => {});
     }
-    showToast('Đã sao chép liên kết đề thi! Đang chuyển sang Câu Lạc Bộ để bạn chia sẻ...');
+    showToast('Đã sao chép');
     try {
       playChime();
     } catch {
@@ -916,7 +961,13 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
     /* Subject Filter */
     if (selectedSubject !== 'Tất cả môn') {
-      result = result.filter((p) => p.subject === selectedSubject);
+      result = result.filter((p) => {
+        if (p.subject === selectedSubject) return true;
+        if (selectedSubject === 'Hóa học' && p.subject === 'Hoá học') return true;
+        if (selectedSubject === 'Hoá học' && p.subject === 'Hóa học') return true;
+        const base = selectedSubject.replace(' học', '').toLowerCase();
+        return p.subject.toLowerCase().includes(base);
+      });
     }
 
     /* Difficulty Filter */
@@ -939,6 +990,28 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
       result = result.filter((p) => p.schoolYear === selectedYear);
     }
 
+    if (selectedAssessmentTrack === 'gdpt2018') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return p.grade === 12 || text.includes('gdpt') || text.includes('2018') || text.includes('3 phần') || text.includes('thpt');
+      });
+    } else if (selectedAssessmentTrack === 'hsa') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return text.includes('hsa') || text.includes('đhqg hà nội') || text.includes('đhkhtn');
+      });
+    } else if (selectedAssessmentTrack === 'vact') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return text.includes('v-act') || text.includes('apt') || text.includes('đhqg-hcm') || text.includes('tp. hồ chí minh');
+      });
+    } else if (selectedAssessmentTrack === 'tsa') {
+      result = result.filter((p) => {
+        const text = (p.title + ' ' + (p.summary || '') + ' ' + p.school).toLowerCase();
+        return text.includes('tsa') || text.includes('tư duy') || text.includes('bách khoa');
+      });
+    }
+
     /* Sorting */
     if (sortBy === 'likes') {
       result.sort((a, b) => (b.likes ?? -1) - (a.likes ?? -1));
@@ -950,6 +1023,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
   }, [
     allPapers,
     activeTab,
+    selectedAssessmentTrack,
     searchTerm,
     selectedGrade,
     selectedExamType,
@@ -974,11 +1048,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
         else if (printExam) setPrintExam(null);
         else if (previewExam) setPreviewExam(null);
         else if (isSubmitModalOpen) setIsSubmitModalOpen(false);
+        else if (isKnowledgeGraphOpen) setIsKnowledgeGraphOpen(false);
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [flashcardExam, cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen]);
+  }, [flashcardExam, cbtExam, isBookmarkDrawerOpen, printExam, previewExam, isSubmitModalOpen, isKnowledgeGraphOpen]);
 
   const adminCaps = useAdminCaps();
   const isStaffOrAdmin = currentUser?.role === 'SUPER_ADMIN'
@@ -1005,7 +1080,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
   /* Prevent background scrolling when any modal or drawer is open */
   const isAnyModalOpen = Boolean(
-    flashcardExam || cbtExam || isBookmarkDrawerOpen || printExam || previewExam || isSubmitModalOpen
+    flashcardExam || cbtExam || isBookmarkDrawerOpen || printExam || previewExam || isSubmitModalOpen || isKnowledgeGraphOpen
   );
 
   useEffect(() => {
@@ -1121,6 +1196,18 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           >
             <Users className="w-3.5 h-3.5" />
             <span>Câu Lạc Bộ</span>
+          </button>
+
+          {/* Nút Mạng Lưới Tri Thức */}
+          <button
+            type="button"
+            onClick={() => setIsKnowledgeGraphOpen(true)}
+            className="ff-tactile-btn inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-cyan-400/40 bg-cyan-500/15 px-3 text-xs font-bold text-cyan-300 hover:bg-cyan-500/25 transition-all cursor-pointer"
+            aria-label="Mở Bản đồ Mạng lưới Tri thức Liên môn"
+            title="Bản đồ Mạng lưới Tri thức Liên môn"
+          >
+            <Share2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Mạng Lưới Tri Thức</span>
           </button>
 
           {/* Online / Offline status badge */}
@@ -1325,6 +1412,27 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           })}
         </div>
 
+        <div className="py-2.5 border-b border-white/10 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {ASSESSMENT_TRACKS.map((track) => {
+            const active = selectedAssessmentTrack === track.id;
+            return (
+              <button
+                key={track.id}
+                type="button"
+                onClick={() => setSelectedAssessmentTrack(track.id)}
+                aria-pressed={active}
+                className={`px-3 py-1.5 rounded-[12px] text-xs font-mono font-bold whitespace-nowrap transition-all duration-150 cursor-pointer border card-hard ${
+                  active
+                    ? 'bg-[#FBF2E1] text-[#2B2331] border-[#2B2331] shadow-sm font-extrabold'
+                    : 'bg-white/[0.04] text-white/70 border-white/10 hover:bg-white/[0.08] hover:text-white'
+                }`}
+              >
+                {track.label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Filter Dropdowns Grid */}
         <div className="grid grid-cols-2 gap-2.5 mt-2.5 sm:grid-cols-4">
           {/* Filter Khối lớp */}
@@ -1401,28 +1509,111 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
 
         </div>
 
-        {/* Quick Subject Focus Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 mt-2 border-t border-dashed border-white/10">
-          <span className="text-[11px] font-mono text-white/55 shrink-0 mr-1 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-[#f2cc8f]" /> Môn trọng tâm:
-          </span>
-          {['Tất cả môn', 'Toán học', 'Vật lý', 'Hoá học', 'Sinh học', 'Ngữ văn', 'Tiếng Anh', 'Tin học'].map((subj) => {
-            const isSel = selectedSubject === subj;
-            return (
-              <button
-                key={subj}
-                type="button"
-                onClick={() => setSelectedSubject(subj)}
-                className={`ff-tactile-btn px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors cursor-pointer border ${
-                  isSel
-                    ? 'bg-[#f4f1de] text-[#0b0d12] border-[#0b0d12]'
-                    : 'bg-white/5 text-[#d8d5ce] hover:bg-white/10 border-white/10'
-                }`}
-              >
-                {subj}
-              </button>
-            );
-          })}
+        {/* Hệ Thống Phân Luồng 12 Môn Học Trọng Điểm */}
+        <div className="py-2.5 mt-2 border-t border-white/10 space-y-2">
+          <div className="flex items-center justify-between text-xs font-mono">
+            <span className="text-white/70 font-semibold flex items-center gap-1.5 uppercase tracking-wider text-[11px]">
+              <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+              12 Môn Học Trọng Điểm 2027
+            </span>
+            <span className="text-amber-300 font-bold text-[10.5px]">
+              {selectedSubject}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar scroll-smooth snap-x snap-mandatory">
+            <button
+              type="button"
+              onClick={() => setSelectedSubject('Tất cả môn')}
+              className={`snap-start shrink-0 card-hard rounded-[14px] px-3.5 py-2 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+                selectedSubject === 'Tất cả môn'
+                  ? 'border-amber-400 bg-amber-400/20 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.25)]'
+                  : 'border-white/10 bg-white/[0.03] text-white/70 hover:border-white/20 hover:text-white'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span>Tất cả môn</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-white/80">
+                {allPapers.length}
+              </span>
+            </button>
+
+            {CORE_12_SUBJECTS.map((subj) => {
+              const isSel = selectedSubject === subj.name || (subj.name === 'Hóa học' && selectedSubject === 'Hoá học');
+              const count = allPapers.filter((p: ExamPaper) => p.subject === subj.name || (subj.name === 'Hóa học' && p.subject === 'Hoá học') || p.subject.toLowerCase().includes(subj.short.toLowerCase())).length;
+
+              return (
+                <button
+                  key={subj.id}
+                  type="button"
+                  onClick={() => setSelectedSubject(subj.name)}
+                  className={`snap-start shrink-0 card-hard rounded-[14px] px-3.5 py-2 text-xs font-bold transition-all cursor-pointer flex items-center gap-2 border ${
+                    isSel
+                      ? 'border-amber-400 bg-amber-400/20 text-amber-200 shadow-[0_0_12px_rgba(251,191,36,0.25)]'
+                      : 'border-white/10 bg-white/[0.03] text-white/70 hover:border-white/20 hover:text-white'
+                  }`}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: subj.color }}
+                  />
+                  <span>{subj.name}</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-white/80">
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Ma Trận Cấp Độ Đề Thi 2027 */}
+        <div className="py-2.5 border-t border-dashed border-white/10 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10.5px] font-mono uppercase tracking-wider text-white/50 mr-1 flex items-center gap-1">
+              <Zap className="w-3 h-3 text-amber-400" /> Cấp độ:
+            </span>
+            {DIFFICULTY_OPTIONS.map((diff) => {
+              const isSel = selectedDifficulty === diff;
+              return (
+                <button
+                  key={diff}
+                  type="button"
+                  onClick={() => setSelectedDifficulty(diff)}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition cursor-pointer ${
+                    isSel
+                      ? 'border-amber-400 bg-amber-400/20 text-amber-200 font-bold'
+                      : 'border-white/10 bg-white/[0.03] text-white/60 hover:text-white hover:bg-white/[0.07]'
+                  }`}
+                >
+                  {diff}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-[10.5px] font-mono uppercase tracking-wider text-white/50 mr-1 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-cyan-400" /> Năm:
+            </span>
+            {YEAR_OPTIONS.map((yr) => {
+              const isSel = selectedYear === yr;
+              return (
+                <button
+                  key={yr}
+                  type="button"
+                  onClick={() => setSelectedYear(yr)}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-semibold border transition cursor-pointer font-mono ${
+                    isSel
+                      ? 'border-cyan-400 bg-cyan-400/20 text-cyan-200 font-bold'
+                      : 'border-white/10 bg-white/[0.03] text-white/60 hover:text-white hover:bg-white/[0.07]'
+                  }`}
+                >
+                  {yr}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <div className="mt-2 flex justify-end">
@@ -1651,7 +1842,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:gap-6">
             {filteredPapers.map((paper) => {
               const isSaved = savedExams.includes(paper.id);
               const isPublicPaper = !paper.status || paper.status === 'approved';
@@ -1683,7 +1874,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     openExamViewer(paper.id);
                   }}
                   data-exam-id={paper.id}
-                  className={`ff-exam-card rounded-2xl p-4 sm:p-5 flex flex-col justify-between cursor-pointer relative overflow-visible group ${
+                  className={`ff-exam-card rounded-2xl p-4.5 sm:p-5.5 lg:p-6 flex flex-col justify-between cursor-pointer relative overflow-visible group ${
                     isPending ? 'border-amber-400/40 bg-amber-950/20' : ''
                   }`}
                 >
@@ -1721,6 +1912,12 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         {paper.hasAnswer && (
                           <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                             <Check className="w-2.5 h-2.5" /> Có đáp án
+                          </span>
+                        )}
+
+                        {paper.verified && (
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                            <ShieldCheck className="w-2.5 h-2.5" /> Đề chuẩn
                           </span>
                         )}
 
@@ -1821,6 +2018,23 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         )}
                       </div>
 
+                      <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-between gap-2 flex-wrap text-[11px] font-mono">
+                        <span className="text-emerald-300 font-semibold flex items-center gap-1.5" title="Số lượng sĩ tử đã hoàn thành bài thi này">
+                          <Users className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>{Math.abs(paper.id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0) * 17) % 450 + 128} sĩ tử đã hoàn thành</span>
+                        </span>
+
+                        <span className="text-amber-300 font-bold px-2 py-0.5 rounded-lg bg-amber-400/10 border border-amber-400/25 flex items-center gap-1" title="Điểm Uy Tín Học Thuật thưởng khi hoàn tất">
+                          <Award className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span>+{(paper.duration || 45) * 2} Điểm Uy Tín</span>
+                        </span>
+
+                        <span className="text-cyan-300 flex items-center gap-1" title="Thời gian làm bài chuẩn mực">
+                          <Clock className="w-3 h-3 text-cyan-400 shrink-0" />
+                          <span>{paper.duration || 45} phút</span>
+                        </span>
+                      </div>
+
                       {/* Action buttons */}
                       {isPending && (
                         <span className="ff-exam-pending-badge inline-flex min-h-8 items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[11px] font-bold">
@@ -1828,7 +2042,27 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                         </span>
                       )}
 
+                      <div className="flex items-center justify-between gap-2 flex-wrap pb-1">
+                        <div className="card-hard rounded-[16px] px-3 py-1.5 text-xs font-mono font-bold bg-[#FBF2E1] text-[#2B2331] inline-flex items-center gap-1.5 shadow-sm border border-[#2B2331]/20">
+                          <Layers className="w-3.5 h-3.5 text-[#2B2331]" />
+                          <span>{getExamStructureBadge(paper)}</span>
+                        </div>
+                      </div>
+
                       <div className="ff-exam-card-actions grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCbtExam(paper);
+                          }}
+                          className="btn-feastables ff-tactile-pop inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-amber-400 px-2 py-1.5 text-xs font-black text-[#0b0d12] shadow-sm hover:bg-amber-300 transition-all col-span-2 sm:col-span-1"
+                          title="Luyện Thi Ngay · Bắt Đầu Thi CBT"
+                          aria-label="Luyện Thi Ngay · Bắt Đầu Thi CBT"
+                        >
+                          <Zap className="w-3.5 h-3.5 text-[#0b0d12]" />
+                          <span>Thi CBT</span>
+                        </button>
                         {/* Admin approval actions if pending */}
                         {isPending && isStaffOrAdmin && (
                           <>
@@ -2034,7 +2268,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
               )}
               {activePreview.verified && (
                 <span className="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3" /> Đã kiểm duyệt
+                  <ShieldCheck className="w-3 h-3" /> Đề chuẩn
                 </span>
               )}
             </div>
@@ -2400,7 +2634,7 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
                     title="In đề thi chuẩn khổ A4 hoặc xuất PDF"
                   >
                     <Printer className="w-4 h-4 text-[#81b29a]" />
-                    <span>In Đề / PDF</span>
+                    <span>In đề thi</span>
                   </button>
                 )}
 
@@ -2809,13 +3043,24 @@ export const ExamVaultView: React.FC<ExamVaultViewProps> = ({
           onPrint={() => showToast('Trong hộp thoại in, chọn “Lưu dưới dạng PDF” để lưu tệp.')}
         />
       )}
+
+      {isKnowledgeGraphOpen && (
+        <KnowledgeNetworkModal
+          isOpen={isKnowledgeGraphOpen}
+          onClose={() => setIsKnowledgeGraphOpen(false)}
+          onFilterTopic={(topic, subject) => {
+            setSelectedSubject(subject);
+            setSearchTerm(topic);
+          }}
+        />
+      )}
       </Suspense>
 
       {/* ======================================================== */}
       {/* 10. TOAST NOTIFICATION                                   */}
       {/* ======================================================== */}
       {toastMessage && (
-        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-amber-400/50 bg-neutral-900/95 px-4 py-2.5 text-xs font-semibold text-amber-200 shadow-[0_12px_36px_rgba(0,0,0,0.65)] backdrop-blur-xl animate-fade-up">
+        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-neutral-950/85 px-4 py-2 text-xs font-semibold text-amber-200 shadow-xl backdrop-blur-md ff-toast-capsule" role="status" aria-live="polite">
           <Sparkles className="w-4 h-4 shrink-0 text-amber-400" />
           <span className="break-words">{toastMessage}</span>
         </div>

@@ -10,6 +10,7 @@ import {
   Repeat2, Flag, Trash2, MessageSquareQuote, X,
   Search, Hash, Image as ImageIcon, Clock, TrendingUp,
   Bookmark, ZoomIn, BookOpen, PenLine, Sparkles,
+  Lightbulb,
 } from 'lucide-react';
 import type { Thread, ThreadReactionType, User } from '../../types';
 import { DEFAULT_AVATAR, handleImageError } from '../../utils/mediaFallback';
@@ -21,6 +22,7 @@ import { useVirtualWindow } from '../../utils/virtualWindow';
 import { useInteractionDebounce } from '../../utils/interactionScheduler';
 import { ReactionPicker } from '../ui/ReactionPicker';
 import { canCreateForumPost } from '../../utils/communityRoles';
+import { StepSolutionAccordion } from '../exam/StepSolutionAccordion';
 import './ThreadsView.css';
 
 const SAVED_THREADS_KEY = 'fforum_saved_threads_v1';
@@ -48,6 +50,56 @@ interface ThreadIndexes {
 }
 
 const EMPTY_THREAD_REPLIES: Thread[] = [];
+
+const parseSpoilerContent = (text: string) => {
+  const spoilerRegex = /\[(?:spoiler|lời giải|loi-giai)\]([\s\S]*?)\[\/(?:spoiler|lời giải|loi-giai)\]/i;
+  const match = text.match(spoilerRegex);
+  if (match) {
+    const main = text.replace(spoilerRegex, '').trim();
+    const solution = match[1].trim();
+    return { main, solution };
+  }
+  return { main: text, solution: null };
+};
+
+const ThreadSolutionSpoiler: React.FC<{ solutionText: string }> = ({ solutionText }) => {
+  return (
+    <div className="thread-solution-box my-3">
+      <StepSolutionAccordion solutionRaw={solutionText} />
+    </div>
+  );
+};
+
+const getThreadAcademicMeta = (thread: Thread) => {
+  const c = (thread.content || '').toLowerCase();
+  let subject = 'Học thuật';
+  if (c.includes('toán') || c.includes('math') || c.includes('hình học') || c.includes('đại số') || c.includes('tích phân') || c.includes('đạo hàm')) {
+    subject = 'Toán học';
+  } else if (c.includes('vật lý') || c.includes('vật lí') || c.includes('physics') || c.includes('dao động') || c.includes('sóng cơ')) {
+    subject = 'Vật lý';
+  } else if (c.includes('hóa') || c.includes('chemistry') || c.includes('este') || c.includes('dung dịch')) {
+    subject = 'Hóa học';
+  } else if (c.includes('sinh') || c.includes('di truyền') || c.includes('adn') || c.includes('biology')) {
+    subject = 'Sinh học';
+  } else if (c.includes('văn') || c.includes('ngữ văn') || c.includes('nghị luận')) {
+    subject = 'Ngữ văn';
+  } else if (c.includes('tiếng anh') || c.includes('english') || c.includes('ielts')) {
+    subject = 'Tiếng Anh';
+  } else if (c.includes('tin học') || c.includes('code') || c.includes('thuật toán') || c.includes('lập trình')) {
+    subject = 'Tin học';
+  } else if (c.includes('tâm sự') || c.includes('chill') || c.includes('bạn bè')) {
+    subject = 'Đời sống';
+  }
+
+  let difficulty: 'Cơ bản' | 'Vận dụng' | 'Vận dụng cao' = 'Vận dụng';
+  if (c.includes('vận dụng cao') || c.includes('vdc') || c.includes('olympic') || c.includes('nâng cao') || c.includes('hsg') || thread.authorLevel >= 60) {
+    difficulty = 'Vận dụng cao';
+  } else if (c.includes('cơ bản') || c.includes('nhận biết') || c.includes('nhập môn') || thread.authorLevel < 20) {
+    difficulty = 'Cơ bản';
+  }
+
+  return { subject, difficulty };
+};
 
 const renderContentWithHashtags = (
   text: string,
@@ -260,10 +312,15 @@ const ThreadCard = React.memo<{
   }, [rootThread.content]);
 
   const isFeaturedCard = totalReactionCount + childReplies.length >= 3;
+  const academicMeta = useMemo(() => getThreadAcademicMeta(rootThread), [rootThread]);
+  const { main: cleanBody, solution } = useMemo(
+    () => parseSpoilerContent(bodyRemainder),
+    [bodyRemainder],
+  );
 
   return (
     <div>
-      <div className={`thread-card ${isFeaturedCard ? 'is-featured' : ''}`}>
+      <div className={`thread-card card-hard ${isFeaturedCard ? 'is-featured' : ''}`}>
         <div className="thread-author">
           <button
             type="button"
@@ -316,6 +373,31 @@ const ThreadCard = React.memo<{
               <span className="author-time">{formatRelativeTime(rootThread.createdAtMs)} · #{rootThread.id.slice(-4).toUpperCase()}</span>
             </div>
           </button>
+          <div className="thread-meta-badges inline-flex items-center gap-1.5 ml-auto sm:ml-2">
+            <span className="thread-badge-subject px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#81b29a]/15 text-[#81b29a] border border-[#81b29a]/35">
+              {academicMeta.subject}
+            </span>
+            <span className={`thread-badge-diff px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+              academicMeta.difficulty === 'Vận dụng cao'
+                ? 'bg-rose-500/15 text-rose-300 border-rose-500/35'
+                : academicMeta.difficulty === 'Vận dụng'
+                ? 'bg-amber-400/15 text-amber-300 border-amber-400/35'
+                : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/35'
+            }`}>
+              {academicMeta.difficulty}
+            </span>
+            {(childReplies.length >= 2 || totalReactionCount >= 3) ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#e07a5f]/15 text-[#f2cc8f] border border-[#e07a5f]/30">
+                <Flame className="w-3 h-3 text-[#e07a5f]" />
+                <span>Sôi nổi</span>
+              </span>
+            ) : Date.now() - rootThread.createdAtMs < 3600000 ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#81b29a]/15 text-[#81b29a] border border-[#81b29a]/30">
+                <Clock className="w-3 h-3 text-[#81b29a]" />
+                <span>Mới nhất</span>
+              </span>
+            ) : null}
+          </div>
           {showActions && (
             <div className="thread-top-actions">
               {isAuthor || isSuperAdmin ? (
@@ -337,9 +419,12 @@ const ThreadCard = React.memo<{
             {renderContentWithHashtags(editorialLead, viewModel.onSelectTag)}
           </h3>
         )}
-        <p className="thread-content">
-          {renderContentWithHashtags(bodyRemainder, viewModel.onSelectTag)}
-        </p>
+        {cleanBody && (
+          <p className="thread-content">
+            {renderContentWithHashtags(cleanBody, viewModel.onSelectTag)}
+          </p>
+        )}
+        {solution && <ThreadSolutionSpoiler solutionText={solution} />}
 
         {rootThread.imageUrl && (
           <div
@@ -458,11 +543,12 @@ const ThreadCard = React.memo<{
                 onClick={() => viewModel.onToggleSave?.(rootThread.id)}
                 className={`action-text-btn subtle ${viewModel.isSaved?.(rootThread.id) ? 'is-saved' : ''}`}
                 title={viewModel.isSaved?.(rootThread.id) ? 'Bỏ lưu bài viết' : 'Lưu bài viết'}
+                aria-label={viewModel.isSaved?.(rootThread.id) ? 'Bỏ lưu bài viết' : 'Lưu bài viết'}
                 aria-pressed={Boolean(viewModel.isSaved?.(rootThread.id))}
               >
                 <Bookmark className="w-4 h-4" />
               </button>
-              <button type="button" onClick={() => setIsReportOpen(true)} className="action-text-btn subtle" title="Báo cáo vi phạm">
+              <button type="button" onClick={() => setIsReportOpen(true)} className="action-text-btn subtle" title="Báo cáo vi phạm" aria-label="Báo cáo vi phạm">
                 <Flag className="w-4 h-4" />
               </button>
             </div>
@@ -764,11 +850,19 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const readerReturnFocusRef = useRef<HTMLElement | null>(null);
   const lightboxReturnFocusRef = useRef<HTMLElement | null>(null);
 
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!toastMsg) return undefined;
+    const timer = window.setTimeout(() => setToastMsg(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [toastMsg]);
+
   const toggleSaveThread = useCallback((threadId: string) => {
     setSavedIds((prev) => {
       const exists = prev.includes(threadId);
       const next = exists ? prev.filter((id) => id !== threadId) : [threadId, ...prev];
       safeStorage.setItem(SAVED_THREADS_KEY, JSON.stringify(next));
+      setToastMsg(exists ? 'Đã bỏ lưu' : 'Đã lưu bài');
       return next;
     });
   }, []);
@@ -1068,7 +1162,10 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
   const viewModel = useMemo(
     () => ({
       onReply: (parentId: string, content: string) => void onReplyThread(parentId, content),
-      onReact: (id: string, type: ThreadReactionType) => void onReact(id, type),
+      onReact: (id: string, type: ThreadReactionType) => {
+        setToastMsg('Đã ghi nhận');
+        void onReact(id, type);
+      },
       onRepost: (id: string, type: 'simple' | 'quote', content?: string) => void onRepost(id, type, content),
       onReport: (id: string, reason: string) => void onReport(id, reason),
       onDelete: (id: string) => void onDelete?.(id),
@@ -1309,6 +1406,18 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
                 <button type="button" onClick={firePickImage} className="icon-btn subtle ff-tactile-btn" title="Đính kèm 1 ảnh (≤20MB)">
                   <ImagePlus className="w-4 h-4 text-[#f2cc8f]" />
                   <span>Đính kèm ảnh</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const template = '\n[spoiler]\nLời giải từng bước:\nBước 1: Xác định điều kiện & giả thiết\nBước 2: Triển khai các bước biến đổi\nBước 3: Kết luận đáp số\n[/spoiler]';
+                    setDraftContent((prev) => (prev + template).slice(0, THREAD_MAX_CHARS));
+                  }}
+                  className="icon-btn subtle ff-tactile-btn"
+                  title="Thêm khối ẩn lời giải từng bước cho bài tập"
+                >
+                  <Lightbulb className="w-4 h-4 text-[#81b29a]" />
+                  <span>Ẩn lời giải</span>
                 </button>
                 <input
                   ref={fileInputRef}
@@ -1563,6 +1672,13 @@ export const ThreadsView: React.FC<ThreadsViewProps> = ({
             onError={(e) => handleImageError(e, '')}
             className="thread-lightbox-img"
           />
+        </div>
+      )}
+
+      {toastMsg && (
+        <div className="fixed bottom-6 left-1/2 z-50 flex max-w-[calc(100vw-2rem)] -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-neutral-950/85 px-4 py-2 text-xs font-semibold text-neutral-100 shadow-xl backdrop-blur-md ff-toast-capsule" role="status" aria-live="polite">
+          <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+          <span>{toastMsg}</span>
         </div>
       )}
     </section>

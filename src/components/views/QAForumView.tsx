@@ -28,6 +28,7 @@ import {
   Flag,
   User as UserIcon,
   Coins,
+  Flame,
   Bookmark,
   BookmarkCheck,
   Brain,
@@ -38,7 +39,9 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
+  BookOpen,
 } from 'lucide-react';
+import { StepSolutionAccordion } from '../exam/StepSolutionAccordion';
 import type {
   Question,
   Solution,
@@ -586,15 +589,42 @@ interface QAForumViewProps {
   onDetailOpenChange?: (open: boolean) => void;
 }
 
+const formatRelativeTime = (timeStrOrMs: string | number | undefined): string => {
+  if (!timeStrOrMs) return 'vừa xong';
+  let ms: number;
+  if (typeof timeStrOrMs === 'number') {
+    ms = timeStrOrMs;
+  } else {
+    const parsed = Date.parse(timeStrOrMs);
+    if (!Number.isNaN(parsed)) {
+      ms = parsed;
+    } else {
+      const match = timeStrOrMs.match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})\s*(\d{1,2})?:?(\d{1,2})?/);
+      if (match) {
+        const [, y, m, d, h, min] = match;
+        ms = new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0)).getTime();
+      } else {
+        return timeStrOrMs;
+      }
+    }
+  }
+  const diff = Math.max(0, Date.now() - ms);
+  if (diff < 60_000) return 'vừa xong';
+  if (diff < 3_600_000) return `${Math.floor(diff / 60_000)} phút trước`;
+  if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)} giờ trước`;
+  if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)} ngày trước`;
+  return `${Math.floor(diff / 86_400_000)} ngày trước`;
+};
+
 const SUBJECTS: { tag: SubjectTag | 'all'; label: string; group: 'academic' | 'life' }[] = [
-  { tag: 'all', label: 'Tất cả', group: 'academic' },
-  { tag: 'toan', label: 'Toán học', group: 'academic' },
-  { tag: 'ly', label: 'Vật lý', group: 'academic' },
-  { tag: 'hoa', label: 'Hóa học', group: 'academic' },
-  { tag: 'sinh', label: 'Sinh học', group: 'academic' },
-  { tag: 'anh', label: 'Tiếng Anh', group: 'academic' },
+  { tag: 'all', label: 'Tất cả môn', group: 'academic' },
+  { tag: 'toan', label: 'Toán', group: 'academic' },
+  { tag: 'ly', label: 'Lý', group: 'academic' },
+  { tag: 'hoa', label: 'Hóa', group: 'academic' },
+  { tag: 'sinh', label: 'Sinh', group: 'academic' },
   { tag: 'tin', label: 'Tin học', group: 'academic' },
   { tag: 'van', label: 'Ngữ văn', group: 'academic' },
+  { tag: 'anh', label: 'Tiếng Anh', group: 'academic' },
   { tag: 'su', label: 'Sử - Địa', group: 'academic' },
   { tag: 'hotro', label: 'Hỗ trợ', group: 'life' },
   { tag: 'kinhnghiem', label: 'Ôn thi', group: 'life' },
@@ -1404,7 +1434,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
     const wasSaved = isQuestionSaved(savedMap, savedOwnerKey, questionId);
     persistSavedMap(toggleSavedQuestion(savedMap, savedOwnerKey, questionId, !wasSaved));
     pushNotification({
-      title: wasSaved ? 'Đã bỏ lưu câu hỏi' : 'Đã lưu câu hỏi',
+      title: wasSaved ? 'Đã bỏ lưu' : 'Đã lưu bài',
       body: wasSaved
         ? 'Câu hỏi đã được gỡ khỏi danh sách đã lưu.'
         : 'Xem lại bất cứ lúc nào trong mục Đã lưu.',
@@ -1714,7 +1744,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     setIsAskModalOpen(true);
                   }
                 }}
-                className="ff-tactile-btn px-4 py-2 rounded-xl text-xs font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                className="btn-feastables ff-tactile-pop px-4 py-2 rounded-xl text-xs font-extrabold bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
               >
                 <PlusCircle className="w-4 h-4 text-[#e07a5f]" />
                 <span>Đặt câu hỏi</span>
@@ -1803,9 +1833,9 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         </div>
 
         {/* Main Content Area: Questions Feed (Col 8) + Leaderboard (Col 4) */}
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 min-h-0 pb-6 items-start">
+        <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-7 min-h-0 pb-6 items-start">
           {/* Left: Questions Feed */}
-          <div ref={questionFeedRef} className="ff-qa-feed lg:col-span-8 space-y-2.5 pb-6">
+          <div ref={questionFeedRef} className="ff-qa-feed lg:col-span-8 space-y-4 sm:space-y-5 pb-8">
           {(isSynced || filteredQuestions.length > 0) && (
             <div className="ff-qa-feed-summary" role="status" aria-live="polite" aria-atomic="true">
               <span className="ff-qa-feed-label">BẢNG CÂU HỎI</span>
@@ -1834,7 +1864,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   <X className="w-3.5 h-3.5" />
-                  <span>Xem tất cả câu hỏi</span>
+                  <span>Xem tất cả</span>
                 </button>
               </div>
             ) : showSavedOnly || searchTerm || selectedTag !== 'all' ? (
@@ -1880,7 +1910,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   className="ff-tactile-btn mt-2 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#e07a5f] hover:bg-[#f2cc8f] text-[#0b0d12] border border-[#f4f1de] text-xs font-extrabold transition-colors cursor-pointer"
                 >
                   <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Đặt câu hỏi đầu tiên</span>
+                  <span>Đặt câu hỏi</span>
                 </button>
               </div>
             )
@@ -1926,7 +1956,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   aria-label={`Xem chi tiết câu hỏi: ${q.title}`}
                   data-question-id={q.id}
                   ref={setQuestionCardRef}
-                  className={`ff-virtual-card ff-qa-card cursor-pointer p-4 sm:p-5 group ${
+                  className={`ff-virtual-card ff-qa-card card-hard cursor-pointer p-4 sm:p-5.5 lg:p-6 group ${
                     q.isSolved ? 'is-solved' : 'is-unsolved'
                   }`}
                 >
@@ -1968,22 +1998,22 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             <span>{subjectLabel}</span>
                           </span>
 
-                          {q.isSolved ? (
-                            <span className="sm:hidden ff-holo-badge inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-bold text-[#d8f3dc]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[5px] bg-[#f2cc8f]/18 border border-[#f2cc8f]/45 text-xs font-mono font-bold text-[#f2cc8f] shadow-sm">
+                            <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
+                            <span>+{q.bountyCoin || 50} Điểm Uy Tín</span>
+                          </span>
+
+                          {q.isSolved || bestSol ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-medium bg-[#81b29a]/20 text-[#d8f3dc] border border-[#81b29a]/50 shadow-sm">
                               <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
                               <span>Đã giải</span>
                             </span>
                           ) : (
-                            <span className="sm:hidden ff-organic-badge !py-0.5 !px-2.5 !rounded-[5px] inline-flex items-center gap-1.5">
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] text-xs font-medium bg-[#e07a5f]/15 text-[#f2cc8f] border border-[#e07a5f]/30">
                               <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
-                              <span>Chờ giải</span>
+                              <span>Chờ lời giải</span>
                             </span>
                           )}
-
-                          <span className="sm:hidden inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[5px] bg-[#f2cc8f]/15 border-[1.5px] border-[#f2cc8f]/40 text-xs font-mono font-bold text-[#f2cc8f] shadow-[2px_2px_0px_rgba(4,6,11,0.85)]">
-                            <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
-                            <span>+{q.bountyCoin || 20} Coin</span>
-                          </span>
 
                           {attachedImages.length > 0 && (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[5px] bg-[#81b29a]/15 border-[1.5px] border-[#81b29a]/40 text-xs font-semibold text-[#d8f3dc]">
@@ -2169,7 +2199,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               </span>
                             )}
                           </button>
-                          <span className="text-xs text-[#9a978e] font-mono">· {q.createdAt}</span>
+                          <span className="text-xs text-[#9a978e] font-mono">· {formatRelativeTime(q.createdAt)}</span>
                         </div>
 
                         <div className="flex items-center gap-3 text-xs font-mono text-[#d8d5ce] shrink-0">
@@ -2592,6 +2622,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         placeholder="Ghi rõ đề bài, dữ kiện đã cho và bước biến đổi đang vướng mắc..."
                         className="w-full min-h-[152px] bg-transparent text-[15px] text-[#f4f1de] placeholder-[#84817a] focus:outline-none resize-y leading-[1.7] ask2027-scrollbar"
                       />
+                      <div className="flex items-center justify-between text-xs font-mono text-[#9a978e] pt-2 border-t border-dashed border-[#f4f1de]/10">
+                        <span>{newContent.length}/1500 ký tự</span>
+                        <span className={newContent.trim().split(/\s+/).filter(Boolean).length >= 50 ? 'text-emerald-400 font-bold' : 'text-[#f2cc8f]'}>
+                          {newContent.trim() ? newContent.trim().split(/\s+/).filter(Boolean).length : 0} / 150 từ khuyến nghị
+                        </span>
+                      </div>
                     </div>
                   </div>
 
@@ -2782,12 +2818,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-3 border-b border-dashed border-[#f4f1de]/12">
                     <div className="flex items-center gap-2.5 flex-wrap">
                       <span className="text-xs font-bold text-[#f4f1de]">
-                        Cược Coin thưởng:
+                        Treo thưởng Điểm Uy Tín:
                       </span>
                       <div className="ask2027-coin-badge px-2.5 py-1 rounded-full flex items-center gap-1.5">
                         <Coins className="w-3.5 h-3.5 text-[#f2cc8f] shrink-0" />
                         <span className="text-[11px] font-mono font-bold text-[#f2cc8f]">
-                          Số dư: {formatCoinBalance(userBalance)} Coin
+                          Số dư: {formatCoinBalance(userBalance)} Uy Tín
                         </span>
                       </div>
                     </div>
@@ -2805,7 +2841,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           −
                         </button>
                         <span className="px-2.5 text-xs sm:text-sm font-mono font-extrabold text-[#f2cc8f] min-w-[74px] text-center">
-                          {bountyCoin} Coin
+                          {bountyCoin} Uy Tín
                         </span>
                         <button
                           type="button"
@@ -2863,7 +2899,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                       <button
                         type="submit"
                         disabled={askCooldown > 0 || isSubmittingAsk}
-                        className="ff-tactile-btn px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-[13.5px] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] border-2 border-[#0b0d12] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                        className="btn-feastables ff-tactile-pop px-6 py-2.5 rounded-xl font-extrabold text-xs sm:text-[13.5px] bg-[#f4f1de] hover:bg-[#f2cc8f] text-[#0b0d12] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
                         {isSubmittingAsk ? (
                           <>
@@ -2943,6 +2979,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
         const detailSubjectLabel =
           SUBJECTS.find(s => s.tag === selectedQuestion.subject)?.label || selectedQuestion.subject;
         const bestBonusCoin = Math.floor((selectedQuestion.bountyCoin || 20) * 0.5) + 100;
+        const askerRefundCoin = Math.floor((selectedQuestion.bountyCoin || 20) * 0.2);
 
         const detailPageNode = (
           <div
@@ -2984,19 +3021,19 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                   </span>
 
                   {selectedQuestion.isSolved ? (
-                    <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-xs font-bold text-[#d8f3dc] inline-flex items-center gap-1.5">
+                    <span className="ff-holo-badge px-2.5 py-0.5 rounded-md text-xs font-medium text-[#d8f3dc] inline-flex items-center gap-1.5">
                       <CheckCircle2 className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                      <span>Đã có đáp án chuẩn</span>
+                      <span>Đã giải</span>
                     </span>
                   ) : activeSolutions.length === 0 ? (
-                    <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
+                    <span className="ff-organic-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5 text-xs font-medium">
                       <Clock className="w-3.5 h-3.5 text-[#e07a5f] shrink-0" />
-                      <span>Đang chờ lời giải</span>
+                      <span>Chờ lời giải</span>
                     </span>
                   ) : (
-                    <span className="ff-organic-sage-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5">
-                      <MessageSquare className="w-3.5 h-3.5 text-[#81b29a] shrink-0" />
-                      <span>Đang thảo luận ({activeSolutions.length}/3)</span>
+                    <span className="ff-organic-sage-badge !py-0.5 !px-2.5 !rounded-md inline-flex items-center gap-1.5 text-xs font-medium">
+                      <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Sôi nổi</span>
                     </span>
                   )}
 
@@ -3091,7 +3128,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                 {/* CỘT CHÍNH (8/12) */}
                 <div className="ff-qa-main-column lg:col-span-8 min-w-0 space-y-6">
                   {/* Khối câu hỏi chính */}
-                  <div className="question-card">
+                  <div className="question-card card-hard">
                     <div className="question-text min-w-0">
                       <div className="flex items-center justify-between gap-3 pb-4 mb-4 border-b border-white/10 flex-wrap">
                         <button
@@ -3161,7 +3198,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               )}
                             </div>
                             <span className="text-[11px] font-mono text-slate-400 block mt-0.5">
-                              Đăng lúc {selectedQuestion.createdAt} · {selectedQuestion.views} lượt xem
+                              Đăng lúc {selectedQuestion.createdAt} ({formatRelativeTime(selectedQuestion.createdAt)}) · {selectedQuestion.views} lượt xem
                             </span>
                           </div>
                         </button>
@@ -3323,7 +3360,7 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         return (
                           <div
                             key={sol.id}
-                            className={`answer-card ${sol.isBest ? 'verified' : ''}`}
+                            className={`answer-card card-hard ${sol.isBest ? 'verified' : ''}`}
                           >
                             <div className="ff-qa-answer-header flex items-center justify-between mb-3 pb-3 border-b border-white/[0.08] flex-wrap gap-2">
                               <button
@@ -3411,9 +3448,16 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                             </div>
 
                             <div className="ff-qa-answer-copy p-4 sm:p-5 rounded-2xl bg-white/[0.02] border border-white/[0.06]">
-                              <p className="ff-qa-prose text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
-                                {sol.content}
-                              </p>
+                              {sol.content.includes('Bước 1') || sol.content.includes('[spoiler]') || sol.content.length > 200 ? (
+                                <StepSolutionAccordion
+                                  solutionRaw={sol.content}
+                                  subject={selectedQuestion?.subject}
+                                />
+                              ) : (
+                                <p className="ff-qa-prose text-sm sm:text-[15px] text-slate-100 leading-[1.78] whitespace-pre-line">
+                                  {sol.content}
+                                </p>
+                              )}
                             </div>
 
                             {sol.imageUrl && (
@@ -3499,11 +3543,11 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                                 {canConfirmBest && !sol.isBest && (
                                   <button
                                     onClick={() => onMarkBestSolution(selectedQuestion.id, sol.id)}
-                                    className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#81b29a]/22 hover:bg-[#81b29a]/35 text-[#d8f3dc] font-bold text-xs border-[1.5px] border-[#81b29a]/55 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-                                    title={`Chọn làm đáp án chuẩn (+${bestBonusCoin} Coin)`}
+                                    className="ff-tactile-btn px-3.5 py-1.5 rounded-lg bg-[#81b29a]/22 hover:bg-[#81b29a]/35 text-[#d8f3dc] font-bold text-xs border-[1.5px] border-[#81b29a]/55 transition-colors inline-flex items-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_#04060a]"
+                                    title={`Chọn làm lời giải hay nhất (Hoàn lại 20% = +${askerRefundCoin} Coin cho bạn, thưởng 50% = +${bestBonusCoin} Coin cho tác giả)`}
                                   >
                                     <Check className="w-3.5 h-3.5 text-[#81b29a]" />
-                                    <span>Chọn đáp án chuẩn (+{bestBonusCoin} Coin)</span>
+                                    <span>Chọn lời giải hay nhất (+{bestBonusCoin} Coin)</span>
                                   </button>
                                 )}
                               </div>
@@ -3575,6 +3619,22 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                         </div>
                       )}
 
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-xs text-[#9a978e]">Trình bày lập luận bài giải:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const template = 'Bước 1: Phân tích đề bài và điều kiện xác định:\n\nBước 2: Thiết lập phương trình & biến đổi:\n\nBước 3: Biện luận kết quả và kết luận:\n';
+                            setSolutionText(prev => prev ? prev + '\n\n' + template : template);
+                          }}
+                          className="ff-tactile-btn inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-400/15 hover:bg-amber-400/25 border border-amber-400/30 text-amber-300 text-xs font-semibold cursor-pointer transition-colors"
+                          title="Chèn mẫu 3 bước giải chuẩn mực"
+                        >
+                          <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                          <span>Chèn mẫu 3 bước giải chuẩn</span>
+                        </button>
+                      </div>
+
                       <textarea
                         id="field-2"
                         rows={6}
@@ -3619,8 +3679,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                               />
                             </label>
                           )}
-                          <span className="text-xs font-mono text-[#9a978e]">
-                            {solutionText.length}/1500 ký tự
+                          <span className="text-xs font-mono text-[#9a978e] flex items-center gap-1.5 flex-wrap">
+                            <span>{solutionText.length}/1500 ký tự</span>
+                            <span>·</span>
+                            <span className={solutionText.trim().split(/\s+/).filter(Boolean).length >= 50 ? 'text-emerald-400 font-bold' : 'text-[#f2cc8f]'}>
+                              {solutionText.trim() ? solutionText.trim().split(/\s+/).filter(Boolean).length : 0} / 150 từ khuyến nghị
+                            </span>
                           </span>
                           {solImageError && (
                             <span className="text-xs text-rose-400">{solImageError}</span>
@@ -3655,12 +3719,12 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                     </h4>
                     <div className="grid grid-cols-2 gap-2.5 text-xs">
                       <div className="p-3 rounded-xl bg-[#0b0d12]/75 border border-[#f4f1de]/12">
-                        <span className="text-[#9a978e] block text-[11px]">Thưởng trả lời</span>
-                        <strong className="text-[#81b29a] font-mono text-sm mt-0.5 block">+25 Coin · +25 XP</strong>
+                        <span className="text-[#9a978e] block text-[11px]">Hoàn trả người hỏi</span>
+                        <strong className="text-[#81b29a] font-mono text-sm mt-0.5 block">+{askerRefundCoin} Coin (20%)</strong>
                       </div>
                       <div className="p-3 rounded-xl bg-[#0b0d12]/75 border border-[#f4f1de]/12">
-                        <span className="text-[#9a978e] block text-[11px]">Thưởng Đáp án chuẩn</span>
-                        <strong className="text-[#f2cc8f] font-mono text-sm mt-0.5 block">+{bestBonusCoin} Coin</strong>
+                        <span className="text-[#9a978e] block text-[11px]">Thưởng Lời giải hay nhất</span>
+                        <strong className="text-[#f2cc8f] font-mono text-sm mt-0.5 block">+{bestBonusCoin} Coin (50%)</strong>
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-xs text-[#d8d5ce] pt-2 border-t border-dashed border-[#f4f1de]/12">
@@ -3767,9 +3831,10 @@ export const QAForumView: React.FC<QAForumViewProps> = ({
                           <span>{activeAiState.solution.providerName} · {activeAiState.solution.model}</span>
                           {activeAiState.solution.imageCount > 0 && <span>· đã gửi {activeAiState.solution.imageCount} ảnh</span>}
                         </div>
-                        <div className="max-h-[min(48vh,28rem)] overflow-y-auto pr-1 text-xs leading-[1.8] text-[#f4f1de] whitespace-pre-wrap break-words">
-                          {activeAiState.solution.answer}
-                        </div>
+                        <StepSolutionAccordion
+                          solutionRaw={activeAiState.solution.answer}
+                          subject={selectedQuestion?.subject}
+                        />
                       </div>
                     )}
 

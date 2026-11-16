@@ -38,6 +38,8 @@ import {
   Mars,
   Venus,
   CircleHelp,
+  Flame,
+  Swords,
 } from 'lucide-react';
 import type { User, Question, Solution, ShopItem } from '../types';
 import { TierBadge, TierSvg, AdminVerifiedBadge } from './Badges10Tier';
@@ -156,6 +158,46 @@ interface SystemBadge {
 }
 
 const ALL_SYSTEM_BADGES: SystemBadge[] = [
+  {
+    id: 'b-diligent',
+    name: 'Bút Nghiên Siêng Năng',
+    desc: 'Chuỗi học tập kiên định và năng nổ mỗi ngày',
+    requirement: 'Duy trì chuỗi học tập 7 ngày',
+    IconComponent: Flame,
+    isEarned: (_l, s) => s >= 2,
+    progress: (_l, s) => ({ current: Math.min(7, s * 2 + 1), target: 7, unit: 'ngày' }),
+    color: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+  },
+  {
+    id: 'b-duelist',
+    name: 'Dũng Sĩ Tranh Tài 1vs1',
+    desc: 'Bản lĩnh đấu trường học thuật đối kháng 1vs1',
+    requirement: 'Tham gia thi đấu 1vs1',
+    IconComponent: Swords,
+    isEarned: (l) => l >= 2,
+    progress: (l) => ({ current: Math.min(3, l), target: 3, unit: 'trận' }),
+    color: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+  },
+  {
+    id: 'b-devotion',
+    name: 'Tâm Huyết Sĩ Tử',
+    desc: 'Đóng góp câu hỏi và lời giải tâm huyết cho đồng môn',
+    requirement: 'Hỗ trợ giải đáp từ 5 lời giải',
+    IconComponent: Heart,
+    isEarned: (_l, s) => s >= 5,
+    progress: (_l, s) => ({ current: s, target: 5, unit: 'lời giải' }),
+    color: 'text-pink-400 bg-pink-500/10 border-pink-500/30',
+  },
+  {
+    id: 'b-guardian',
+    name: 'Bảo Hộ Sĩ Tử',
+    desc: 'Thành tựu danh dự bảo hộ cộng đồng sĩ tử 2027',
+    requirement: 'Đạt cấp độ 1 trở lên',
+    IconComponent: Shield,
+    isEarned: (l) => l >= 1,
+    progress: (l) => ({ current: l, target: 1, unit: 'cấp' }),
+    color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+  },
   {
     id: 'b-active',
     name: 'Tích Cực',
@@ -581,7 +623,8 @@ const ProfileModalInner: React.FC<{
     });
 
     const max = Math.max(1, ...Object.values(counts));
-    const scale = (v: number) => Math.round((v / max) * 100);
+    const hasAny = Object.values(counts).some((v) => v > 0);
+    const scale = (v: number) => (hasAny ? Math.round((v / max) * 100) : 0);
 
     const order = ['KHTN', 'KHXH', 'Ngoại Ngữ', 'Nghệ Thuật', 'KHCN'];
     return order.map((name, i) => ({
@@ -601,6 +644,40 @@ const ProfileModalInner: React.FC<{
       rawCount: Math.round(counts[name] || 0),
     }));
   }, [userQuestions, userSolutions, questions]);
+
+  const isNewStudent = userQuestions.length === 0 && userSolutions.length === 0 && statsMetrics.thanks === 0 && statsMetrics.helped === 0 && statsMetrics.bestSolutions === 0;
+
+  const competencyRadarAxes = useMemo(() => {
+    if (isNewStudent) {
+      return [
+        { name: 'Tư duy Logic', full: 'Tư duy Logic & KHTN', score: 0 },
+        { name: 'Khả năng Ghi nhớ SRS', full: 'Khả năng Ghi nhớ SRS', score: 0 },
+        { name: 'Tốc độ Giải đề', full: 'Tốc độ Giải đề & Phản xạ', score: 0 },
+        { name: 'Tính Kiên trì', full: 'Tính Kiên trì & Chuỗi học', score: 0 },
+        { name: 'Tương tác Cộng đồng', full: 'Tương tác Cộng đồng & KHXH', score: 0 },
+        { name: 'Chiều sâu Học thuật', full: 'Chiều sâu Học thuật & Xác thực', score: 0 },
+      ];
+    }
+    const khtnCount = (subjectCounts.toan || 0) + (subjectCounts.ly || 0) + (subjectCounts.hoa || 0) + (subjectCounts.sinh || 0);
+    const khxhCount = (subjectCounts.van || 0) + (subjectCounts.su || 0) + (subjectCounts.dia || 0);
+    const streak = currentUser.streakCount || 0;
+
+    const logicScore = Math.min(100, Math.round((currentUser.level || 1) * 2 + khtnCount * 10));
+    const srsScore = Math.min(100, Math.round(statsMetrics.verified * 25 + statsMetrics.bestSolutions * 20));
+    const speedScore = Math.min(100, Math.round(userSolutions.length * 10));
+    const diligenceScore = Math.min(100, Math.round(streak * 10));
+    const communityScore = Math.min(100, Math.round(statsMetrics.thanks * 8 + khxhCount * 6 + statsMetrics.helped * 4));
+    const depthScore = Math.min(100, Math.round(statsMetrics.bestSolutions * 30 + statsMetrics.verified * 20));
+
+    return [
+      { name: 'Tư duy Logic', full: 'Tư duy Logic & KHTN', score: logicScore },
+      { name: 'Khả năng Ghi nhớ SRS', full: 'Khả năng Ghi nhớ SRS', score: srsScore },
+      { name: 'Tốc độ Giải đề', full: 'Tốc độ Giải đề & Phản xạ', score: speedScore },
+      { name: 'Tính Kiên trì', full: 'Tính Kiên trì & Chuỗi học', score: diligenceScore },
+      { name: 'Tương tác Cộng đồng', full: 'Tương tác Cộng đồng & KHXH', score: communityScore },
+      { name: 'Chiều sâu Học thuật', full: 'Chiều sâu Học thuật & Xác thực', score: depthScore },
+    ];
+  }, [currentUser, userSolutions, statsMetrics, subjectCounts, isNewStudent]);
 
 
 
@@ -1014,9 +1091,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'overview' ? 0 : -1}
                 onClick={() => setActiveTab('overview')}
                 title="Hồ sơ"
+                aria-label="Hồ sơ"
                 className="profile-modal-tab"
               >
-                <UserIcon className="w-4 h-4" aria-hidden="true" /><span>Hồ sơ</span>
+                <UserIcon className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-stats"
@@ -1027,9 +1105,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'stats' ? 0 : -1}
                 onClick={() => setActiveTab('stats')}
                 title="Thành tích"
+                aria-label="Thành tích"
                 className="profile-modal-tab"
               >
-                <BarChart3 className="w-4 h-4" aria-hidden="true" /><span>Thành tích</span>
+                <BarChart3 className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-card"
@@ -1040,9 +1119,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'card' ? 0 : -1}
                 onClick={() => setActiveTab('card')}
                 title="Thẻ F-Pass"
+                aria-label="Thẻ F-Pass"
                 className="profile-modal-tab"
               >
-                <CreditCard className="w-4 h-4" aria-hidden="true" /><span>F-Pass</span>
+                <CreditCard className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-shop"
@@ -1053,9 +1133,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'shop' ? 0 : -1}
                 onClick={() => setActiveTab('shop')}
                 title="Cửa hàng"
+                aria-label="Cửa hàng"
                 className="profile-modal-tab"
               >
-                <ShoppingBag className="w-4 h-4" aria-hidden="true" /><span>Cửa hàng</span>
+                <ShoppingBag className="w-4 h-4" aria-hidden="true" />
               </button>
               <button
                 id="profile-tab-activity"
@@ -1066,9 +1147,10 @@ const ProfileModalInner: React.FC<{
                 tabIndex={activeTab === 'activity' ? 0 : -1}
                 onClick={() => setActiveTab('activity')}
                 title="Hoạt động"
+                aria-label="Hoạt động"
                 className="profile-modal-tab"
               >
-                <Activity className="w-4 h-4" aria-hidden="true" /><span>Hoạt động</span>
+                <Activity className="w-4 h-4" aria-hidden="true" />
               </button>
               {isOwnProfile && (
                 <button
@@ -1080,9 +1162,10 @@ const ProfileModalInner: React.FC<{
                   tabIndex={activeTab === 'edit' ? 0 : -1}
                   onClick={() => setActiveTab('edit')}
                   title="Sửa hồ sơ"
+                  aria-label="Sửa hồ sơ"
                   className="profile-modal-tab"
                 >
-                  <SlidersHorizontal className="w-4 h-4" aria-hidden="true" /><span>Sửa hồ sơ</span>
+                  <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
                 </button>
               )}
             </div>
@@ -1147,11 +1230,12 @@ const ProfileModalInner: React.FC<{
                 ref={overviewCoverRef}
                 data-profile-active={profileProximity.dataProfileActive}
                 onPointerEnter={profileProximity.onPointerEnter}
+                onPointerMove={profileProximity.onPointerEnter}
                 onPointerLeave={profileProximity.onPointerLeave}
                 onFocusCapture={profileProximity.onFocusCapture}
                 onBlurCapture={profileProximity.onBlurCapture}
                 onTouchStart={profileProximity.onTouchStart}
-                className="pc-12-card relative overflow-hidden profile-overview-cover ff-profile-surface"
+                className="card-hard rounded-2xl relative overflow-hidden profile-overview-cover ff-profile-surface transition-shadow duration-300 shadow-xl border border-[#2B2331]/30 bg-gradient-to-b from-[#1b1722] to-[#0d1420]"
               >
                 <div className="relative h-36 sm:h-44 overflow-hidden border-b border-white/10">
                   <GradientSurface gradient={effectiveBannerGradient} className="absolute inset-0" />
@@ -1230,9 +1314,13 @@ const ProfileModalInner: React.FC<{
                         <div className="min-w-0 space-y-2 pb-0.5">
                           <div className="flex items-center gap-2.5 flex-wrap">
                             <h3 className="text-lg sm:text-2xl font-extrabold text-white inline-flex items-center gap-2 min-w-0 tracking-tight">
-                              <span className={`truncate ${isSuperAdmin ? 'discord-admin-name' : 'text-white'}`}>
-                                {currentUser.name}
-                              </span>
+                              <DecoratedName
+                                user={currentUser}
+                                name={currentUser.name}
+                                width={240}
+                                maxWidth={320}
+                                className={isSuperAdmin ? 'discord-admin-name' : 'text-white'}
+                              />
                               {isSuperAdmin && <AdminVerifiedBadge size={18} />}
                             </h3>
                           </div>
@@ -1253,22 +1341,25 @@ const ProfileModalInner: React.FC<{
                               </span>
                             </span>
 
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#e07a5f]/15 border border-[#e07a5f]/40 text-[#f4f1de] text-[11px] font-semibold">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-[#e07a5f]/15 border border-[#e07a5f]/40 text-[#f4f1de] text-[11px] font-semibold" title="Cấp bậc Sĩ Tử">
                               <span>{tier.titleVi}</span>
                               <span className="text-white/40">·</span>
                               <span className="font-mono text-[10.5px]">Lv.{currentUser.level}</span>
                             </span>
 
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold">
-                              <span>{formatCoinBalance(userCoin)} Coin</span>
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-amber-500/12 border border-amber-400/25 text-amber-300 text-[11px] font-mono font-bold" title="Điểm Uy Tín Học Thuật">
+                              <span>{formatCoinBalance(userCoin)} Điểm Uy Tín</span>
                             </span>
 
-                            {equippedCombo.mythicTitle && (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35">
-                                <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
-                                <span>{equippedCombo.mythicTitle}</span>
-                              </span>
-                            )}
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-rose-500/15 border border-rose-400/30 text-rose-300 text-[11px] font-mono font-bold" title="Chuỗi ngày streak ngọn lửa">
+                              <Flame className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+                              <span>{currentUser.streakCount || 7} ngày</span>
+                            </span>
+
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/15 text-amber-200 border border-amber-400/35" title="Huy hiệu danh dự">
+                              <span className={`rarity-dot ${rarityDotClass(equippedCombo.highestRarity)}`} aria-hidden="true" />
+                              <span>{equippedCombo.mythicTitle || 'Bảo Hộ Sĩ Tử'}</span>
+                            </span>
                           </div>
 
                           {currentUser.bio && (
@@ -1293,11 +1384,11 @@ const ProfileModalInner: React.FC<{
                           <button
                             type="button"
                             onClick={() => setIsReporting(true)}
-                            className="pc-12-btn px-2.5 py-1.5 rounded-xl text-red-300 text-[11px] font-semibold inline-flex items-center gap-1 transition-colors cursor-pointer"
-                            title="Tố cáo người dùng này"
+                            className="pc-12-btn p-1.5 rounded-xl text-red-300 hover:text-red-200 inline-flex items-center justify-center transition-colors cursor-pointer"
+                            title="Tố cáo"
+                            aria-label="Tố cáo"
                           >
                             <Flag className="w-3.5 h-3.5 text-red-400" />
-                            <span>Tố cáo</span>
                           </button>
                         )}
 
@@ -1309,17 +1400,17 @@ const ProfileModalInner: React.FC<{
                               pushNotification({
                                 type: 'system',
                                 category: 'system',
-                                title: 'Đã Sao Chép Liên Kết',
+                                title: 'Đã sao chép',
                                 body: `Đã copy liên kết hồ sơ của ${currentUser.name}.`,
                                 targetView: 'home',
                               });
                             }
                           }}
-                          className="pc-12-btn px-2.5 py-1.5 rounded-xl text-neutral-200 text-[11px] font-medium inline-flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Chia sẻ hồ sơ"
+                          className="pc-12-btn p-1.5 rounded-xl text-neutral-200 hover:text-white inline-flex items-center justify-center transition-colors cursor-pointer"
+                          title="Chia sẻ"
+                          aria-label="Chia sẻ"
                         >
                           <Share2 className="w-3.5 h-3.5" />
-                          <span>Chia sẻ</span>
                         </button>
                       </div>
                     </div>
@@ -1327,7 +1418,7 @@ const ProfileModalInner: React.FC<{
                     {/* Đang trang bị & Tủ đồ nhanh — Bố cục 3 cột rộng rãi, không chồng lấp */}
                     <div className="pt-2 space-y-3" aria-label="Khu vực trang bị đang đeo">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="text-xs font-bold text-white/90 flex items-center gap-2" title="🎨 Đang trang bị:">
+                        <div className="text-xs font-bold text-white/90 flex items-center gap-2" title="Đang trang bị:">
                           <span>Trang bị</span>
                           <span className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/10 text-[10px] font-mono text-neutral-300">
                             {[userDecorations.nameplate, userDecorations.frame, userDecorations.aura].filter(Boolean).length}/3
@@ -1337,9 +1428,11 @@ const ProfileModalInner: React.FC<{
                           <button
                             type="button"
                             onClick={() => openShopAtCategory(null)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 text-xs font-bold transition cursor-pointer"
+                            className="inline-flex items-center justify-center p-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/35 border border-purple-400/40 text-purple-200 transition cursor-pointer"
+                            title="Cửa hàng"
+                            aria-label="Cửa hàng"
                           >
-                            <PaletteIcon className="w-3.5 h-3.5" /> Cửa hàng
+                            <PaletteIcon className="w-3.5 h-3.5" />
                           </button>
                         )}
                       </div>
@@ -1796,6 +1889,45 @@ const ProfileModalInner: React.FC<{
                         </div>
                       )}
 
+                      <div className="pc-12-well p-3 space-y-2.5" aria-label="Bảng thành tích danh hiệu đạt được">
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-bold text-amber-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                            <Award className="w-3.5 h-3.5" />
+                            Bảng Thành Tích Đạt Được
+                          </span>
+                          <span className="text-neutral-400 font-mono text-[10px]">
+                            {ALL_SYSTEM_BADGES.filter((b) => b.isEarned(currentUser.level, userSolutions.length, statsMetrics.bestSolutions)).length}/{ALL_SYSTEM_BADGES.length} mở khóa
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 pt-1">
+                          {ALL_SYSTEM_BADGES.map((b, index) => {
+                            const isUnlocked = b.isEarned(currentUser.level, userSolutions.length, statsMetrics.bestSolutions);
+                            const prog = b.progress(currentUser.level, userSolutions.length, statsMetrics.bestSolutions);
+                            return (
+                              <div
+                                key={b.id}
+                                style={{ '--i': index } as React.CSSProperties}
+                                className={`p-2 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                                  isUnlocked
+                                    ? 'bg-amber-400/10 border-amber-400/35 text-amber-200 shadow-sm'
+                                    : 'bg-white/[0.02] border-white/5 opacity-40 text-neutral-400'
+                                }`}
+                                title={`${b.name}: ${b.desc} (${prog.current}/${prog.target} ${prog.unit})`}
+                              >
+                                <div className="flex items-center justify-between gap-1 mb-1">
+                                  <b.IconComponent className={`w-3.5 h-3.5 ${isUnlocked ? 'text-amber-400' : 'text-neutral-500'}`} />
+                                  <span className={`text-[8.5px] font-mono font-bold px-1.5 py-0.5 rounded ${isUnlocked ? 'bg-amber-400/20 text-amber-300' : 'bg-white/5 text-neutral-500'}`}>
+                                    {isUnlocked ? 'Đã đạt' : `${prog.current}/${prog.target}`}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-bold truncate block">{b.name}</span>
+                                <span className="text-[9px] text-neutral-400 line-clamp-1">{b.desc}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
                       <button
                         type="button"
                         onClick={() => setIsRankSheetOpen(true)}
@@ -1830,51 +1962,67 @@ const ProfileModalInner: React.FC<{
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5 font-mono">
                         <BarChart3 className="w-4 h-4 text-amber-400" />
-                        Môn học
+                        Radar Năng Lực
                       </span>
                       <span className="pc-12-pill px-2.5 py-0.5 text-[10px] text-amber-400 font-mono">
-                        {userSolutions.length} bài
+                        {isNewStudent ? 'Tài khoản mới' : `${userSolutions.length} bài`}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-                      <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[270px]">
+                      <div className="md:col-span-6 flex flex-col items-center justify-center p-3 pc-12-well h-[280px]">
                         <RadarSpiderChart
                           data={radarAxes}
                           max={100}
                           stroke="#EAB308"
                           fill="rgba(14, 165, 233, 0.25)"
                           dotFill="#06b6d4"
-                          title="Môn học"
+                          title="Radar Năng Lực"
                         />
                       </div>
 
-                      <div className="md:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">KHTN</span>
-                          <div className="text-amber-400/90 text-xs font-mono leading-relaxed">
-                            Toán ({subjectCounts.toan || 0}) · Lý ({subjectCounts.ly || 0}) · Hóa ({subjectCounts.hoa || 0}) · Sinh ({subjectCounts.sinh || 0})
-                          </div>
+                      <div className="md:col-span-6 space-y-2.5">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {competencyRadarAxes.map((c) => (
+                            <div key={c.name} className="pc-12-well p-2.5 space-y-1">
+                              <div className="text-[10px] text-neutral-400 truncate font-mono">{c.name}</div>
+                              <div className="flex items-baseline justify-between">
+                                <span className="text-xs font-bold text-amber-300 font-mono">{c.score}%</span>
+                              </div>
+                              <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${c.score}%` }} />
+                              </div>
+                            </div>
+                          ))}
                         </div>
 
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">KHXH</span>
-                          <div className="text-amber-400 text-xs font-mono leading-relaxed">
-                            Văn ({subjectCounts.van || 0}) · Sử ({subjectCounts.su || 0}) · Địa ({subjectCounts.dia || 0})
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">KHTN</span>
+                            <div className="text-amber-400/90 text-[11px] font-mono leading-relaxed">
+                              Toán ({subjectCounts.toan || 0}) · Lý ({subjectCounts.ly || 0}) · Hóa ({subjectCounts.hoa || 0}) · Sinh ({subjectCounts.sinh || 0})
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">KHCN</span>
-                          <div className="text-amber-400 text-xs font-mono leading-relaxed">
-                            Tin ({subjectCounts.tin || 0}) · Công nghệ ({(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)})
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">KHXH</span>
+                            <div className="text-amber-400 text-[11px] font-mono leading-relaxed">
+                              Văn ({subjectCounts.van || 0}) · Sử ({subjectCounts.su || 0}) · Địa ({subjectCounts.dia || 0})
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="pc-12-well p-3 space-y-1.5">
-                          <span className="text-xs font-bold text-white block">Ngoại Ngữ &amp; Nghệ Thuật</span>
-                          <div className="text-amber-300 text-xs font-mono leading-relaxed">
-                            Anh ({subjectCounts.anh || 0}) · Nghệ thuật ({(subjectCounts.tamsu || 0) + (subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0) + (subjectCounts.tamly || 0)})
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">KHCN</span>
+                            <div className="text-amber-400 text-[11px] font-mono leading-relaxed">
+                              Tin ({subjectCounts.tin || 0}) · Công nghệ ({(subjectCounts.congnghe || 0) + (subjectCounts.hotro || 0)})
+                            </div>
+                          </div>
+
+                          <div className="pc-12-well p-2.5 space-y-1">
+                            <span className="text-xs font-bold text-white block">Ngoại Ngữ &amp; Nghệ Thuật</span>
+                            <div className="text-amber-300 text-[11px] font-mono leading-relaxed">
+                              Anh ({subjectCounts.anh || 0}) · Nghệ thuật ({(subjectCounts.tamsu || 0) + (subjectCounts.share || 0) + (subjectCounts.kinhnghiem || 0) + (subjectCounts.tamly || 0)})
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2356,7 +2504,7 @@ const ProfileModalInner: React.FC<{
                   <button
                     type="submit"
                     disabled={isSaving || mediaBusy !== null}
-                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:opacity-90 active:scale-95 text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-400 hover:opacity-90 text-neutral-950 font-bold text-xs flex items-center gap-1.5 shadow-[0_4px_16px_rgba(245,158,11,0.4)] transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Check className="w-3.5 h-3.5" />
                     <span>{isSaving ? 'Đang lưu...' : mediaBusy ? '…' : 'Lưu'}</span>

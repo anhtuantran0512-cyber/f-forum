@@ -1,12 +1,13 @@
 /* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ExamPaper, ExamCBTQuestion, ExamDifficulty } from '../../types';
 
-/* Ngân hàng câu hỏi thi thử trực tuyến chuẩn ma trận Bộ GD&ĐT */
 export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
   'ex-01': [
     {
       id: 'q-ex01-1',
       number: 1,
+      part: 1,
+      questionType: 'single_choice',
       question: 'Cho hàm số y = f(x) có bảng biến thiên với f\'(x) đổi dấu từ âm sang dương tại x = 2 và f(2) = -3. Toạ độ điểm cực tiểu của đồ thị hàm số là:',
       options: [
         { id: 'A', text: '(2; -3)' },
@@ -23,6 +24,8 @@ export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
     {
       id: 'q-ex01-2',
       number: 2,
+      part: 1,
+      questionType: 'single_choice',
       question: 'Trong không gian Oxyz, cho mặt phẳng (P): x + 2y - 2z + 4 = 0 và điểm M(2; -1; 3). Toạ độ hình chiếu vuông góc H của điểm M trên mặt phẳng (P) là:',
       options: [
         { id: 'A', text: 'H(20/9; -5/9; 23/9)' },
@@ -39,6 +42,8 @@ export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
     {
       id: 'q-ex01-3',
       number: 3,
+      part: 1,
+      questionType: 'single_choice',
       question: 'Một doanh nghiệp sản xuất muốn tối ưu hoá chi phí vận hành theo hàm tổng chi phí C(x) = x^3 - 30x^2 + 300x (nghìn đồng) với doanh thu R(x) = 1500x. Xác định số sản phẩm x cần xuất xưởng để lợi nhuận đạt mức tối đa.',
       options: [
         { id: 'A', text: 'x = 30' },
@@ -55,6 +60,8 @@ export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
     {
       id: 'q-ex01-4',
       number: 4,
+      part: 1,
+      questionType: 'single_choice',
       question: 'Tìm đường tiệm cận ngang của đồ thị hàm số y = (2x - 1) / (x + 3):',
       options: [
         { id: 'A', text: 'y = 2' },
@@ -71,23 +78,57 @@ export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
     {
       id: 'q-ex01-5',
       number: 5,
-      question: 'Trong không gian Oxyz, phương trình mặt cầu (S) có tâm I(1; -2; 3) và bán kính R = 4 là:',
+      part: 2,
+      questionType: 'true_false',
+      question: 'Cho hàm số bậc ba y = f(x) = x^3 - 3x + 1. Xét tính đúng hoặc sai của các mệnh đề sau:',
       options: [
-        { id: 'A', text: '(x - 1)^2 + (y + 2)^2 + (z - 3)^2 = 16' },
-        { id: 'B', text: '(x + 1)^2 + (y - 2)^2 + (z + 3)^2 = 16' },
-        { id: 'C', text: '(x - 1)^2 + (y + 2)^2 + (z - 3)^2 = 4' },
-        { id: 'D', text: '(x + 1)^2 + (y - 2)^2 + (z + 3)^2 = 4' },
+        { id: 'A', text: 'Hàm số đồng biến trên khoảng (1; +oo)' },
+        { id: 'B', text: 'Điểm cực đại của đồ thị hàm số là (-1; 3)' },
+        { id: 'C', text: 'Giá trị nhỏ nhất của hàm số trên [0; 2] bằng -1' },
+        { id: 'D', text: 'Đồ thị hàm số cắt trục hoành tại đúng 1 điểm' },
       ],
       correctAnswer: 'A',
-      topic: 'Hình học giải tích Oxyz',
+      statements: [
+        { id: 'a', label: 'a', text: 'Hàm số đồng biến trên khoảng (1; +oo)', isCorrect: true },
+        { id: 'b', label: 'b', text: 'Điểm cực đại của đồ thị hàm số là (-1; 3)', isCorrect: true },
+        { id: 'c', label: 'c', text: 'Giá trị nhỏ nhất của hàm số trên đoạn [0; 2] bằng -1', isCorrect: true },
+        { id: 'd', label: 'd', text: 'Đồ thị hàm số cắt trục hoành tại đúng 1 điểm', isCorrect: false },
+      ],
+      topic: 'Khảo sát hàm số Đúng/Sai',
       difficulty: 'Thông hiểu',
-      explanation: 'Mặt cầu tâm I(a; b; c) bán kính R có phương trình chuẩn tắc: (x - a)^2 + (y - b)^2 + (z - c)^2 = R^2. Thay số ta được (x - 1)^2 + (y + 2)^2 + (z - 3)^2 = 16.',
-      keyFormula: '(x - a)^2 + (y - b)^2 + (z - c)^2 = R^2.',
+      explanation: 'a) f\'(x) = 3x^2 - 3 > 0 với x > 1 nên ĐÚNG. b) f\'(x)=0 <=> x=+-1, f(-1)=3 là điểm cực đại nên ĐÚNG. c) f(0)=1, f(1)=-1, f(2)=3 nên min=f(1)=-1 là ĐÚNG. d) Vì y_CĐ * y_CT = 3 * (-1) = -3 < 0 nên đồ thị cắt Ox tại 3 điểm phân biệt, khẳng định cắt tại 1 điểm là SAI.',
+      keyFormula: 'Phần II ma trận GDPT 2018: 4 ý đúng/sai lũy tiến 0.1 - 0.25 - 0.5 - 1.0 điểm.',
     },
     {
       id: 'q-ex01-6',
       number: 6,
-      question: 'Giá trị lớn nhất của hàm số f(x) = x^4 - 2x^2 + 3 trên đoạn [0; 2] bằng:',
+      part: 2,
+      questionType: 'true_false',
+      question: 'Trong không gian Oxyz, cho mặt cầu (S): (x - 1)^2 + (y + 2)^2 + (z - 3)^2 = 25 và mặt phẳng (P): 2x - 2y + z + 1 = 0. Xét tính đúng hoặc sai của các mệnh đề sau:',
+      options: [
+        { id: 'A', text: 'Tâm I(1; -2; 3) và bán kính R = 5' },
+        { id: 'B', text: 'Khoảng cách từ tâm I đến (P) bằng 4' },
+        { id: 'C', text: '(P) cắt mặt cầu (S) theo giao tuyến đường tròn' },
+        { id: 'D', text: 'Bán kính giao tuyến r = sqrt(125)/3' },
+      ],
+      correctAnswer: 'A',
+      statements: [
+        { id: 'a', label: 'a', text: 'Tâm của mặt cầu là I(1; -2; 3) và bán kính R = 5', isCorrect: true },
+        { id: 'b', label: 'b', text: 'Khoảng cách từ tâm I đến mặt phẳng (P) bằng 4', isCorrect: false },
+        { id: 'c', label: 'c', text: 'Mặt phẳng (P) cắt mặt cầu (S) theo giao tuyến là một đường tròn', isCorrect: true },
+        { id: 'd', label: 'd', text: 'Bán kính đường tròn giao tuyến r = sqrt(125)/3', isCorrect: true },
+      ],
+      topic: 'Hình học Oxyz Đúng/Sai',
+      difficulty: 'Vận dụng',
+      explanation: 'a) ĐÚNG vì phương trình chuẩn tắc có I(1; -2; 3) và R=5. b) SAI vì d(I, P) = |2(1) - 2(-2) + 3 + 1| / sqrt(4+4+1) = 10/3 != 4. c) ĐÚNG vì d = 10/3 < R = 5. d) ĐÚNG vì r = sqrt(R^2 - d^2) = sqrt(25 - 100/9) = sqrt(125)/3.',
+      keyFormula: 'd(I, (P)) < R => Mặt phẳng cắt mặt cầu theo đường tròn bán kính r = sqrt(R^2 - d^2).',
+    },
+    {
+      id: 'q-ex01-7',
+      number: 7,
+      part: 3,
+      questionType: 'short_answer',
+      question: 'Giá trị lớn nhất của hàm số f(x) = x^4 - 2x^2 + 3 trên đoạn [0; 2] bằng bao nhiêu?',
       options: [
         { id: 'A', text: '11' },
         { id: 'B', text: '3' },
@@ -95,10 +136,32 @@ export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
         { id: 'D', text: '15' },
       ],
       correctAnswer: 'A',
-      topic: 'Khảo sát hàm số & Đồ thị',
+      numericAnswer: 11,
+      tolerance: 0.05,
+      topic: 'Khảo sát hàm số Điền số',
       difficulty: 'Vận dụng',
-      explanation: 'Đạo hàm f\'(x) = 4x^3 - 4x = 0 <=> x = 0, x = 1 (vì thuộc [0; 2]). Tính f(0) = 3, f(1) = 2, f(2) = 11. Vậy giá trị lớn nhất là 11 tại x = 2.',
-      keyFormula: 'GTLN trên đoạn [a; b]: so sánh f(a), f(b) và f(x_i) với x_i là nghiệm f\'(x) = 0.',
+      explanation: 'Đạo hàm f\'(x) = 4x^3 - 4x = 0 <=> x = 0 hoặc x = 1 (trên [0; 2]). Ta có f(0) = 3, f(1) = 2, f(2) = 11. Vậy giá trị lớn nhất là 11.',
+      keyFormula: 'max_{[0; 2]} f(x) = 11 tại x = 2.',
+    },
+    {
+      id: 'q-ex01-8',
+      number: 8,
+      part: 3,
+      questionType: 'short_answer',
+      question: 'Trong không gian Oxyz, cho hai điểm A(1; 2; -1) và B(3; 0; 3). Độ dài đoạn thẳng AB bằng bao nhiêu? (Làm tròn đến 1 chữ số thập phân nếu cần)',
+      options: [
+        { id: 'A', text: '4.9' },
+        { id: 'B', text: '5.2' },
+        { id: 'C', text: '6.0' },
+        { id: 'D', text: '3.5' },
+      ],
+      correctAnswer: 'A',
+      numericAnswer: 4.9,
+      tolerance: 0.05,
+      topic: 'Hình học Oxyz Điền số',
+      difficulty: 'Thông hiểu',
+      explanation: 'Véctơ AB = (2; -2; 4). Độ dài đoạn thẳng AB = sqrt(2^2 + (-2)^2 + 4^2) = sqrt(4 + 4 + 16) = sqrt(24) ≈ 4.90.',
+      keyFormula: 'AB = sqrt((x_B - x_A)^2 + (y_B - y_A)^2 + (z_B - z_A)^2).',
     },
   ],
   'ex-02': [
@@ -569,7 +632,6 @@ export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
   ],
 };
 
-/* Sinh câu hỏi thi thử CBT tự động từ mẫu đề thi cho các đề chưa cấu hình */
 export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
   if (paper.cbtQuestions && paper.cbtQuestions.length > 0) {
     return paper.cbtQuestions;
@@ -579,19 +641,18 @@ export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
     return SEED_CBT_QUESTIONS[paper.id];
   }
 
-  /* Fallback: sinh từ sampleQuestions và sampleSolutions với đáp án phân bổ đa dạng */
   const results: ExamCBTQuestion[] = [];
   const sampleList = paper.sampleQuestions || [];
   const solutions = paper.sampleSolutions || [];
 
   if (sampleList.length > 0) {
+    const totalCount = sampleList.length;
     sampleList.forEach((qText, idx) => {
       const qNum = idx + 1;
       const sol = solutions.find((s) => s.questionNumber === qNum) || solutions[idx];
       const diffLevels: ExamDifficulty[] = ['Nhận biết', 'Thông hiểu', 'Vận dụng', 'Vận dụng cao'];
       const assignedDiff = diffLevels[idx % diffLevels.length];
 
-      /* Phân bổ đáp án đúng luân phiên giữa A, B, C, D thay vì luôn chọn A */
       const targetAnswer = (['A', 'B', 'C', 'D'] as const)[idx % 4];
       const correctText = sol ? sol.solution.slice(0, 70) + '...' : 'Khẳng định chính xác theo chuẩn chương trình.';
       const distractors = [
@@ -607,12 +668,39 @@ export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
         return { id: letter, text: distractors[distIdx++] };
       });
 
+      let part: 1 | 2 | 3 = 1;
+      let questionType: 'single_choice' | 'true_false' | 'short_answer' = 'single_choice';
+      let statements: Array<{ id: string; label: string; text: string; isCorrect: boolean }> | undefined;
+      let numericAnswer: number | string | undefined;
+      let tolerance: number | undefined;
+
+      if (totalCount >= 4 && idx === totalCount - 2) {
+        part = 2;
+        questionType = 'true_false';
+        statements = [
+          { id: 'a', label: 'a', text: 'Mệnh đề thứ nhất phù hợp với dữ kiện đề bài', isCorrect: true },
+          { id: 'b', label: 'b', text: 'Mệnh đề thứ hai xác lập tính liên tục của hàm số', isCorrect: true },
+          { id: 'c', label: 'c', text: 'Mệnh đề thứ ba mâu thuẫn với điều kiện biên giả thiết', isCorrect: false },
+          { id: 'd', label: 'd', text: 'Mệnh đề thứ tư thoả mãn nghiệm tối ưu', isCorrect: true },
+        ];
+      } else if (totalCount >= 4 && idx === totalCount - 1) {
+        part = 3;
+        questionType = 'short_answer';
+        numericAnswer = 42;
+        tolerance = 0.05;
+      }
+
       results.push({
         id: `cbt-gen-${paper.id}-${qNum}`,
         number: qNum,
+        part,
+        questionType,
         question: qText.replace(/^Câu \d+:\s*/, '').replace(/^Bài \d+:\s*/, ''),
         options,
         correctAnswer: targetAnswer,
+        statements,
+        numericAnswer,
+        tolerance,
         topic: `${paper.subject} - Lớp ${paper.grade}`,
         difficulty: assignedDiff,
         explanation: sol ? sol.solution : 'Xem chi tiết trong hướng dẫn chấm thi của Sở GD&ĐT.',
@@ -620,7 +708,6 @@ export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
       });
     });
   } else {
-    /* Mặc định tối thiểu 4 câu chuẩn phân bổ cân bằng A, B, C, D */
     const defaultTopics = ['Lý thuyết trọng tâm', 'Kỹ năng vận dụng cơ bản', 'Phân tích dữ liệu', 'Bài toán tổng hợp'];
     defaultTopics.forEach((tp, i) => {
       const targetAnswer = (['A', 'B', 'C', 'D'] as const)[i % 4];
@@ -638,12 +725,39 @@ export function getExamCBTQuestions(paper: ExamPaper): ExamCBTQuestion[] {
         return { id: letter, text: distractors[distIdx++] };
       });
 
+      let part: 1 | 2 | 3 = 1;
+      let questionType: 'single_choice' | 'true_false' | 'short_answer' = 'single_choice';
+      let statements: Array<{ id: string; label: string; text: string; isCorrect: boolean }> | undefined;
+      let numericAnswer: number | string | undefined;
+      let tolerance: number | undefined;
+
+      if (i === 2) {
+        part = 2;
+        questionType = 'true_false';
+        statements = [
+          { id: 'a', label: 'a', text: 'Nhận định lý thuyết nền tảng hoàn toàn chính xác', isCorrect: true },
+          { id: 'b', label: 'b', text: 'Biến đổi tương đương bảo toàn tập xác định', isCorrect: true },
+          { id: 'c', label: 'c', text: 'Giá trị cực trị xuất hiện ngoài khoảng khảo sát', isCorrect: false },
+          { id: 'd', label: 'd', text: 'Nghiệm thoả mãn ràng buộc biên của bài toán', isCorrect: true },
+        ];
+      } else if (i === 3) {
+        part = 3;
+        questionType = 'short_answer';
+        numericAnswer = 10;
+        tolerance = 0.05;
+      }
+
       results.push({
         id: `cbt-def-${paper.id}-${i + 1}`,
         number: i + 1,
+        part,
+        questionType,
         question: `Câu hỏi kiểm tra kiến thức ${tp} thuộc chương trình môn ${paper.subject} lớp ${paper.grade}:`,
         options,
         correctAnswer: targetAnswer,
+        statements,
+        numericAnswer,
+        tolerance,
         topic: tp,
         difficulty: (['Nhận biết', 'Thông hiểu', 'Vận dụng', 'Vận dụng cao'] as ExamDifficulty[])[i % 4],
         explanation: `Lời giải chuẩn: Vận dụng kiến thức bài học môn ${paper.subject} để xác định phương án ${targetAnswer} là chính xác.`,

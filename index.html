@@ -23,6 +23,7 @@
       })();
     </script>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='50,5 95,25 95,75 50,95 5,75 5,25' fill='%23f59e0b' stroke='%23fbbf24' stroke-width='4'/><text x='50' y='64' font-size='44' font-weight='bold' text-anchor='middle' fill='%23000' font-family='sans-serif'>F</text></svg>" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="application-name" content="F-Forum" />
     <meta name="apple-mobile-web-app-title" content="F-Forum" />
@@ -54,12 +55,36 @@
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "F-Forum",
-      "alternateName": "Diễn đàn sinh viên F-Forum",
-      "url": "https://f-forum.fpt.edu.vn",
-      "description": "Diễn đàn học thuật cho sinh viên FPT: đặt câu hỏi theo môn học, trao đổi cách giải và chia sẻ học liệu. Nội dung do cộng đồng đóng góp; hãy đối chiếu với tài liệu học phần.",
-      "inLanguage": "vi-VN"
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://f-forum.fpt.edu.vn/#website",
+          "name": "F-Forum",
+          "alternateName": "Diễn đàn sinh viên F-Forum 2027",
+          "url": "https://f-forum.fpt.edu.vn",
+          "description": "Diễn đàn học thuật và luyện thi chuẩn hóa cho sinh viên FPT & học sinh THPT Quốc Gia 2026/2027: hỏi đáp bài tập, thi thử CBT, phòng tập trung Machi Mart và linh thú học thuật 2.5D.",
+          "inLanguage": "vi-VN"
+        },
+        {
+          "@type": "EducationalOccupationalCredential",
+          "@id": "https://f-forum.fpt.edu.vn/#credential",
+          "name": "Chứng Chỉ Sĩ Tử Học Thuật F-Forum",
+          "description": "Chứng thực năng lực học tập môn Toán, Vật Lý, Hóa Học, Tiếng Anh và Kỹ Thuật Lập Trình qua hệ thống thi thử CBT chuẩn hóa.",
+          "credentialCategory": "degree",
+          "recognizedBy": {
+            "@type": "Organization",
+            "name": "F-Forum Academic Board"
+          }
+        },
+        {
+          "@type": "Quiz",
+          "@id": "https://f-forum.fpt.edu.vn/#cbt-quiz",
+          "name": "Đề Thi Thử Chuẩn Hóa THPT Quốc Gia & Đại Học",
+          "about": ["Toán Học", "Vật Lý", "Hóa Học", "Tiếng Anh"],
+          "educationalLevel": "THPT & Đại Học",
+          "timeRequired": "PT50M"
+        }
+      ]
     }
     </script>
 
@@ -75,16 +100,17 @@
       }
     </style>
 
-    <!-- 2. Inter, Instrument Serif, Playfair Display & Cormorant Garamond via Google Fonts -->
+    <!-- 2. Newsreader, Plus Jakarta Sans, Be Vietnam Pro, JetBrains Mono, Playfair Display & Fraunces via Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://d8j0ntlcm91z4.cloudfront.net" crossorigin>
     <link rel="dns-prefetch" href="https://d8j0ntlcm91z4.cloudfront.net">
     <link rel="preload" href="/fonts/OggText-Medium.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300..900;1,300..900&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:ital,wght@0,300..800;1,300..800&family=Newsreader:ital,opsz,wght@0,6..72,300..800;1,6..72,300..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap">
     <link rel="prefetch" href="/assets/decorations/decorations-catalog.json">
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400..700;1,400..700&family=Instrument+Serif:ital@0;1&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300..900;1,300..900&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=JetBrains+Mono:ital,wght@0,300..800;1,300..800&family=Newsreader:ital,opsz,wght@0,6..72,300..800;1,6..72,300..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-black text-white font-sans overflow-x-clip antialiased select-none">
+  <body class="bg-[#FAF7F2] text-[#2C2623] font-sans overflow-x-clip antialiased select-none">
     <div id="fb-root"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
