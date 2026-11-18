@@ -2,7 +2,7 @@
 
 ## Denylist (không bao giờ sửa trong loop)
 
-- `server/forumServer.ts`, `server/securityHeaders.ts` — đụng là phải có Sếp duyệt
+- `server/forumServer.ts`, `server/securityHeaders.ts` — đụng là phải có chủ dự án duyệt
 - `.env*`, `secrets/`, `credentials/`, `auth/`
 - KHÔNG chạy `scripts/sync-cloud.mjs`
 - Tests hiện có: không tắt, không nới assertion; chỉ được cập nhật khi thay đổi hành vi có chủ đích + ghi rõ lý do

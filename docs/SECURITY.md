@@ -22,8 +22,8 @@ Tài khoản tạo qua Google/Facebook **không có bản ghi mật khẩu**, n�
 
 ```bash
 # Tạo tài khoản qua social, rồi đăng nhập bằng mật khẩu bịa — vẫn nhận token:
-curl -X POST /api/auth/social -d '{"provider":"google","email":"nannhan@gmail.com"}'
-curl -X POST /api/auth/login  -d '{"email":"nannhan@gmail.com","password":"bat-ky"}'
+curl -X POST /api/auth/social -d '{"provider":"google","email":"user@example.com"}'
+curl -X POST /api/auth/login  -d '{"email":"user@example.com","password":"bat-ky"}'
 # => 200 { success: true, token: "f_token_..." }   ← TRƯỚC KHI VÁ
 ```
 

@@ -70,7 +70,7 @@ ghép chung 35 item SVG cũ + 873 item mới thành 1 registry.
 
 ### Migration (spec Bước 2.3) — **ĐÃ CHỌN PHƯƠNG ÁN B** (chạy khi triển khai)
 
-Sếp chốt 2026-10-12: chọn **phương án B — đổi item mới** (tạo điểm nhấn trực quan:
+chủ dự án chốt 2026-10-12: chọn **phương án B — đổi item mới** (tạo điểm nhấn trực quan:
 avatar tự có trang trí mới ngay, thay vì chỉ nhận Coin) + màn hình ăn mừng.
 
 - 35 item SVG cũ **vẫn bán bình thường** cho đến khi migration chạy ở môi trường đó

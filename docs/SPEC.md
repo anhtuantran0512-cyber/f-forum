@@ -1,4 +1,4 @@
-# 📘 SPEC.md — BẢN ĐẶC TẢ CHÍNH F-FORUM (phiên bản 1.0)
+# SPEC.md — BẢN ĐẶC TẢ CHÍNH F-FORUM (phiên bản 1.0)
 *Tư liệu tách ra từ bản đặc tả gốc (3.787 dòng) — code demo material nằm trong `docs/code-demo/`,
 chỉ dùng khi cần. Tài liệu này là bản CHÍNH THỨC, thay cho bản raw-paste cũ (giảm ~70% token
 mỗi lần nạp context).*
@@ -17,7 +17,7 @@ Phong cách: Liquid Glass, Bento Grid, Claymorphism/Clay, Masonry, Godray gradie
 4. Mọi mã code trong dự án phải tuân theo protocol trong `docs/ORCHESTRATION.md`
    và `IO_CONTRACT.md` + SECURITY_CHARTER (không hardcode secret, `audit_secrets.py` phải PASS).
 5. Test 100% pass trước khi ship; các hạng mục công việc ghi trong mục "Cần phê duyệt" **phải được
-   Chủ tịch duyệt** (Agent không tự tick `[x]`).
+   chủ dự án duyệt** (agent không tự tick `[x]`).
 
 ## 3. THIẾT KẾ CHUẨN (Design Tokens)
 - Font chuẩn: 'Inter Tight' body, 'Bricolage Grotesque' display, Georgia serif cho italic êm ái.
@@ -28,7 +28,7 @@ Phong cách: Liquid Glass, Bento Grid, Claymorphism/Clay, Masonry, Godray gradie
 - Motion curve chuẩn: `cubic-bezier(.34,1.56,.64,1)` boomeage spring (10% overshoot).
 - Background layers: `radial-gradient` nền + `backdrop-blur-[20px] backdrop-saturate-[1.7]` cho glass.
 
-## 4. BỘ DEMO CODE THAM KHẢO — CodeFronts (MIT) 🎨
+## 4. BỘ DEMO CODE THAM KHẢO — CodeFronts (MIT)
 Chi tiết từng demo → đọc file tương ứng trong `docs/code-demo/`:
 
 | Slug | Mô tả |

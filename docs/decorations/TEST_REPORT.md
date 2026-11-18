@@ -1,6 +1,6 @@
 # TEST REPORT — Nhiệm vụ 10: Hệ thống trang trí Discord import
 
-Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (main)
+Ngày: 2026-10-12 · Branch: `f-forum_v3` · Cơ sở: `670848e` (main)
 
 ## 0. Kết quả tổng
 
@@ -11,11 +11,11 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 | `npm test` (29 file, Node test runner) | ✅ **353/353 pass** |
 | Asset build | ✅ 3.878 file / ~122 MB · 0 lỗi ffmpeg · catalog 873 item |
 | Quality re-tiering | ✅ 873 item chấm điểm 0–100 · 768 động / 105 tĩnh · 0 lỗi cấu trúc · giá khớp bảng rarity 100% |
-| Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (Sếp chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
+| Migration | ✅ **ĐÃ CHỌN PHƯƠNG ÁN B** (chủ dự án chốt 12/10) — script nâng cấp (cùng hiếm thật, khớp loại, tự trang bị, payload ăn mừng) + demo end-to-end trong sandbox; marker KHÔNG commit (chạy khi triển khai) |
 
 ## 1. Checklist theo 6 bước của nhiệm vụ
 
-### Bước 1 — Audit & chuẩn hoá asset ✅
+### Bước 1 — Audit & chuẩn hoá asset
 - [x] Liệt kê theo extension, kích thước, động/tĩnh → `ASSET_AUDIT.md` + `asset-audit.json`
       (637 PNG: 621 APNG + 16 tĩnh; 236 WebM nameplate; 0 file hỏng)
 - [x] Thư mục đúng spec: `public/assets/decorations/avatar-frames/{slug}/` (preview.png ~128px,
@@ -27,7 +27,7 @@ Ngày: 2026-10-12 · Branch: `arena/62613a87-f-forum` · Cơ sở: `670848e` (ma
 - [x] Catalog JSON để review: 873 item {frame 569, aura 68, nameplate 236} ·
       {common 336, rare 268, epic 192, mythic 77} (sau quality re-tiering — xem mục 1.1)
 
-### 1.1 Quality review & re-tiering giá (bổ sung 2026-10-12) ✅
+### 1.1 Quality review & re-tiering giá (bổ sung 2026-10-12)
 
 User yêu cầu: *"xem xét chất lượng, animation các kiểu và sắp xếp hợp lý giá cả từ common
 tới mythic, đảm bảo chất lượng"*. Thực hiện bằng `scripts/decorations/score-quality.mjs`:
@@ -50,9 +50,9 @@ tới mythic, đảm bảo chất lượng"*. Thực hiện bằng `scripts/deco
   mọi đợt thêm asset.
 - Ảnh demo (`screenshots/`) đã tái tạo theo top qualityScore mới.
 
-### 1.2 Migration — phương án B + màn hình ăn mừng (bổ sung 2026-10-12) ✅
+### 1.2 Migration — phương án B + màn hình ăn mừng (bổ sung 2026-10-12)
 
-Sếp yêu cầu: *"chọn phương án tốt nhất, tạo điểm nhấn, ấn tượng cho người dùng"*.
+chủ dự án yêu cầu: *"chọn phương án tốt nhất, tạo điểm nhấn, ấn tượng cho người dùng"*.
 
 **Quyết định: PHƯƠNG ÁN B (đổi item mới)** — lý do:
 - Điểm nhấn TRỰC QUAN: avatar user tự đeo trang trí Discord mới ngay khi mở app
@@ -90,9 +90,9 @@ SVG → 0 active (soft-delete qua marker), 873 item mới active.
 `node scripts/decorations/migrate-decorations.mjs --apply --plan=B --confirm`.
 Marker gitignore — không commit, không deploy nhầm.
 
-### 1.3 ĐẠI CẬP NHẬT — Boutique "Sống động" (bổ sung 2026-10-12) ✅
+### 1.3 ĐẠI CẬP NHẬT — Boutique "Sống động" (bổ sung 2026-10-12)
 
-Sếp yêu cầu: *"tự update thêm, làm 1 update đại cập nhật"*. Ba khối mới trên Boutique
+chủ dự án yêu cầu: *"tự update thêm, làm 1 update đại cập nhật"*. Ba khối mới trên Boutique
 (đều pure client, giá LUÔN khớp server vì dùng đúng `effectivePrice`):
 
 1. **DEAL HÔM NAY** (`getDailyDeal` — pure, test 10.9): item NỔI BẬT của ngày
@@ -104,16 +104,16 @@ Sếp yêu cầu: *"tự update thêm, làm 1 update đại cập nhật"*. Ba k
    X/873 + thanh tiến độ, 4 thanh mini theo độ hiếm (màu rarity), "Vinh danh
    Huyền thoại" — 6 viên ngọc mythic đã sưu tầm (top qualityScore, click xem).
    Empty state: số mythic đang chờ khám phá.
-3. **SỰ KIỆN KHAI TRƯƠNG 72H** *(đã gỡ 2026-10-12 theo yêu cầu sếp — thừa, không cần thiết)*:
+3. **SỰ KIỆN KHAI TRƯƠNG 72H** *(đã gỡ 2026-10-12 theo yêu cầu chủ dự án — thừa, không cần thiết)*:
    ruy-băng đếm ngược từ mốc migration (`at` trong marker).
 
 Kỹ thuật: hàm thuần trong `src/utils/decorations.ts` (import `effectivePrice`
 từ shopData — không vòng lặp import); Boutique tick 1s sẵn có điều khiển cả 3 đồng hồ;
 CSS co-located (Boutique.css), reduced-motion + mobile responsive.
 
-### 1.4 ĐẠI CẬP NHẬT #2 — "Tủ đồ của bạn" (bổ sung 2026-10-12) ✅
+### 1.4 ĐẠI CẬP NHẬT #2 — "Tủ đồ của bạn" (bổ sung 2026-10-12)
 
-Sếp yêu cầu: *"tiếp tục làm những đợt đại cập nhật toàn diện"* — đợt này tập
+chủ dự án yêu cầu: *"tiếp tục làm những đợt đại cập nhật toàn diện"* — đợt này tập
 trung vào **quản lý 873 item** (chức năng, không phải hiệu ứng):
 
 1. **YÊU THÍCH (wishlist)** — nút trái tim trên từng card, lưu SERVER
@@ -136,7 +136,7 @@ Kỹ thuật: server persist + broadcast (đúng pattern `equip`); client ghi
 localStorage event-driven (khi bấm, không effect); phát hiện & sửa lỗi TDZ
 thực (`now` dùng trước khai báo khi ruy-băng hoạt động) trong lúc ghép.
 
-### 1.5 Đợt #3 — "Mua đúng túi tiền" (bổ sung 2026-10-12) ✅
+### 1.5 Đợt #3 — "Mua đúng túi tiền" (bổ sung 2026-10-12)
 
 Ba thêm nhỏ, đều phục vụ vòng lặp mua (873 item, coin hữu hạn):
 
@@ -149,16 +149,16 @@ Ba thêm nhỏ, đều phục vụ vòng lặp mua (873 item, coin hữu hạn):
 3. **XOÁ BỘ LỌC** — nút chỉ hiện khi đang có lọc (type/hiếm/chuyển động/
    sở hữu/giá/yêu thích/từ khoá); về mặc định, giữ nguyên sắp xếp,
    đồng bộ localStorage.
-4. **CHIP "GIÁ THẤP → CAO"** (bổ sung theo yêu cầu sếp) — 1 chạm bật/tắt
+4. **CHIP "GIÁ THẤP → CAO"** (bổ sung theo yêu cầu chủ dự án) — 1 chạm bật/tắt
    sắp xếp giá tăng ngay hàng filter (không phải mở dropdown), active
    đồng bộ 2 chiều với ô sắp xếp, lưu cùng bộ lọc.
 
 Kỹ thuật: mở rộng `filtered` memo 1 chỗ (deps đầy đủ — kiểm tra bằng test),
 CSS co-located, reduced-motion an toàn.
 
-### 1.6 FIX CHUẨN DISCORD — nameplate / aura / preview / filter (bổ sung 2026-10-12) ✅
+### 1.6 FIX CHUẨN DISCORD — nameplate / aura / preview / filter (bổ sung 2026-10-12)
 
-Sếp chỉ ra code hiểu sai cơ chế Nameplate (tràn chữ, lặp chữ) — sửa đúng
+chủ dự án chỉ ra code hiểu sai cơ chế Nameplate (tràn chữ, lặp chữ) — sửa đúng
 chuẩn Discord, có test khoá (10.14):
 
 1. **NAMEPLATE** — asset là ẢNH NỀN THUẦN TÚY; tên user = lớp HTML riêng
@@ -191,7 +191,7 @@ chuẩn Discord, có test khoá (10.14):
 Kỹ thuật: CSS co-located (decorations.css + Boutique.css), reduced-motion an
 toàn, ARIA (aria-pressed, role=note, label).
 
-### 1.7 Đợt #4 — "Quay lại nhanh + không bỏ lỡ sale" (bổ sung 2026-10-12) ✅
+### 1.7 Đợt #4 — "Quay lại nhanh + không bỏ lỡ sale" (bổ sung 2026-10-12)
 
 1. **"VỪA XEM"** — 8 item gần nhất mở preview (localStorage
    `fforum_boutique_recent_v1`, helper pure `pushRecentItem`), dải thumbnail
@@ -205,7 +205,7 @@ toàn, ARIA (aria-pressed, role=note, label).
 Kỹ thuật: đặt memo đúng thứ tự khai báo (bắt + tránh 1 lỗi TDZ thật trong
 lúc ghép), CSS co-located + reduced-motion, ARIA label.
 
-### 1.8 Đợt #5 — "Trong ngân sách + mua đúng giá trị" (bổ sung 2026-10-12) ✅
+### 1.8 Đợt #5 — "Trong ngân sách + mua đúng giá trị" (bổ sung 2026-10-12)
 1. **CHIP "TÔI MUA ĐƯỢC (N)"** — lọc chỉ hiện item có giá thực tế
    (min weekly+flash) ≤ số Coin HIỆN TẠI; count live trên chip (mỗi lần
    sale đổi giá / Coin đổi là tự cập nhật); lựa chọn lưu theo bộ lọc
@@ -222,7 +222,7 @@ Kỹ thuật: giá so Coin dùng đúng công thức giá thực tế của lư�
 (không lệch với số Coin hiển thị trên card), ARIA label/pressed,
 CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
 
-### 1.9 FIX "Giao diện vừa gặp lỗi / Failed to fetch dynamically imported module" (bổ sung 2026-10-12) ✅
+### 1.9 FIX "Giao diện vừa gặp lỗi / Failed to fetch dynamically imported module" (bổ sung 2026-10-12)
 1. **GỐC LỖI (đã fix)**: `Boutique.css` để sót 1 dấu `}` thừa (dòng 1558,
    còn lại từ thao tác xoá khối cũ) → Vite trả **500** cho file CSS → mọi
    lazy chunk import nó (`GachaBoutique` → `ProfileModal`…) fetch fail →
@@ -244,8 +244,8 @@ CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
      (vừa tự tải) → các chunk khác được hồi phục tiếp, ngân sách vẫn giữ
      vai trò chặn lặp.
 
-### 1.10 Đợt #6 — "Vô vùng Coin + giữ trọn trải nghiệm + gọn nút quản trị" (bổ sung 2026-10-12) ✅
-1. **SÚP-ER ADMIN VÔ VÙNG COIN** (yêu cầu sếp):
+### 1.10 Đợt #6 — "Vô vùng Coin + giữ trọn trải nghiệm + gọn nút quản trị" (bổ sung 2026-10-12)
+1. **SÚP-ER ADMIN VÔ VÙNG COIN** (yêu cầu chủ dự án):
    - Server: `/api/shop/purchase` (mua trực tiếp + gacha) và treo thưởng
      (WS + HTTP) — role `SUPER_ADMIN` KHÔNG bị chặn số dư, KHÔNG trừ Coin.
      User thường vẫn bị 402 như cũ (quyền lợi riêng super admin).
@@ -255,7 +255,7 @@ CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
      modal quà hằng ngày, modal treo thưởng.
    - Test 10.17 (e2e): admin số dư 100 mua frame mythic 6.200 Coin → 200,
      Coin KHÔNG đổi; user thường tình huống giống → 402.
-2. **ICON KHÔNG ĐƯỢC LÀM MẤT ẢNH ĐỘNG / MẤT THÀNH PHẦN** (yêu cầu sếp):
+2. **ICON KHÔNG ĐƯỢC LÀM MẤT ẢNH ĐỘNG / MẤT THÀNH PHẦN** (yêu cầu chủ dự án):
    - Webm trang trí tải lỗi (mạng, server restart) KHÔNG được cache "null
      vĩnh viễn" — `useCachedAsset` tự retry 3 lần × 2s (icon động không bao
      giờ "chết" thành ảnh tĩnh hết phiên).
@@ -267,12 +267,12 @@ CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
      (preload metadata, không autoplay) — đúng phép "giảm chuyển động được
      quyền tắt ảnh động"; video lỗi → `DEFAULT_AVATAR`, không mất avatar.
    - Test 10.18.
-3. **GỘP NÚT TỐ CÁO + ĐIỀU KHIỂN THÀNH 1** (yêu cầu sếp): 2 nút nổi riêng
+3. **GỘP NÚT TỐ CÁO + ĐIỀU KHIỂN THÀNH 1** (yêu cầu chủ dự án): 2 nút nổi riêng
    (Tố cáo / Điều khiển) → 1 nút "Tố cáo & Điều khiển" mở menu 2 lựa chọn
    (badge N tố cáo chờ giữ nguyên, Escape/bấm ngoài đóng, chỉ Super Admin,
    ẩn khi modal đang mở). Test 10.19 + cập nhật 2 assertion guard cũ.
 
-### Bước 2 — Schema ✅
+### Bước 2 — Schema
 - [x] `ShopItem` += `assetType`, `previewUrl`, `fullAssetUrl`, `animatedAssetUrl`, `originalSource`
 - [x] Giữ rarity/price/category; 35 item SVG cũ gắn `svg_custom`/`fforum_svg`
 - [x] Migration script `migrate-decorations.mjs`: dry-run mặc định, backup DB, idempotent,
@@ -282,7 +282,7 @@ CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
 - [x] §2.3: dry-run đã querry + report mẫu (đã test trên data tổng hợp:
       2 user → 1 user giữ 2 item cũ, tổng hoàn 1.850 Coin, danh sách đổi phương án B)
 
-### Bước 3 — Component ✅
+### Bước 3 — Component
 - [x] `AvatarWithDecoration`: `<video autoplay loop muted playsInline>` khi động + được phép;
       ngược lại `<img>`; overlay absolute `overflow: visible`
 - [x] `prefers-reduced-motion` → tắt video (`useReducedMotion`)
@@ -290,7 +290,7 @@ CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
 - [x] `NameplateDisplay`: bảng tên SAU tên user, text-shadow chống nền rực
 - [x] Bonus theo spec: `animate=false` option (comment/leaderboard), `eager` option (navbar)
 
-### Bước 4 — Shop UI ✅
+### Bước 4 — Shop UI
 - [x] Card preview ảnh thật; hover phát WebM
 - [x] Dark theme; rarity Common xám / Rare xanh / Epic tím / Mythic vàng
 - [x] Preview modal 200px trên avatar thật + nút “Trang bị ngay”
@@ -298,14 +298,14 @@ CSS accent xanh lá cho chip ngân sách + nút xoá, reduced-motion.
 - [x] Pagination vô hạn 24 item/niềm (không load một lúc)
 - [x] Giá do MÁY CHỦ tính (`effectivePrice` + flash 6h, client không gửi giá — test epic4 + 9e)
 
-### Bước 5 — Profile & đồng bộ ✅
+### Bước 5 — Profile & đồng bộ
 - [x] Profile 150px + animation + nameplate dưới tên + nút “Thay đổi trang trí”
 - [x] Comment/lời giải 32px (animate=false) · popover 40px
 - [x] Leaderboard 58/46 podium · 40/36 ladder · 30/32 rows
 - [x] Navbar 28/24px eager + preload
 - [x] Equip qua API có xác nhận slot phía server (lẫn lộn → 400)
 
-### Bước 6 — Test & rollback ✅ (bài này)
+### Bước 6 — Test & rollback  (bài này)
 
 ## 2. Bằng chứng hình ảnh (screenshots)
 
@@ -392,7 +392,7 @@ Sandbox không có trình duyệt — khi mở app thật, verify lần lượt:
 
 Rủi ro thấp — hệ cũ không bị xoá:
 
-1. **Code**: toàn bộ thay đổi nằm trên branch `arena/62613a87-f-forum` (chưa merge).
+1. **Code**: toàn bộ thay đổi nằm trên branch `f-forum_v3` (chưa merge).
    Rollback = không merge / revert branch. 35 item SVG cũ + UI cũ vẫn hoạt động độc lập.
 2. **Asset**: `public/assets/decorations/` (122 MB) có thể xoá thoải mái — component
    tự fallback (không có catalog → registry rỗng → boutique không hiện item mới).

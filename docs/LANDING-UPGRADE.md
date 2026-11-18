@@ -1,19 +1,19 @@
-# 🚀 F-Forum — Đánh giá & Nâng cấp toàn diện (Landing Page + Toàn bộ Web)
+# F-Forum — Đánh giá & Nâng cấp toàn diện (Landing Page + Toàn bộ Web)
 
 > Tài liệu này ghi lại **đánh giá hiện trạng**, **những gì còn thiếu**, và **toàn bộ nâng cấp đã thực hiện** cho F-Forum.
-> Ngày thực hiện: 01/10/2026 · Nhánh: `arena/01a0f561-f-forum` · PR: [#1](https://github.com/broamstuck-cybr/f-forum/pull/1)
+> Ngày thực hiện: 01/10/2026 · PR: [#1](https://github.com/broamstuck-cybr/f-forum/pull/1)
 
 ---
 
 ## 1. Đánh giá hiện trạng (trước nâng cấp)
 
-### ✅ Điểm mạnh đã có
+### Điểm mạnh đã có
 - Kiến trúc SPA đa phân khu rõ ràng: Trang chủ, Câu lạc bộ, Hỏi đáp, Chat, Miền Ký Ức, Khu Vinh Danh, Update.
 - Ngôn ngữ thiết kế Liquid Glass + 2 chủ đề Sáng/Tối, hệ thống XP 1–150 và 10 bậc huy hiệu.
 - Nhiều "signature feature" ấn tượng: quả cầu 3D Fibonacci, parallax 3700px, wheel-scroll engine, telemetry HUD, Web Audio 432Hz.
 - Nền tảng kỹ thuật tốt: React 19 + Vite + Tailwind v4, oxlint, 31 bài test tự động đang xanh.
 
-### ⚠️ Khoảng trống so với một sản phẩm "production-ready"
+### Khoảng trống so với một sản phẩm "production-ready"
 | # | Thiếu sót | Ảnh hưởng |
 |---|---|---|
 | 1 | **Không có landing page/marketing surface** | Người mới truy cập rơi thẳng vào sản phẩm, không có hành trình thuyết phục để "chuyển đổi" |
