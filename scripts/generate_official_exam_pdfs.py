@@ -633,7 +633,7 @@ def generate_pdf(exam, output_dir):
             os.remove(temp_html_path)
 
 def main():
-    output_dir = "./public/exams"
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public", "exams")
     os.makedirs(output_dir, exist_ok=True)
     for exam in EXAMS:
         generate_pdf(exam, output_dir)

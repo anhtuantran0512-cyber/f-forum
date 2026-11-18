@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Synthetic unit-test fixtures under tests/"
+paths = ['''^tests/.*''']

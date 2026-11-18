@@ -526,7 +526,7 @@ test('15b. Nhận diện lỗi chunk — đúng các thông báo thật, không 
     true,
     'Firefox: chunk fetch fail',
   );
-  assert.equal(isChunkLoadError(new Error('Failed to load url /src/a.css (passed file: /home/user/a.css)')), true, 'Vite dev: module con trả lỗi');
+  assert.equal(isChunkLoadError(new Error('Failed to load url /src/a.css (passed file: /workspace/a.css)')), true, 'Vite dev: module con trả lỗi');
   assert.equal(isChunkLoadError('Failed to fetch dynamically imported module: x'), true, 'message dạng string');
   assert.equal(isChunkLoadError(new Error('Cannot read properties of undefined (reading map)')), false, 'runtime error KHÔNG phải lỗi chunk');
   assert.equal(isChunkLoadError(new Error('402: Bạn cần 2000 Coin')), false, 'lỗi API KHÔNG phải lỗi chunk');
