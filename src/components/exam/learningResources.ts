@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 export type LearningResourceKind = 'video' | 'document' | 'official';
 
 export interface LearningResource {

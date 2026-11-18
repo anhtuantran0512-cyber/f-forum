@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Định giá (Bước 1.3) — tỉ lệ mẫu trong Nhiemvu_10: 79.000đ → 4.100 Coin
  * (≈ 0,0519 Coin/đồng, làm tròn đến bội số 50). Giá theo độ hiếm, riêng bảng tên

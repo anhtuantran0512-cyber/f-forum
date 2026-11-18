@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useState } from 'react';
 import './FlipClock.css';
 

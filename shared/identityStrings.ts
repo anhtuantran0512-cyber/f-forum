@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * identityStrings — chuỗi định danh quản trị, lưu ở dạng che giấu nhẹ
  * --------------------------------------------------------------------------

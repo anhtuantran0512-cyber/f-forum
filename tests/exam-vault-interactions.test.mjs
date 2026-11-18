@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import React, { act } from 'react';

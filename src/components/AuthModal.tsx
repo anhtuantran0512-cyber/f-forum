@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Đăng nhập / Đăng ký "điện ảnh" (Epic 5 · Nhiemvu_4 Task 3 · Nhiemvu_5 Phase D/E).
  *  - Cú Bông phản ứng theo hành vi: gõ email → đeo kính cầm bút; gõ mật khẩu → che mắt;

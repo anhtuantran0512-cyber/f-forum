@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { MASTER_ADMIN_EMAIL } from '../shared/identityStrings.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';

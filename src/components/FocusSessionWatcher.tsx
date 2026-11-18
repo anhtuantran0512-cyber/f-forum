@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useState } from 'react';
 import { Timer, Pause, CheckCircle2, Coffee, ArrowUpRight, AlertTriangle } from 'lucide-react';
 import {

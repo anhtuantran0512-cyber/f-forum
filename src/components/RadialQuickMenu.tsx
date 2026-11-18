@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Headphones, Flame, Users, Zap, Command, ChartNoAxesCombined } from 'lucide-react';
 import { safeStorage } from '../utils/storage';

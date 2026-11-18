@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Sheet thao tác nhanh trên từng dòng thành viên (Epic 3 — mục 3.4):
  * Cấm đăng (1 ngày / 3 ngày / 1 tuần / vĩnh viễn), Cảnh cáo (lưu lịch sử), Khoá chat,

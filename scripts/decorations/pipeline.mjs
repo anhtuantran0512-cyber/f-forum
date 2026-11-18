@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * pipeline.mjs — pipeline asset Nhiệm vụ 10 (Bước 1.1 → 1.3).
  *

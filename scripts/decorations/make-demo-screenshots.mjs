@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Nhiệm vụ 10 — tạo "screenshot" minh chứng cho TEST_REPORT (sandbox không có
  * trình duyệt headless → không chụp được UI thật; thay bằng composite pixel

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type {
   DimensionView,

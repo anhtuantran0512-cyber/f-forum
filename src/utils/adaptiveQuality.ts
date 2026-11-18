@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Client-side quality hints and utilities. Device hints are optional and can be
  * coarsened or missing; balanced is used until enough signals are available.

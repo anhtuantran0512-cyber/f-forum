@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * SecurityNoticeToast — thông báo bảo mật nhỏ, không chặn thao tác (EPIC 5).
  *

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

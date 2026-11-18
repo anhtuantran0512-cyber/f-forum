@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useMemo, useState } from 'react';
 import { X, Award, Trophy, Target, CheckCircle2, Lock } from 'lucide-react';
 import { TIER_CONFIGS, getTierForLevel, xpThresholdForLevel } from '../utils/tier';

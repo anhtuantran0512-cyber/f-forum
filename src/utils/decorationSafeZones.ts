@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Nhiệm vụ 10 — SAFE ZONE theo decoration (chuẩn Discord).
  *

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ShopItem, ShopTierColor } from '../types/index.ts';
 
 /* ============================================================================

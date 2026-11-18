@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { ArrowUpRight, BookOpenCheck, HelpCircle, Users, PenLine } from 'lucide-react';
 import type { DimensionView } from '../../../types';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * RadarSpiderChart — biểu đồ mạng nhện SVG thuần (EPIC 5 · hiệu năng).
  *

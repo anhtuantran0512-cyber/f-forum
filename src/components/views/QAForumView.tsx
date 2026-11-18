@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useDraftAutosave } from '../../utils/useDraftAutosave';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Gacha Boutique — Nhiệm vụ 10: cửa hàng trang trí + gacha F-Coin.
  *  - 873 asset thật (khung/hào quang/bảng tên) từ decorations-catalog.json.

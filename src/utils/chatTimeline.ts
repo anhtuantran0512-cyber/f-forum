@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ChatMessage } from '../types';
 
 const clockMinutes = (value: string): number | null => {

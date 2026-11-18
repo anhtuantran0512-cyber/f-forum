@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * PHẦN 5 — Progressive Web App Service Worker
  *  5.1 Stale-While-Revalidate: trả dữ liệu từ cache NGAY LẬP TỨC, đồng thời

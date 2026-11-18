@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Luật mật khẩu phía client — PHẢI khớp máy chủ (server/forumServer.ts: đăng ký và
  * POST /api/auth/password): trim, 6–200 ký tự. Client chỉ kiểm sớm cho trải nghiệm;

@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Nhiệm vụ 10 — Migration thay item SVG cũ bằng trang trí Discord import.
  *

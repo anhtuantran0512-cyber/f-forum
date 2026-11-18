@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 /* ==========================================================================
    LƯỢT THẢ TIM HỒ SƠ — toàn bộ phép tính nằm ở ĐÂY, thuần tuý (không import gì)

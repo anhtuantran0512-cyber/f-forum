@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Nhiệm vụ 10 — Hệ thống trang trí Discord import: test hợp đồng chuyên biệt.
  *

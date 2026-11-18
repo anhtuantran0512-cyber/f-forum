@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ShieldAlert,

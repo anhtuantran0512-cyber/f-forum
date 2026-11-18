@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { SubjectTag } from '../types/index.ts';
 
 export const GHIBLI_MASKS = [

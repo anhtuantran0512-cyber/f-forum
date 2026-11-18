@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Bảo mật riêng tư quản trị (yêu cầu Chủ tịch 18/10/2026; bổ sung mã hoá 19/10/2026).
  *

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Đọc metadata PNG / APNG trực tiếp từ chunk (không cần thư viện):
  * kích thước, có animation không (chunk acTL), số frame, số vòng lặp, tổng thời

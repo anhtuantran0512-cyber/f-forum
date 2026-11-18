@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useId, useRef, useState } from 'react';
 import { Smile } from 'lucide-react';
 import './ReactionPicker.css';

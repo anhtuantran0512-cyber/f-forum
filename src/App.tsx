@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 import { installInteractionWatchdog } from './utils/interactionWatchdog';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Cửa sổ giữ chuỗi điểm danh (code_yeucau · cdt-16 "daily streak reset countdown").
  * Ranh giới ngày PHẢI trùng với cách máy chủ chấm điểm danh: ngày lịch theo

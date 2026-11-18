@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Bộ biểu đồ "Data Visualization Art" cho Bảng quản trị (Epic 3 — Nhiemvu.md):
  *  - SmoothAreaChart: đường cong Bezier mượt (monotone cubic — không bao giờ vọt

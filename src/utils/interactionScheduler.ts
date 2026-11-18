@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * ADAPTIVE RAF SCHEDULER & INTERACTION PRIORITY (Facebook Scheduler & Discord Web)
  *

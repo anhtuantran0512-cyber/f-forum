@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Nhiệm vụ 10 — màn hình ăn mừng sau khi migration A/B chạy:
  * thông báo `server-migration-*` (payload gifts/showcase) → modal lễ hội với

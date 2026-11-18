@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { useInView, usePrefersReducedMotion, useScrollProgress } from './useLandingMotion';

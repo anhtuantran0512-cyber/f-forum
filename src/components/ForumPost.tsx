@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { Trash2, Edit3 } from 'lucide-react';
 

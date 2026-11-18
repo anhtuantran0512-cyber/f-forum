@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { FC } from 'react';
 import { SignatureEmblem } from './SignatureEmblem';
 export const ShopItemSvg: FC<{ type: string; size?: number; className?: string }> = ({ type, size = 40, className = '' }) => (

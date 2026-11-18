@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 /* ==========================================================================
    QUẢN LÝ NGƯỜI DÙNG (cấm / khoá gửi tin) — LOGIC THUẦN TUÝ

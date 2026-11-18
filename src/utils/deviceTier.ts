@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * EPIC 5 — Đánh giá "sức khoẻ" thiết bị để GỢI Ý Potato Mode (không bao giờ ép).
  *

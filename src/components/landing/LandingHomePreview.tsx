@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useLayoutEffect, useRef, useState } from 'react';
 import { Navbar } from '../Navbar';
 import { HomeView } from '../views/HomeView';

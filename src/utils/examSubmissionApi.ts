@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ExamAttachment, ExamInteractionMap, ExamInteractionSnapshot, ExamPaper } from '../types';
 import { authHeaders } from './session';
 

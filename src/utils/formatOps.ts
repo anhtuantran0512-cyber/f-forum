@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 /* ==========================================================================
    ĐỊNH DẠNG SỐ LIỆU VẬN HÀNH — module THUẦN TUÝ (không import gì)

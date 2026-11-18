@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * EPIC 5 — Header bảo mật & Content-Security-Policy.
  *

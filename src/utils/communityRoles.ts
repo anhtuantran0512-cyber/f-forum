@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Quyền cộng đồng — dùng chung cho giao diện và máy chủ.
  * `role` là tư cách cộng đồng (Học sinh / Trưởng CLB / Super Admin);

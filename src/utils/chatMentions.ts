@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useCallback, useMemo, useState, type ChangeEvent, type Dispatch, type KeyboardEvent, type RefObject, type SetStateAction, type SyntheticEvent } from 'react';
 import type { OnlinePresenceUser, User } from '../types';
 

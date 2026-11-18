@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Nhiệm vụ 10 — bảng tên (nameplate): lớp media nằm SAU tên hiển thị.
  * Độ tương phản do `text-shadow` phía CSS đảm nhận (bảng tên nền có thể rực màu).

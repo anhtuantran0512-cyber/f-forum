@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
 import { LOW_FPS_PLAYBACK_RATE, toWebmVideoUrl } from '../utils/chatVideos';
 import { handleVideoError } from '../utils/mediaFallback';

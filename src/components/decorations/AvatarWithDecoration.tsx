@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Nhiệm vụ 10 — avatar + trang trí Discord (khung / hào quang / bảng tên).
  *  - Bản động dùng native video URL; reduced motion pauses playback, browsers without VP9 alpha use the still asset.

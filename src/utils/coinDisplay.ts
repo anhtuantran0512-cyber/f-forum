@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Quyền lợi VÔ VÙNG COIN cho Super Admin.
  *  - Siêu quản trị luôn được coi là có số dư Coin = +∞ (mua/gacha/treo thưởng

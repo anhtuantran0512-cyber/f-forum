@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 
 export const DEFAULT_AVATAR =

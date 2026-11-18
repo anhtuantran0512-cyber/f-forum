@@ -12,9 +12,9 @@ Phong cách: Liquid Glass, Bento Grid, Claymorphism/Clay, Masonry, Godray gradie
 
 ## 2. NUẬT TAY CẤM KỴ (Invariants — Không hệ thống nào được vi phạm)
 1. **Nghiêm cấm comment** `//` trong mã chức năng JS/TS (chỉ bao bọc `/* ... */` ghi chú đặc biệt).
-2. **Thương hiệu không đổi**: F-Forum, phím tắt **Ctrl+E**, Dynamic Island.
+2. **Thương hiệu không đổi**: phím tắt **Ctrl+E**, Dynamic Island.
 3. **Không dùng emoji trong icon/huy hiệu** — chỉ SVG hand-made vector.
-4. Mọi mã code trong dự án phải tuân theo protocol trong `Documents/F-Forum/ORCHESTRATION.md`
+4. Mọi mã code trong dự án phải tuân theo protocol trong `docs/ORCHESTRATION.md`
    và `IO_CONTRACT.md` + SECURITY_CHARTER (không hardcode secret, `audit_secrets.py` phải PASS).
 5. Test 100% pass trước khi ship; các hạng mục công việc ghi trong mục "Cần phê duyệt" **phải được
    Chủ tịch duyệt** (Agent không tự tick `[x]`).

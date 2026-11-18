@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * VÒNG NÂNG CẤP R4 · Hiệu năng — gộp sự kiện dày (scroll/resize/pointermove) về tối
  * đa MỘT lần xử lý mỗi khung hình. Lần gọi cuối cùng trong khung luôn được xử lý

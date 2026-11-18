@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Đọc ZIP "chia phần byte" (avatar_1.zip … avatar_23.zip ghép lại = một archive):
  * tự nối các phần liên tiếp để tìm End-Of-Central-Directory, rồi đọc trực tiếp từng

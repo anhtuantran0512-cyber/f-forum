@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ButtonHTMLAttributes, CSSProperties, ReactNode } from 'react';
 import './OrbButton.css';
 

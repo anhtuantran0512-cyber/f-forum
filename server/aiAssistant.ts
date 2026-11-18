@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto';
 import { isIP } from 'node:net';
 

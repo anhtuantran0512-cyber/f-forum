@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useCallback, useEffect, useState, type FC, type FormEvent } from 'react';
 import { AlertTriangle, Check, Cpu, Eye, EyeOff, KeyRound, LoaderCircle, Plus, RefreshCw, Save, ShieldCheck, Sparkles, Trash2 } from 'lucide-react';
 import { authHeaders, postJson } from '../../utils/session';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { safeStorage } from '../../utils/storage';
 import type { ExamPaper } from '../../types';
 

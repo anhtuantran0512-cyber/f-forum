@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, type FC } from 'react';
 import { CuBong } from '../mascot/CuBong';
 import './OwlOutcome.css';

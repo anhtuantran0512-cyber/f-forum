@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { BookOpenCheck, HelpCircle, ShieldCheck } from 'lucide-react';
 import { Reveal, SpotlightCard } from '../LandingPrimitives';

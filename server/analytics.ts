@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { createHash } from 'node:crypto';
 
 export interface AnalyticsBucket {

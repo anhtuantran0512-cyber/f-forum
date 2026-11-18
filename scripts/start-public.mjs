@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * fforum_broamstuck_studio - Temporary Production Preview Runner
+ * fforum_preview - Temporary Production Preview Runner
  *
  * Builds and serves the production bundle before an explicitly requested public tunnel:
  * - Never exposes Vite's development server, source modules, or HMR endpoint.
@@ -244,7 +244,7 @@ function cleanup(exitCode = 0) {
   if (isShuttingDown) return;
   isShuttingDown = true;
 
-  console.log('\n🛑 Shutting down fforum_broamstuck_studio deployment pipeline...');
+  console.log('\n🛑 Shutting down fforum_preview deployment pipeline...');
 
   /* Reset gateway status so visitors see offline state */
   syncGatewayGist(null);
@@ -467,7 +467,7 @@ function startCloudflareTunnel() {
 /* Main execution flow */
 async function main() {
   try {
-    console.log('🚀 Initializing fforum_broamstuck_studio deployment pipeline...\n');
+    console.log('🚀 Initializing fforum_preview deployment pipeline...\n');
 
 /* Build and serve production assets locally before any optional exposure. */
     await ensureProductionPreviewServer();

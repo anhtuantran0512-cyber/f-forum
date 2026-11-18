@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Mô tả trạng thái khoá trả về khi đăng nhập (server/moderation.ts → moderationForLogin).
  * Máy chủ đã tính theo giờ hiện tại, nên client chỉ diễn đạt lại — không tự so thời gian.

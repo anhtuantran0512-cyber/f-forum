@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * PHẦN 2.3 & 2.4 — OffscreenCanvas + Web Worker Particle Physics Engine
  *

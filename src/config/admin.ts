@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { MASTER_ADMIN_EMAIL, MASTER_ADMIN_EMAIL_LOWER } from '../../shared/identityStrings.ts';
 
 /* Chuỗi gốc được che giấu trong `shared/identityStrings.ts`; đây là trạm phát
@@ -28,12 +27,12 @@ export const normalizeAdminAvatar = (value?: string | null): string =>
   typeof value === 'string' && value && !isLegacyAdminAvatar(value) ? value : ADMIN_AVATAR_URL;
 
 export const MASTER_ADMIN_CONFIG: MasterAdminConfig = {
-  name: 'Trần Văn Anh Tuấn',
+  name: 'Quản trị viên',
   email: MASTER_ADMIN_EMAIL,
-  role: 'Admin F-Forum • Owner F-Forum',
+  role: 'Admin F-Forum',
   avatar: ADMIN_AVATAR_URL,
   verifiedBadge: true,
-  facebookUrl: 'https://facebook.com/tran.anh.tuan',
+  facebookUrl: '',
   level: 150,
   xp: 45000,
   fPoints: 45000,

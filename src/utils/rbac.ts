@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * RBAC — Ma trận phân quyền tập trung cho toàn bộ giao diện quản trị (Epic 3).
  * Server (server/forumServer.ts) là nơi thực thi thật; module này chỉ là bản client

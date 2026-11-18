@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { MASTER_ADMIN_EMAIL } from '../../shared/identityStrings.ts';
 import { ADMIN_AVATAR_URL, isLegacyAdminAvatar, normalizeAdminAvatar } from '../config/admin';
 import { safeStorage } from '../utils/storage';

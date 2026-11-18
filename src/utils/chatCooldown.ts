@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useCallback, useEffect, useState } from 'react';
 
 /* ==========================================================================

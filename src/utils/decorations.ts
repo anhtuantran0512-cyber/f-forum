@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Nhiệm vụ 10 — lớp đọc catalog trang trí (decorations-catalog.json) + ánh xạ
  * sang ShopItem + hằng số hiển thị (rarity, loại) + giá BASE_URL cho asset.

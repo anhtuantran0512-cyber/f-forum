@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { Plugin } from 'vite';
 
 export function forumServerPlugin(): Plugin {

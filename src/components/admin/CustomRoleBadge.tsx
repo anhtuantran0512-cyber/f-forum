@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Huy hiệu vai trò tùy chỉnh (Epic 3 — mục 3.5). Icon chỉ lấy từ whitelist
  * trùng khớp CUSTOM_ROLE_ICONS phía máy chủ; màu là mã hex đã được server kiểm tra.

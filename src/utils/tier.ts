@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 export interface TierInfo {
   tierNumber: number;
   roman: string;

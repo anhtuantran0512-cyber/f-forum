@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 export const ATTENDANCE_CYCLE_DAYS = 15;
 export const ATTENDANCE_BOX_MILESTONES = [5, 10, 15] as const;

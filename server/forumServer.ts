@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import fs from 'node:fs';
 import path from 'node:path';
 import { randomInt, randomUUID } from 'node:crypto';

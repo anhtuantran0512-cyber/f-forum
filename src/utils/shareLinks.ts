@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Liên kết chia sẻ câu hỏi: `?q=<id>` mở thẳng câu hỏi ở Sàn hỏi đáp.
  * Id được lọc chặt (chữ, số, gạch nối/gạch dưới, ≤ 80 ký tự) trước khi dùng.

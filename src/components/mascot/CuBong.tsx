@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Cú Bông — linh vật F-Forum (Epic 5 · Nhiemvu_5 Phase A, Nhiemvu_4 Task 3.2).
  * Cú mèo thức khuya học bài: thông thái nhưng hơi hậu đậu, đội mũ tốt nghiệp lệch.

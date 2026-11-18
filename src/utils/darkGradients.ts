@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 export const DARK_GRADIENT_PRESETS = [
   {

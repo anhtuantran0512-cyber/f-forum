@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /* oxlint-disable react/only-export-components */
 import React, { createContext, useContext } from 'react';
 import type { User } from '../types';

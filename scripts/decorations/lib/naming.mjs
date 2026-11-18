@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Đặt tên & phân loại trang trí:
  *  - slugify: kebab-case, bỏ dấu tiếng Việt, loại ký tự lạ (dùng cho tên thư mục).

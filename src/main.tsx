@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';

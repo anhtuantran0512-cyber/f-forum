@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpen, Plus, Trash2, X, Check, Bookmark, PenLine } from 'lucide-react';
 import { safeStorage } from '../utils/storage';

@@ -67,7 +67,7 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
   {
     id: 'vd-2',
     imgId: 'hf_20260922_194350_5546ea3d-6336-42c7-a59f-06165c5802be',
-    title: 'F-Forum',
+    title: 'Góc Trải Nghiệm',
     place: 'Góc Trải Nghiệm Học Thuật',
     note: 'Nơi mỗi ý tưởng và đồ án được chăm chút tỉ mỉ, gìn giữ nét tinh khôi của tuổi học trò.',
   },
@@ -194,7 +194,7 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
     id: 'vd-20',
     imgId: 'hf_20260922_194416_47e18c62-253a-42e1-97a9-9e5f6a6b8d59',
     title: 'Bản Sắc Học Trò',
-    place: 'F-Forum',
+    place: 'Góc Trải Nghiệm Học Thuật',
     note: 'Lưu giữ tinh thần hiếu học, nhiệt huyết sáng tạo và ước mơ bay cao của tuổi trẻ.',
     isTall: true,
   },
@@ -203,7 +203,7 @@ const INITIAL_VINHDANH_RECORDS: VinhDanhRecord[] = [
     imgId: 'hf_20260922_194417_a455843c-d8db-461c-8ef6-74a325d2472c',
     title: 'Người Giữ Ngọn Lửa',
     place: 'F-Forum Admin',
-    note: 'Trần Văn Anh Tuấn — Sáng lập & đồng hành cùng học sinh trường ta.',
+    note: 'Sáng lập & đồng hành cùng học sinh trường ta.',
     customImgUrl: ADMIN_AVATAR_URL,
   },
 ];

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /* Shared visibility and reduced-motion hooks for decorative media. */
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 

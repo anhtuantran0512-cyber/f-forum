@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type FC, type ReactNode } from 'react';
 import {
   Activity,

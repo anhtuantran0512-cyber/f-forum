@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { Crown } from 'lucide-react';
 import type { FC } from 'react';
 import type { User } from '../types';

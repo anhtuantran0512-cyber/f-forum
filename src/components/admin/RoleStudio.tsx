@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Xưởng vai trò (Epic 3 — mục 3.1 & 3.5).
  *  - Form tạo vai trò: tên, icon (từ bộ icon cho sẵn), màu badge (preset + color picker),

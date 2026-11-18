@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Wrapper ffmpeg dùng cho pipeline (không cần ffprobe — parse thẳng stderr của `ffmpeg -i`).
  *  - resolveFfmpeg: FFMPEG_PATH → PATH → ffmpeg-static (npm, nếu đã cài).

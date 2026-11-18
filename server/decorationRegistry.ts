@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * Nhiệm vụ 10 — registry trang trí phía server:
  *  - đọc decorations-catalog.json trên disk (cache theo mtime — không fetch);

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type React from 'react';
 import { safeStorage } from './storage';
 

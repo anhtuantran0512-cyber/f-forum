@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowRight, BookOpenCheck, LogIn, Menu, X } from 'lucide-react';
 import type { User } from '../../types';

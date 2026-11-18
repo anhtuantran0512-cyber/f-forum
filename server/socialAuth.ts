@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 /* ==========================================================================
    socialAuth — kiểm chứng đăng nhập Google / Facebook ở phía máy chủ

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { CHAT_COOLDOWN_MS } from '../utils/chatCooldown';
 
 /* ==========================================================================

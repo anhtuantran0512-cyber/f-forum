@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Flame } from 'lucide-react';
 import { formatCountdown, msUntilNextDay, streakFlameLevel, streakUrgency } from '../../utils/streakWindow';

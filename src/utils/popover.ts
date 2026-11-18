@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useLayoutEffect, useState, type RefObject, type CSSProperties } from 'react';
 import { rafThrottle } from './rafThrottle';
 

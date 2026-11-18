@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useCallback, useEffect, useState } from 'react';
 import { ShieldAlert, X, CheckCircle2, XCircle, Trash2, RefreshCw, Flag } from 'lucide-react';
 import { authHeaders, postJson } from '../utils/session';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useRef, useState, type FC } from 'react';
 import './WelcomeSequence.css';
 

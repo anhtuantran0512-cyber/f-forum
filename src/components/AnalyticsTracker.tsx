@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useRef, type FC } from 'react';
 import type { DimensionView } from '../types';
 import { authHeaders, getAuthToken } from '../utils/session';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { safeStorage } from './storage.ts';
 import { signalSessionSuspect } from './sessionWatch.ts';
 

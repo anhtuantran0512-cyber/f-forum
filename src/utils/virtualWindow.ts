@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * VIRTUAL WINDOWING & NODE RECYCLER (Discord & Facebook Web Architecture)
  *

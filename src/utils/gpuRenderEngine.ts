@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * HỆ THỐNG TỐI ƯU HÓA ĐỒ HỌA 3D / WEBGL / DOM THEO THỨ TỰ ƯU TIÊN P0 → P4
  *

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Hỏi lại máy chủ xem phiên đăng nhập còn hiệu lực không — cho những lúc client
  * KHÔNG thể tự biết:

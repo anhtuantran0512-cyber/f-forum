@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 /* ==========================================================================
    Lưới an toàn tương tác (interaction watchdog)

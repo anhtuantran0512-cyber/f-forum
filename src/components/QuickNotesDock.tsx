@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { NotebookPen, Copy, Check, Trash2, X, Timer, Flame, Lightbulb, BookMarked } from 'lucide-react';
 import { safeStorage } from '../utils/storage';

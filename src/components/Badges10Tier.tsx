@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useId, useMemo } from 'react';
 import { TIER_CONFIGS, getTierForLevel } from '../utils/tier';
 

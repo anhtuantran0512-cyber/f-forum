@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect } from 'react';
 import type { DimensionView, User } from '../../types';
 import { safeStorage } from '../../utils/storage';

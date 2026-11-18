@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { handleForumApiRequest } from '../server/forumServer.ts';
 

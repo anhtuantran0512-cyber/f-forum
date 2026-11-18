@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * EPIC 5 — phần THUẦN của lớp răn đe DevTools (không phụ thuộc React) để kiểm thử
  * trực tiếp bằng Node. Hook dùng chúng nằm ở ./devtoolsGuard.ts.

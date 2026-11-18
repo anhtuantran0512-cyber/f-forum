@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Epic 4 — Profile Clay 2.0 · Gacha Boutique · Kệ huy hiệu · Preset gradient Settings.
  * Kiểm chứng: độ hiếm, nhãn Mới/Hot/Giảm giá có cơ sở THẬT (máy chủ trừ đúng giá ưu đãi),

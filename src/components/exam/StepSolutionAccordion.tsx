@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useMemo } from 'react';
 import {
   ChevronDown,

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { Fragment, useState, useRef, useEffect, useCallback } from 'react';
 import {
   X,

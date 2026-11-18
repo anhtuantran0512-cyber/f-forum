@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
 import { ArrowRight, BookOpenCheck, Check, CheckCircle2, Copy, HeartHandshake, Sparkles } from 'lucide-react';
 import { Reveal, SectionHeading } from '../LandingPrimitives';

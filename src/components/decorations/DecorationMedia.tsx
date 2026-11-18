@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /* Shared native media layer for avatar frames, auras, and nameplates. */
 import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from 'react';
 import { resolveAssetUrl, resolveDecorationVideoSource } from '../../utils/decorations';

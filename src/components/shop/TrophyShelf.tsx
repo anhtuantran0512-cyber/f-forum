@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Kệ huy hiệu trong Hồ sơ (Epic 4): thứ bậc thị giác rõ theo độ hiếm —
  * Huyền thoại/Sử thi là ô lớn có khung động, Hiếm/Thường gọn; hover nghiêng + phát sáng.

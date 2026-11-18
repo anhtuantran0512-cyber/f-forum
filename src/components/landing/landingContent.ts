@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { LucideIcon } from 'lucide-react';
 import {
   BookOpenCheck,

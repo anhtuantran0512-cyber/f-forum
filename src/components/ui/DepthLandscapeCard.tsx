@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useRef, type PointerEvent, type ReactNode } from 'react';
 import './DepthLandscapeCard.css';
 

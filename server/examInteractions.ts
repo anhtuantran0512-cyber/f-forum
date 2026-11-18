@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { sanitizePlainText } from './authGuard.ts';
 
 const SEED_PAPER_ID = /^ex-\d{2}$/;

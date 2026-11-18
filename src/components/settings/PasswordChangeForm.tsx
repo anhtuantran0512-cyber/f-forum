@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useId, useState, type FormEvent } from 'react';
 import { Eye, EyeOff, KeyRound } from 'lucide-react';
 import {

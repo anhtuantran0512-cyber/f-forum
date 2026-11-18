@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, ChevronUp, Zap } from 'lucide-react';
 import { TierBadge, TierSvg } from './Badges10Tier';

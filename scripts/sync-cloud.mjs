@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Tự động hoá đồng bộ dữ liệu sạch và các bản cập nhật mới nhất lên Supabase Cloud
  */

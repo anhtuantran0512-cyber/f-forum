@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /*
  * F-Forum — lá chắn khởi động cho BẢN PRODUCTION.
  * Chỉ được chèn vào index.html khi `vite build` (xem securityBootPlugin trong

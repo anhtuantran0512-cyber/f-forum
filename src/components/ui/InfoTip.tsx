@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * InfoTip — nút "i" nhỏ, thông tin chi tiết chỉ hiện KHI CẦN (Epic 5 · Zero-Clutter,
  * Nhiemvu_4 Task 2 "Contextual Tooltips" · Nhiemvu_5 Phase C "Progressive Disclosure").

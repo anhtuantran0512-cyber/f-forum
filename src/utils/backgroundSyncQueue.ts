@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * PHẦN 5.1 & 5.2 — Service Worker (Stale-While-Revalidate) + Background Sync Queue
  *

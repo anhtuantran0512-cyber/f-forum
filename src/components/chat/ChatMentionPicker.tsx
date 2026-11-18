@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { AtSign, Circle } from 'lucide-react';
 import type { ChatMentionCandidate } from '../../utils/chatMentions';
 import { DecoratedAvatar } from '../decorations/DecoratedAvatar';

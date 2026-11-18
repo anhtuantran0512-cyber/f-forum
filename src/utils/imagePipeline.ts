@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * EPIC 5 — Chuẩn bị ảnh đại diện / ảnh bìa trước khi tải lên.
  *

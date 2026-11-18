@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { Heart, Target, Timer, Flame, CalendarDays, TrendingUp } from 'lucide-react';
 import { OdometerDigits } from './OdometerDigits';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Epic 5 — Đăng nhập "điện ảnh": Đèn pin soi mật khẩu (+ fallback trợ năng), linh vật Cú Bông
  * phản ứng theo hành vi, nền theo giờ trong ngày, Brand Voice, Zero-Clutter (InfoTip),

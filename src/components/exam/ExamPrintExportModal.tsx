@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {

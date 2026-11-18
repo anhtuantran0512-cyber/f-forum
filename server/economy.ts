@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { dailyTriviaForDate, shiftDateKey } from '../shared/dailyTrivia.ts';
 
 export interface DailyRewardProfile {

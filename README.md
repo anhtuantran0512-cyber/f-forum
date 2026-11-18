@@ -123,4 +123,4 @@ Chi tiết: [docs/SECURITY.md](docs/SECURITY.md).
 
 ## Bản quyền
 
-**Bản quyền trí tuệ thuộc về BroAmStuck.** Vui lòng không sao chép, phân phối lại hoặc dùng cho mục đích thương mại khi chưa có sự đồng ý bằng văn bản.
+Nội dung và mã nguồn thuộc về tác giả. Vui lòng không sao chép, phân phối lại hoặc dùng cho mục đích thương mại khi chưa có sự đồng ý bằng văn bản.

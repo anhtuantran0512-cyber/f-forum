@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 export interface SocialUserProfile {
   name: string;
   email: string;

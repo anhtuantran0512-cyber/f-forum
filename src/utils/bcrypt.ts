@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Bcrypt Utility — Mã hóa mật khẩu SuperAdmin
  * 

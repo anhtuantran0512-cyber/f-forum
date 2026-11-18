@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CreditCard, LogOut, ChevronRight, Flag, X, Shield, CheckCircle2 } from 'lucide-react';

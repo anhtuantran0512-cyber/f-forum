@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * PHẦN 3.4 — Resource Hints thông minh (preconnect / dns-prefetch / preload / prefetch)
  *

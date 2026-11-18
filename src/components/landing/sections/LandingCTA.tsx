@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { ArrowRight, BookOpenCheck, MessageSquare } from 'lucide-react';
 import { AuroraBackdrop, MagneticButton, Reveal } from '../LandingPrimitives';

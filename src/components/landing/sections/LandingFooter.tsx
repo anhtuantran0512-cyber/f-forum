@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React from 'react';
 import { ArrowUpRight, Mail, ShieldCheck } from 'lucide-react';
 import { MASTER_ADMIN_EMAIL } from '../../../../shared/identityStrings.ts';

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * EPIC 5 — diễn giải kết quả gửi tố cáo (POST /api/reports).
  *

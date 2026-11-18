@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 export const VIDEO_TARGET_FPS = 18;
 export const LOW_FPS_PLAYBACK_RATE = 0.72;
 

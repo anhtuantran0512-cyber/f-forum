@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Hằng số & hàm thuần dùng chung cho Bảng quản trị (Epic 3). Tách khỏi file
  * component để Fast Refresh hoạt động đúng (react/only-export-components).

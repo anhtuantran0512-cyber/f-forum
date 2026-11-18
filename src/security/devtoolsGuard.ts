@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * EPIC 5 — lớp răn đe DevTools cho BẢN PRODUCTION (Master Prompt · mục 4).
  *

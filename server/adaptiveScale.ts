@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Process-local cache, selected store-operation counters, volatile task callbacks,
  * and browser-reported RUM. These single-process helpers are not Redis,

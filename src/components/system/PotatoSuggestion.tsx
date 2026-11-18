@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * PotatoSuggestion — GỢI Ý bật Potato Mode trên máy yếu (EPIC 5 · KHÔNG ép buộc).
  *

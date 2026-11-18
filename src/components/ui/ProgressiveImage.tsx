@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * PHẦN 3.3 — Progressive Image Loading (LQIP - Low Quality Image Placeholder)
  *

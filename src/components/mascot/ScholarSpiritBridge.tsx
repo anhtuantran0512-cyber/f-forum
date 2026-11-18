@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useState } from 'react';
 import { loadSpiritSettings, type SpiritSettings } from '../../utils/spiritStorage';
 import './ScholarSpiritBridge.css';

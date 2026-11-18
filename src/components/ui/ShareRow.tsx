@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Check, Link2, Mail, Send, Share2 } from 'lucide-react';
 import './ShareRow.css';

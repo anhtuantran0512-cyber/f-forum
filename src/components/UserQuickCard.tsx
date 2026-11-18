@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import React, { useEffect, useRef, useState } from 'react';
 import { Award, Coins, Flame, HelpCircle, CheckCircle2, User as UserIcon, X } from 'lucide-react';
 import { Sparkles as GhibliSparkleIcon } from './ui/CozyGhibliIcons';

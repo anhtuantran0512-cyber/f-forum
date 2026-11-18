@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Nhiệm vụ 10 — Chấm điểm CHẤT LƯỢNG thực của 873 asset và gán lại rarity/giá.
  *

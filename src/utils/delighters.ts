@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * VÒNG NÂNG CẤP R3 · Delighters toàn cục.
  * Một listener `pointerdown` uỷ quyền duy nhất cho cả ứng dụng (không gắn từng nút):

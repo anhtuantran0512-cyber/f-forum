@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import type { ExamPaperFormat } from '../types';
 
 export interface ExamAttachmentFileLike {

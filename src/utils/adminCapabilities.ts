@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Năng lực quản trị của người dùng hiện tại (Epic 3 — RBAC).
  *

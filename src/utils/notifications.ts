@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { safeStorage } from './storage';
 import type { NotificationItem } from '../components/NotificationsModal';
 

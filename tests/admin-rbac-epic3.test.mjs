@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /**
  * Epic 3 — Admin / Mod / Teacher Panel & RBAC (Nhiemvu_3.md mục 3.1–3.5).
  * Kiểm chứng phía MÁY CHỦ (không chỉ ẩn nút): tạo vai trò tùy chỉnh, cấp vai trò,

@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 import { useEffect, useRef, type FC, type ReactNode } from 'react';
 import './ProfileSignature.css';
 

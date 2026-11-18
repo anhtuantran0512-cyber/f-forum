@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 
 /* ==========================================================================
    CÂU HỎI ĐÃ LƯU — toàn bộ phép tính nằm ở ĐÂY, thuần tuý (không import gì)
