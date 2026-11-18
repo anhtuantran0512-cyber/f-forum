@@ -184,7 +184,7 @@ chuẩn Discord, có test khoá (10.14):
    `AvatarWithDecoration` (comment/list); nameplate ở context nhỏ → thông
    báo, không render.
 6. **Typo "Trận→Trần"** — rà toàn bộ nguồn: data + mọi string hardcode đều
-   đúng "Trần Văn Anh Tuấn", không có slice/substring cắt hỏng unicode
+   đúng "Quản trị viên", không có slice/substring cắt hỏng unicode
    (slice JS an toàn code-unit với tiếng Việt); thêm font smoothing +
    text-rendering cho lớp tên nameplate.
 

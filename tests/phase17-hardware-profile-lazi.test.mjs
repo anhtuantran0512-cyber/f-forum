@@ -13,8 +13,8 @@ test('Phase 17 - 1. Đại Tu Showcase Phần Cứng 3D: Đa Thiết Bị iPhone
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 HardwareShowcase.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 HardwareShowcase.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {
@@ -54,8 +54,8 @@ test('Phase 17 - 2. Tinh Gọn Thư Mục Hồ Sơ: Chỉ Dùng Icon Tuyệt Đ�
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 ProfileModal.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 ProfileModal.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {
@@ -105,8 +105,8 @@ test('Phase 17 - 4. Tái Cấu Trúc Phòng Đàm Thoại Phong Cách Lazi: Filt
     const lines = content.split('\n');
     assert.equal(
       lines[0].trim(),
-      '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-      `Dòng 1 ${name} phải chứa bản quyền BroAmStuck`,
+      '/* Bản quyền trí tuệ thuộc về F-Forum */',
+      `Dòng 1 ${name} phải chứa bản quyền F-Forum`,
     );
 
     for (let i = 1; i < lines.length; i++) {

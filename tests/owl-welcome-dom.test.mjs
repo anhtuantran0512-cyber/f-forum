@@ -1,4 +1,4 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck — click thật qua React + DOM mô phỏng. */
+/* Bản quyền trí tuệ thuộc về F-Forum — click thật qua React + DOM mô phỏng. */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';

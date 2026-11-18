@@ -812,7 +812,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
         <div className="flex items-center gap-2 flex-wrap shrink-0">
           {/* Facebook Link */}
           <a
-            href="https://www.facebook.com/TuanNotTun/"
+            href="https://f-forum.vercel.app"
             target="_blank"
             rel="noopener noreferrer"
             className="w-8 h-8 rounded-full bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/40 text-blue-300 hover:text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 backdrop-blur-md"
@@ -997,7 +997,7 @@ export const AboutUs: React.FC<AboutUsProps> = ({
             }}
           >
             <span className="inner absolute top-0 left-0 w-full -translate-y-1/2 drop-shadow-[0_4px_24px_rgba(0,0,0,0.9)]">
-              <span>BroAmStuck</span> <span>Studio</span> <span>•</span> <span>Trần</span> <span>Văn</span> <span>Anh</span> <span>Tuấn</span>
+              <span>F-Forum</span> <span>Studio</span> <span>•</span> <span>Trần</span> <span>Văn</span> <span>Anh</span> <span>Tuấn</span>
             </span>
           </h1>
         </div>

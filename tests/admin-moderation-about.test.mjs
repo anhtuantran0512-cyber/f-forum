@@ -123,9 +123,9 @@ test('1. Static Architecture & Security Audit: Khu Vinh Danh & Super Admin Moder
     'AboutUs must use obsidian/liquid glass dark styling'
   );
 
-  // Verify Founder Tribute: Trần Văn Anh Tuấn & F-Forum
+  // Verify Founder Tribute: Quản trị viên & F-Forum
   assert.ok(
-    aboutUsContent.includes('Trần Văn Anh Tuấn') || aboutUsContent.includes('aboutData.founder.name'),
+    aboutUsContent.includes('Quản trị viên') || aboutUsContent.includes('aboutData.founder.name'),
     'AboutUs must render Founder name'
   );
   assert.ok(
@@ -235,7 +235,7 @@ test('2. REST Endpoint: GET & POST /api/admin/about isolation and persistence', 
     const initialJson = await getRes.json();
     const initialData = initialJson.about || initialJson;
     assert.ok(initialData.founder);
-    assert.equal(initialData.founder.name, 'Trần Văn Anh Tuấn');
+    assert.equal(initialData.founder.name, 'Quản trị viên');
     assert.ok(Array.isArray(initialData.milestones));
     assert.ok(initialData.milestones.length > 0);
 
@@ -757,7 +757,7 @@ test('8. 3D Fibonacci Sphere Engine: Golden angle, optical invariance, FLIP plat
     'AboutUs must apply 0.13 deg/px drag sensitivity and clamp pitch within +-32 deg'
   );
 
-  // 8.4 Verify 21 Default Records Celebrating Trần Văn Anh Tuấn & F-Forum
+  // 8.4 Verify 21 Default Records Celebrating Quản trị viên & F-Forum
   assert.ok(adminStoreContent.includes('ms-21'), 'adminStore must define up to 21 milestone records');
   assert.ok(adminStoreContent.includes('Khởi sinh F-Forum'), 'Record 1 must celebrate Khởi sinh F-Forum');
   assert.ok(adminStoreContent.includes('Da Nang · Vietnam'), 'Record 1 place must be Da Nang · Vietnam');

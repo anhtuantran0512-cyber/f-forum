@@ -1,5 +1,5 @@
 /**
- * Bản quyền trí tuệ thuộc về BroAmStuck
+ * Bản quyền trí tuệ thuộc về F-Forum
  *
  * AI Moderation v1.0 — Kiểm duyệt câu trả lời theo mức độ LIÊN QUAN.
  *

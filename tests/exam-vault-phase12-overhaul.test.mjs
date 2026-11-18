@@ -13,8 +13,8 @@ test('Phase 12 - 1. StepSolutionAccordion: Bản quyền, 0 // Comments, 0 Emoji
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 StepSolutionAccordion.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 StepSolutionAccordion.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {
@@ -47,8 +47,8 @@ test('Phase 12 - 2. ExamVaultView: Hệ Thống Phân Luồng 12 Môn Học, Ma 
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 ExamVaultView.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 ExamVaultView.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {

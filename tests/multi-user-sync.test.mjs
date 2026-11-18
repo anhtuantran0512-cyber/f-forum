@@ -196,7 +196,7 @@ test('3. Super Admin Isolation: ONLY the master admin email receives SUPER_ADMIN
 
     assert.ok(adminUser, 'Admin user must exist in registry');
     assert.equal(adminUser.role, 'SUPER_ADMIN', 'master admin must have SUPER_ADMIN role');
-    assert.equal(adminUser.name, 'Trần Văn Anh Tuấn');
+    assert.equal(adminUser.name, 'Quản trị viên');
 
     // Check that LoginModal source has NO "Đăng nhập Super Admin" shortcut button
     const loginModalCode = fs.readFileSync('src/components/LoginModal.tsx', 'utf8');

@@ -13,8 +13,8 @@ test('Phase 19 - 1. Trao Tra Toan Dien iPhone Nguyen Ban: Nhung /iphone5-showcas
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 HardwareShowcase.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 HardwareShowcase.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {

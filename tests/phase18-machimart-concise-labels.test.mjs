@@ -13,8 +13,8 @@ test('Phase 18 - 1. Phòng Tập Trung Machi Mart 3D Tự Host: Cục bộ /mach
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 FocusSanctuary.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 FocusSanctuary.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {

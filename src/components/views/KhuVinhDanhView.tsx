@@ -399,7 +399,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       }
     }
     return {
-      name: 'Trần Văn Anh Tuấn',
+      name: 'Quản trị viên',
       role: 'Admin F-Forum • Owner F-Forum',
       avatarUrl: ADMIN_AVATAR_URL,
       bio: 'Xây dựng F-Forum từ những dòng code đầu tiên. Không gian kết nối thực, dữ liệu thực, tôn vinh tri thức học đường và lưu giữ biên niên sử tuổi học trò.',
@@ -484,7 +484,7 @@ export const KhuVinhDanhView: React.FC<KhuVinhDanhViewProps> = ({
       if (!payload) return;
       if (payload.founder) {
         const nextFounder: FounderProfileState = {
-          name: payload.founder.name || 'Trần Văn Anh Tuấn',
+          name: payload.founder.name || 'Quản trị viên',
           role: payload.founder.role || 'Admin F-Forum • Owner F-Forum',
           avatarUrl: normalizeAdminAvatar(payload.founder.avatarUrl),
           bio: payload.founder.bio || '',

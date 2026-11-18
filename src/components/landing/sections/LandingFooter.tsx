@@ -50,7 +50,7 @@ const LINK_GROUPS: { title: string; links: { label: string; section?: string; hr
       { label: 'Câu hỏi thường gặp', section: 'faq' },
       { label: 'Báo cáo nội dung', section: 'faq' },
       { label: 'Bút danh', section: 'faq' },
-      { label: 'Liên hệ Ban Quản Trị', href: 'https://www.facebook.com/TuanNotTun/' },
+      { label: 'Liên hệ Ban Quản Trị', href: 'https://f-forum.vercel.app' },
     ],
   },
 ];
@@ -91,7 +91,7 @@ export const LandingFooter: React.FC<LandingFooterProps> = ({ currentUser, onEnt
 
             <div className="mt-6 flex items-center gap-3">
               <a
-                href="https://www.facebook.com/TuanNotTun/"
+                href="https://f-forum.vercel.app"
                 target="_blank"
                 rel="noreferrer noopener"
                 aria-label="Facebook F-Forum"

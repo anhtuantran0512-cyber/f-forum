@@ -61,7 +61,7 @@ test('Clean Data & Zero Mocks: No seed bots, mock personas or fake metrics', () 
 
   // No mock personas in Navbar or ProfileDropdown
   const profileDropdownContent = fs.readFileSync('src/components/ProfileDropdown.tsx', 'utf8');
-  assert.ok(!profileDropdownContent.includes('Super Admin (Trần Anh Tuấn)'), 'Profile dropdown must not have fake persona switcher');
+  assert.ok(!profileDropdownContent.includes('Super Admin (Quản trị viên)'), 'Profile dropdown must not have fake persona switcher');
   assert.ok(!profileDropdownContent.includes('Student Leader'), 'Must not have Student Leader persona switcher');
   assert.ok(!profileDropdownContent.includes('Guest Student'), 'Must not have Guest Student persona switcher');
   
@@ -73,7 +73,7 @@ test('Branding and HTML Metadata strictly F-Forum', () => {
   const indexHtml = fs.readFileSync('index.html', 'utf8');
   assert.match(indexHtml, /<title>F-Forum — Diễn đàn học thuật cho sinh viên FPT<\/title>/, 'HTML title must keep F-Forum branding and academic positioning');
   assert.ok(indexHtml.includes('<meta name="application-name" content="F-Forum" />'), 'application-name must be F-Forum');
-  assert.ok(!indexHtml.includes('fforum_broamstuck_studio'), 'No internal studio tags in HTML title');
+  assert.ok(!indexHtml.includes('fforum_preview'), 'No internal studio tags in HTML title');
 });
 
 test('Profile Dropdown eliminates dark oval blob class liquid-glass', () => {
@@ -87,6 +87,6 @@ test('Profile Dropdown eliminates dark oval blob class liquid-glass', () => {
 
 test('Minimalist links for Facebook and Discord in ChroniclesView', () => {
   const chronicles = fs.readFileSync('src/components/views/ChroniclesView.tsx', 'utf8');
-  assert.ok(chronicles.includes('https://www.facebook.com/TuanNotTun/'), 'Facebook link must point to TuanNotTun');
+  assert.ok(chronicles.includes('https://f-forum.vercel.app'), 'Facebook link must point to f-forum');
   assert.ok(chronicles.includes('https://discord.gg/GMDCnxxJwX'), 'Discord link must point to GMDCnxxJwX');
 });

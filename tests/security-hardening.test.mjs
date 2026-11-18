@@ -414,7 +414,7 @@ test('8. WS AUTH hợp lệ: sửa được hồ sơ của chính mình nhưng K
 
     await sleep(150);
     const after = await get(env.baseUrl, '/api/sync');
-    assert.equal(after.data.data.users[MASTER_ADMIN_EMAIL_LOWER].name, 'Trần Văn Anh Tuấn');
+    assert.equal(after.data.data.users[MASTER_ADMIN_EMAIL_LOWER].name, 'Quản trị viên');
     } finally {
       client.ws.close();
     }
@@ -884,7 +884,7 @@ test('11. LỖ HỔNG SOCIAL: không thể tự khai email admin để lấy quy
     try {
       const verified = await post(env.baseUrl, '/api/auth/social', {
         provider: 'google',
-        name: 'Trần Anh Tuấn',
+        name: 'Quản trị viên',
         email: MASTER_ADMIN_EMAIL,
         accessToken: 'ya29.token-that',
       });

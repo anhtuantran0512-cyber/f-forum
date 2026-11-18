@@ -435,7 +435,7 @@ let store: ForumDataStore = {
   users: {
     [MASTER_ADMIN_EMAIL_LOWER]: {
       id: 'user-admin',
-      name: 'Trần Văn Anh Tuấn',
+      name: 'Quản trị viên',
       email: MASTER_ADMIN_EMAIL_LOWER,
       avatar: '/assets/brand/admin-avatar.jpg',
       role: 'SUPER_ADMIN',
@@ -476,7 +476,7 @@ let store: ForumDataStore = {
     headline: 'Người Kiến Tạo & Quản Trị Hệ Thống',
     subtitle: 'Field Notes & Development Chronicles — F-Forum',
     founder: {
-      name: 'Trần Văn Anh Tuấn',
+      name: 'Quản trị viên',
       role: 'Admin F-Forum • Owner F-Forum',
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=600&fit=crop&crop=faces',
       bio: 'Xây dựng F-Forum từ những dòng code đầu tiên với mong muốn tạo nên một không gian số bình đẳng, nơi học sinh tự do kết nối tri thức, chia sẻ câu lạc bộ và lưu giữ ký ức tuổi học trò mà không bị rào cản bởi phán xét hay công nghệ phức tạp.',
@@ -3887,7 +3887,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
         const newUser: UserRecord = isSuperAdmin
           ? {
               id: 'user-admin',
-              name: name || 'Trần Văn Anh Tuấn',
+              name: name || 'Quản trị viên',
               email: MASTER_ADMIN_EMAIL,
               avatar: '/assets/brand/admin-avatar.jpg',
               role: 'SUPER_ADMIN',
@@ -4276,7 +4276,7 @@ export function setupForumServer(httpServer: any, middlewares: any) {
           user = isSuperAdmin
             ? {
                 id: 'user-admin',
-                name: name || 'Trần Văn Anh Tuấn',
+                name: name || 'Quản trị viên',
                 email: MASTER_ADMIN_EMAIL,
                 avatar: avatar || '/assets/brand/admin-avatar.jpg',
                 role: 'SUPER_ADMIN',

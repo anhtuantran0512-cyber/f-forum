@@ -211,7 +211,7 @@ const nameplateDemo = async () => {
     const card = await sharp({ create: { width: cardW, height: cardH, channels: 4, background: { r: 17, g: 26, b: 44, alpha: 1 } } })
       .composite([
         { input: npBuf, top: 40, left: 30 },
-        { input: await labelPng('BroAmStuck', { size: 40, color: '#f8fafc', weight: 800 }), top: 40 + 30, left: Math.round(cardW / 2 - 110) },
+        { input: await labelPng('F-Forum', { size: 40, color: '#f8fafc', weight: 800 }), top: 40 + 30, left: Math.round(cardW / 2 - 110) },
         { input: await labelPng(`${p.name} · ${RARITY_LABEL[p.rarity]}`, { size: 16, color: '#94a3b8' }), top: cardH - 40, left: 30 },
       ])
       .png().toBuffer();

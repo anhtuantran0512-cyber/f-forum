@@ -115,7 +115,7 @@ Tài liệu này mô tả bản phác thảo kiến trúc (wireframe) và lý do
 | | # PHÒNG CHAT [4 KÊNH| | | CHANNEL // #SANH-CHUNG · ● SYNC:LIVE| | | THÀNH VIÊN| | <- #7 Telemetry Bar
 | |                     | | +-------------------------------------+ | |           | |
 | | [●] Sảnh Chung   24 | | | ● #Sảnh Chung                24 tin | | | [✦ ADMIN] | | <- #9 Holographic Admin
-| |     Trò chuyện chung| | +-------------------------------------+ | | BroAmStuck| |
+| |     Trò chuyện chung| | +-------------------------------------+ | | F-Forum| |
 | | [ ] Học Tập & Thi 12| | | (@) Minh Khoa [Lv.8] · 21:14        | | |           | |
 | | [ ] Giải Trí & CLB 9| | | +---------------------------------+ | | | HỘI VIÊN  | |
 | | [ ] Góp Ý & Báo Lỗi | | | | Có ai đang giải đề Toán số 3    | | | | ● Lan Anh | |

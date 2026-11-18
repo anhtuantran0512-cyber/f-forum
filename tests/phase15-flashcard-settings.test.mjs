@@ -108,7 +108,7 @@ test('Phase 15 - 6. Bảo vệ chất lượng mã nguồn: 0 comment trong mã 
   filesToCheck.forEach((filePath) => {
     const raw = read(filePath);
     const lines = raw.split('\n');
-    assert.ok(lines[0].includes('/* Bản quyền trí tuệ thuộc về BroAmStuck */'), `${filePath} must have copyright header on line 1`);
+    assert.ok(lines[0].includes('/* Bản quyền trí tuệ thuộc về F-Forum */'), `${filePath} must have copyright header on line 1`);
 
     lines.slice(1).forEach((line, index) => {
       const trimmed = line.trim();

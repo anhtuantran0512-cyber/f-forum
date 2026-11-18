@@ -37,7 +37,7 @@ test('Phase 16 - 2. Ngân Hàng Câu Hỏi cbtData.ts: Chuẩn Ma Trận 3 Phầ
 test('Phase 16 - 3. CbtPracticeModal.tsx: Bộ Điều Hướng 3 Phân Khu, Tactile Đúng/Sai, Bàn Phím Ảo & Quy Chế Điểm Bộ GD&ĐT', () => {
   const modal = read('src/components/exam/CbtPracticeModal.tsx');
 
-  assert.ok(modal.includes('/* Bản quyền trí tuệ thuộc về BroAmStuck */'), 'CbtPracticeModal.tsx phải có bản quyền BroAmStuck dòng 1');
+  assert.ok(modal.includes('/* Bản quyền trí tuệ thuộc về F-Forum */'), 'CbtPracticeModal.tsx phải có bản quyền F-Forum dòng 1');
   assert.ok(modal.includes('card-hard'), 'CbtPracticeModal.tsx phải sử dụng class .card-hard');
   assert.ok(modal.includes('rounded-[16px]'), 'CbtPracticeModal.tsx phải sử dụng bo góc rounded-[16px]');
 
@@ -61,7 +61,7 @@ test('Phase 16 - 3. CbtPracticeModal.tsx: Bộ Điều Hướng 3 Phân Khu, Tac
 test('Phase 16 - 4. ExamVaultView.tsx: Bộ Lọc Đề Thi Đánh Giá Năng Lực & Huy Hiệu .card-hard', () => {
   const vault = read('src/components/views/ExamVaultView.tsx');
 
-  assert.ok(vault.includes('/* Bản quyền trí tuệ thuộc về BroAmStuck */'), 'ExamVaultView.tsx phải có bản quyền BroAmStuck dòng 1');
+  assert.ok(vault.includes('/* Bản quyền trí tuệ thuộc về F-Forum */'), 'ExamVaultView.tsx phải có bản quyền F-Forum dòng 1');
   assert.ok(vault.includes('GDPT 2018 (3 Phần Chuẩn)'), 'Phải có bộ lọc GDPT 2018 (3 Phần Chuẩn)');
   assert.ok(vault.includes('ĐGNL HSA (ĐHQG Hà Nội)'), 'Phải có bộ lọc ĐGNL HSA');
   assert.ok(vault.includes('ĐGNL V-ACT (ĐHQG TP.HCM)'), 'Phải có bộ lọc ĐGNL V-ACT');
@@ -86,7 +86,7 @@ test('Phase 16 - 5. Kỷ luật mã nguồn tuyệt đối: 0 comment trong mã 
 
     lines.forEach((line, lineIdx) => {
       const trimmed = line.trim();
-      if (lineIdx === 0 && trimmed.startsWith('/* Bản quyền trí tuệ thuộc về BroAmStuck */')) {
+      if (lineIdx === 0 && trimmed.startsWith('/* Bản quyền trí tuệ thuộc về F-Forum */')) {
         return;
       }
       assert.ok(

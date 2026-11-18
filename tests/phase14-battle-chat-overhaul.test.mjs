@@ -13,8 +13,8 @@ test('Phase 14 - 1. Đấu Trường Tranh Tài 1vs1: Radar Elo Matchmaking, 2 L
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 PeerBattleModal.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 PeerBattleModal.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {
@@ -56,8 +56,8 @@ test('Phase 14 - 2. Đàm Thoại Học Thuật: Thanh Ghim Câu Hỏi Thử Th�
     const lines = content.split('\n');
     assert.equal(
       lines[0].trim(),
-      '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-      `Dòng 1 ${name} phải chứa bản quyền BroAmStuck`,
+      '/* Bản quyền trí tuệ thuộc về F-Forum */',
+      `Dòng 1 ${name} phải chứa bản quyền F-Forum`,
     );
 
     for (let i = 1; i < lines.length; i++) {

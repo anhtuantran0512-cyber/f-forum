@@ -1,4 +1,3 @@
-/* Bản quyền trí tuệ thuộc về BroAmStuck */
 /* Client-side decoration catalog, ownership resolution, and codec hints. */
 import { useEffect, useMemo, useState } from 'react';
 import type { EquippedDecorations, ShopItem, User } from '../types/index.ts';

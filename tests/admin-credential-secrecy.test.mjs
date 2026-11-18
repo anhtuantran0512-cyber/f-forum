@@ -1,7 +1,7 @@
 /**
  * Bảo mật riêng tư quản trị (yêu cầu Chủ tịch 18/10/2026; bổ sung mã hoá 19/10/2026).
  *
- * Sự cố: giao diện đăng nhập từng có nút "Tài khoản Quản trị viên (BroAmStuck)"
+ * Sự cố: giao diện đăng nhập từng có nút "Tài khoản Quản trị viên (F-Forum)"
  * tự điền email + mật khẩu mẫu cho bất kỳ ai bấm vào — lộ danh tính và mật khẩu
  * admin ngay trên web công khai. Bộ test này khoá vĩnh viễn:
  *   1. AuthModal không được chứa mật khẩu mẫu, nhãn quảng bá tài khoản admin,

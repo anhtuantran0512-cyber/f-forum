@@ -13,8 +13,8 @@ test('Phase 13 - 1. Phòng Tập Trung Machi Mart: Live Presence, Tibetan Bowl C
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 FocusSanctuary.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 FocusSanctuary.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {
@@ -51,8 +51,8 @@ test('Phase 13 - 3. Bức Tường Lưu Bút 2027: Phong Thư Origami 3D, 4 Kỳ
 
   assert.equal(
     lines[0].trim(),
-    '/* Bản quyền trí tuệ thuộc về BroAmStuck */',
-    'Dòng 1 MemorialWallModal.tsx phải chứa bản quyền BroAmStuck',
+    '/* Bản quyền trí tuệ thuộc về F-Forum */',
+    'Dòng 1 MemorialWallModal.tsx phải chứa bản quyền F-Forum',
   );
 
   for (let i = 1; i < lines.length; i++) {

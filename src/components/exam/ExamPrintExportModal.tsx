@@ -282,7 +282,7 @@ export const ExamPrintExportModal: React.FC<ExamPrintExportModalProps> = ({
 
               {/* Footer Watermark */}
               <div className="pt-3 border-t border-slate-300 text-[10px] text-slate-500 flex flex-col items-start gap-1 sm:flex-row sm:items-center sm:justify-between">
-                <span>Bản quyền BroAmStuck — F-Forum 2027</span>
+                <span>Bản quyền F-Forum — F-Forum 2027</span>
                 <span>f-forum.edu.vn</span>
               </div>
             </div>

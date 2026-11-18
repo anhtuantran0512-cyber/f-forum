@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Bản quyền trí tuệ thuộc về BroAmStuck
+Bản quyền trí tuệ thuộc về F-Forum
 Tạo 10 tệp PDF đề thi chính thức chuẩn quốc gia cho F-Forum
 """
 

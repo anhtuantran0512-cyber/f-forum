@@ -121,7 +121,7 @@ export const ChroniclesView: React.FC<ChroniclesViewProps> = ({
 
             <div className="flex items-center gap-2 text-xs font-mono">
               <a
-                href="https://www.facebook.com/TuanNotTun/"
+                href="https://f-forum.vercel.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="tactile-brutal-btn px-3 py-1.5 rounded-[4px] bg-[var(--bg-paper)] border border-[var(--border-color)] text-[var(--ink-primary)] font-bold transition-colors"

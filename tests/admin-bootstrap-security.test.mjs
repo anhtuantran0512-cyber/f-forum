@@ -17,7 +17,7 @@ fs.writeFileSync(path.join(DATA_DIR, 'forum-data.json'), JSON.stringify({
   users: {
     [adminEmail]: {
       id: 'user-admin',
-      name: 'Trần Văn Anh Tuấn',
+      name: 'Quản trị viên',
       email: MASTER_ADMIN_EMAIL,
       role: 'SUPER_ADMIN',
       level: 150,

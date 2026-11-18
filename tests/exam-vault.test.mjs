@@ -24,8 +24,8 @@ test('2. Tệp ExamVaultView.tsx & ExamVaultView.css: Bản quyền & Zero // Co
   const tsx = read('src/components/views/ExamVaultView.tsx');
   const css = read('src/components/views/ExamVaultView.css');
 
-  assert.ok(tsx.startsWith('/* Bản quyền trí tuệ thuộc về BroAmStuck */'), 'TSX must have intellectual property header');
-  assert.ok(css.startsWith('/* Bản quyền trí tuệ thuộc về BroAmStuck */'), 'CSS must have intellectual property header');
+  assert.ok(tsx.startsWith('/* Bản quyền trí tuệ thuộc về F-Forum */'), 'TSX must have intellectual property header');
+  assert.ok(css.startsWith('/* Bản quyền trí tuệ thuộc về F-Forum */'), 'CSS must have intellectual property header');
 
   const tsxLines = tsx.split('\n');
   tsxLines.forEach((line, idx) => {
@@ -379,7 +379,7 @@ test('14. Offline / Cache Indicators & Export / Print Formatting Options for Stu
   assert.ok(vaultCss.includes('data-columns="2"'), 'CSS must style 2-column layout for print');
 });
 
-test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyền BroAmStuck & Zero Emojis', () => {
+test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyền F-Forum & Zero Emojis', () => {
   const files = [
     'src/components/views/ExamVaultView.tsx',
     'src/components/views/ExamVaultView.css',
@@ -396,7 +396,7 @@ test('15. Kỷ luật mã nguồn tuyệt đối: Zero // Comments, Bản quyề
   files.forEach((file) => {
     const content = read(file);
     assert.ok(
-      content.startsWith('/* Bản quyền trí tuệ thuộc về BroAmStuck */'),
+      content.startsWith('/* Bản quyền trí tuệ thuộc về F-Forum */'),
       `${file} must have intellectual property copyright header`,
     );
 

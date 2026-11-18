@@ -80,10 +80,10 @@ export interface AboutData {
 }
 
 export const DEFAULT_ABOUT_DATA: AboutData = {
-  headline: 'F-Forum • Trần Văn Anh Tuấn',
+  headline: 'F-Forum • Quản trị viên',
   subtitle: 'Khu Vinh Danh • Kỷ vật & lưu bút học đường',
   founder: {
-    name: 'Trần Văn Anh Tuấn',
+    name: 'Quản trị viên',
     role: 'Admin F-Forum • Owner F-Forum',
     avatarUrl: ADMIN_AVATAR_URL,
     bio: 'Đồng hành cùng F-Forum từ những ngày đầu. Không gian kết nối chân thành, tôn vinh tri thức và lưu giữ ký ức học trò.',
@@ -276,7 +276,7 @@ export const DEFAULT_ABOUT_DATA: AboutData = {
       category: 'Đồng Hành',
       place: 'F-Forum Admin',
       imageUrl: ADMIN_AVATAR_URL,
-      notes: 'Trần Văn Anh Tuấn — Sáng lập & đồng hành cùng học sinh trường ta.',
+      notes: 'Quản trị viên — Sáng lập & đồng hành cùng học sinh trường ta.',
       isTall: false,
     },
   ],

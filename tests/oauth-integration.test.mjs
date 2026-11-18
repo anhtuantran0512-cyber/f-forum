@@ -105,7 +105,7 @@ test('2. OAuth Server Endpoint (/api/auth/social): Student auto-registration and
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         provider: 'facebook',
-        name: 'Trần Anh Tuấn',
+        name: 'Quản trị viên',
         email: MASTER_ADMIN_EMAIL,
       }),
     });
@@ -123,7 +123,7 @@ test('2. OAuth Server Endpoint (/api/auth/social): Student auto-registration and
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: 'facebook',
-          name: 'Trần Anh Tuấn',
+          name: 'Quản trị viên',
           email: MASTER_ADMIN_EMAIL,
           accessToken: 'fb-token-that',
         }),
@@ -209,7 +209,7 @@ test('5. OAuth Server Endpoint Case-Insensitive Normalization & Avatar Updating'
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           provider: 'google',
-          name: 'Trần Anh Tuấn',
+          name: 'Quản trị viên',
           email: MASTER_ADMIN_EMAIL,
           accessToken: 'gg-token-that',
         }),
