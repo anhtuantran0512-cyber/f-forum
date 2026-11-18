@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 /* Thread System v1.0 — mảng xã hội nội bộ: đăng tức thì (không duyệt bài),
    Respiração public toàn trường, 1 ảnh/thread, 480 ký tự, reply lồng tối đa 3 cấp,
    5 reaction toggle, repost simple/quote, report auto-hide (≥5/1h),

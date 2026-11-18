@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {

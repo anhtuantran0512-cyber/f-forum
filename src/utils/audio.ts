@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import { safeStorage } from './storage.ts';
 
 let audioCtx: AudioContext | null = null;

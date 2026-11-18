@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowUpRight, Compass, HelpCircle, Search, BookOpen, Sparkles, PenLine } from 'lucide-react';
 import type { DimensionView } from '../../types';

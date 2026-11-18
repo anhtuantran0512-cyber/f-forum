@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 export type LearningResourceKind = 'video' | 'document' | 'official';
 
 export interface LearningResource {

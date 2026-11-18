@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 /**
  * Ô mật khẩu "Đèn pin soi mật khẩu" (Epic 5 · Nhiemvu_4 Task 3.1 · Nhiemvu_5 Phase D).
  *

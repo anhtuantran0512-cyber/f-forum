@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import React, { useState, useMemo } from 'react';
 import {
   ChevronDown,

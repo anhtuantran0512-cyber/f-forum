@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 export type DimensionView =
   | 'landing'
   | 'home'

@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import {

@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 
 /* ==========================================================================
    SẮP XẾP DIỄN ĐÀN HỎI ĐÁP — module THUẦN TUÝ (không import gì)

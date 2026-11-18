@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import type { ExamPaperFormat } from '../types';
 
 export interface ExamAttachmentFileLike {

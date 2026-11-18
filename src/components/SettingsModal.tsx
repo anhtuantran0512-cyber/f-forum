@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Settings,

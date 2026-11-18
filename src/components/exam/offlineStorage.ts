@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import { safeStorage } from '../../utils/storage';
 import type { ExamPaper } from '../../types';
 

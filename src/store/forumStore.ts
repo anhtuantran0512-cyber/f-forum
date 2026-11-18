@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type {
   DimensionView,

@@ -1,3 +1,4 @@
+/* Bản quyền trí tuệ thuộc về F-Forum */
 import type { ExamPaper, ExamCBTQuestion, ExamDifficulty } from '../../types';
 
 export const SEED_CBT_QUESTIONS: Record<string, ExamCBTQuestion[]> = {
